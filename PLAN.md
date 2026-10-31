@@ -101,9 +101,13 @@ Deviations: the SDK is `mcp` 2.3.0, where FastMCP is renamed `MCPServer`. No `pl
 Deferred: NCES/IPEDS fallback source (only stale-cache fallback exists), Carnegie labels, ACE Carnegie file, SAM.gov-based UEI match, `.mcpb` and PyPI publish unverified, Windows untested.
 Reported upstream behavior: Urban `Disallow: /api/`; Urban HTTP 500 for unpublished years; Urban ignores name filters.
 
-## Milestone 2 note (2026-10-31): part 1 done, part 2 blocked
+## Milestone 2 note (2026-10-31): complete
 Built: `servers/highered-risk` with `get_fsa_status(opeid)` (HCM, composite scores, cohort default rates), 23 tests, live run, uvx session, docs.
 New dependencies: `openpyxl` (FSA .xlsx files, read-only mode) and `xlrd` (composite scores exist only as legacy .xls). Dev-only: `xlwt` (builds the .xls test fixture).
 Design choice: the tool takes an 8-digit OPEID (resolve it with highered-institutions) instead of a UNITID, so the servers stay independent.
-Blocked: `get_audit_findings` needs a free FAC API key to verify the API live. Deferred as planned: accreditor actions, EMMA.
+Part 2 (after FAC key): `get_audit_findings(ein|uei, years)` over `general`, `findings`, `federal_awards`; explicit field list excludes contact PII; no narratives. Deferred as planned: accreditor actions, EMMA.
 Open: composite scores lag about two years and omit public institutions; confirm that is acceptable for the "Title IV financial responsibility score" question.
+
+## Decisions log addendum (2026-10-31, after M2)
+- ProPublica **dropped** from highered-institutions (owner decision): source module, allowlist host, `include_990` parameter, fixtures and docs removed. 990 data is no longer part of the profile.
+- Urban stays paced at 1 request/second (owner-approved) with a 90-day cache.

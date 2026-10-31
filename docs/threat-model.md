@@ -5,7 +5,7 @@
 
 | Threat | Mitigation |
 |---|---|
-| Prompt injection via upstream text (names, later: audit narratives, grant abstracts) | Text returned only as labeled data fields; static tool descriptions; `notice` field; skills tell the model to treat it as data; no tool takes instructions from data. |
+| Prompt injection via upstream text (names, program names, later: grant abstracts; audit narratives are deliberately not fetched) | Text returned only as labeled data fields; static tool descriptions; `notice` field; skills tell the model to treat it as data; no tool takes instructions from data. |
 | Malicious or malformed tool input | pydantic types, length caps, strict regex for identifiers, enums for filters; reject, never sanitize; validation runs before any network call. |
 | SSRF / data exfiltration through outbound calls | URLs are fixed per source; HTTPS only; host allowlist checked before each request and each redirect hop; no user-supplied URLs; credentials-in-URL rejected. |
 | Key leakage | Keys read from env only, sent in headers, never in URLs, logs, errors, fixtures, or the repo; `.env` ignored; gitleaks in CI. |

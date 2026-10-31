@@ -33,10 +33,9 @@ async def test_one_to_many_opeid8(upstream):
 async def test_profile_degrades_without_key_and_explains_nulls(upstream):
     r = await s.get_institution_profile("999001")
     d = r["data"]
-    assert d["scorecard"] is None and d["form_990"] is None
+    assert d["scorecard"] is None
     reasons = {n["field"]: n["reason"] for n in r["nulls"]}
     assert "COLLEGE_SCORECARD_API_KEY" in reasons["scorecard"]
-    assert "Public institutions" in reasons["form_990"]
     assert d["identifiers"]["ein"] == "999000001"
     assert d["latest_fall_enrollment"]["year"] == 2024  # 2025 enrollment not published in fixtures
     for k in ("source", "source_url", "as_of", "retrieved_at"):
@@ -50,13 +49,6 @@ async def test_profile_with_key_sends_header_not_url(upstream, monkeypatch):
     sc = next(q for q in upstream.requests if q.url.host == "api.data.gov")
     assert sc.headers["x-api-key"] == "TESTKEY123" and "TESTKEY123" not in str(sc.url)
     assert "TESTKEY123" not in repr(r)
-
-
-async def test_profile_990_for_private_nonprofit(upstream):
-    r = await s.get_institution_profile("166027", include_990=True)
-    f = r["data"]["form_990"]
-    assert f["filings"][0]["totrevenue"] and "pdf_url" not in f["filings"][0]
-    assert "chief_admin_name" not in repr(r)
 
 
 async def test_enrollment_trend_has_explicit_nulls(upstream):

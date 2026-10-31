@@ -5,7 +5,7 @@ Test institution: **Test Community College A** (UNITID 999001).
 ## Automated (fixture-based) — `PYTHONPATH=src uv run --no-sync pytest`
 Result on 2026-10-31: **40 passed, 1 skipped** (the skipped one is the opt-in live test).
 
-Covers: resolution by name, UNITID, OPEID8, OPEID6, EIN, UEI, and domain; ambiguity returns all candidates and `resolved: false`; one-to-many OPEID8 (South University-Savannah campuses); partial names never auto-resolve; profile degrades to explicit nulls without a Scorecard key; the key is sent in a header and never appears in URLs or output; Form 990 pass-through drops `pdf_url`; chief-administrator names are not returned; trend nulls; deterministic peers; stale-cache fallback; checksum tampering.
+Covers: resolution by name, UNITID, OPEID8, OPEID6, EIN, UEI, and domain; ambiguity returns all candidates and `resolved: false`; one-to-many OPEID8 (South University-Savannah campuses); partial names never auto-resolve; profile degrades to explicit nulls without a Scorecard key; the key is sent in a header and never appears in URLs or output; trend nulls; deterministic peers; stale-cache fallback; checksum tampering.
 
 Negative tests (all must fail safely, and fail before any network call): malformed/oversized UNITID, injection-style strings, wrong enum values, out-of-range numbers; a non-allowlisted host; non-HTTPS URL; URL with credentials; redirect to another host (the other host is never contacted); redirect to HTTP; oversized response; bounded retries without leaking URL/key/paths; cache path traversal (`..`, absolute, subdirectory, uppercase, overlong, symlink escape).
 
@@ -19,7 +19,6 @@ Verified live against real upstreams:
 - Enrollment trend 2016-2024 returned (2024 = 2,044; 2023 = 1,711).
 - `compare_peers` returned 5 public community-college peers (Carnegie 2025 basic class 12).
 - Scorecard profile fields returned for 999001 with a real key (1,000/hour limit header observed).
-- Form 990 lookup for Test College A's EIN: not found at ProPublica (public institution). Reported as a null with a reason. Harvard's EIN returned filings.
 - End-to-end MCP stdio session through `uvx --from <local path> highered-institutions`: initialize, tools/list (5 tools), a successful tools/call, and a rejected malformed call.
 
 ## Source behavior reported, not worked around

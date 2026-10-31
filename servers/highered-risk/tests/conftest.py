@@ -1,6 +1,8 @@
 import io
+import json
 import os
 import zipfile
+from pathlib import Path
 
 import httpx
 import openpyxl
@@ -66,10 +68,15 @@ def zip_bomb_xlsx() -> bytes:
     return buf.getvalue()
 
 
+FAC_KEY = "TESTFACKEY123"
+FAC = json.loads((Path(__file__).parent / "fixtures" / "fac_Test College A.json").read_text())
+
+
 class Upstream:
     def __init__(self):
         self.files = {HCM_PATH: hcm_xlsx(), COMP_PATH: composite_xls(), CDR_PATH: cdr_xlsx()}
         self.requests = []
+        self.fac = json.loads(json.dumps(FAC))
 
     def __call__(self, req: httpx.Request) -> httpx.Response:
         self.requests.append(req)
@@ -81,6 +88,13 @@ class Upstream:
             return httpx.Response(200, json={"mainContent": [{"value": f'<a href="/sites/default/files/ay16-17-composite-scores.xls">a</a> <a href="{COMP_PATH}">b</a>'}]})
         if host == "fsapartners.ed.gov" and path.startswith("/knowledge-center"):
             return httpx.Response(200, text='<a href="/sites/default/files/\n2026-09/EligibleSchoolFileFY2023OfficialFinal.xlsx">\n Official CDRs for the past three fiscal years</a><a href="/x.xlsx">other</a>')
+        if host == "api.fac.gov":
+            q = dict(req.url.params)
+            rows = self.fac.get(path.lstrip("/"), [])
+            for k, v in q.items():
+                if k == "auditee_ein" and v != "eq.999000001" or k == "auditee_uei" and v != "eq.TESTCOLLEG1A":
+                    rows = []
+            return httpx.Response(200, json=rows)
         if path in self.files:
             return httpx.Response(200, content=self.files[path])
         return httpx.Response(404)
@@ -89,6 +103,7 @@ class Upstream:
 @pytest.fixture
 def upstream(tmp_path, monkeypatch):
     monkeypatch.setenv("HIGHERED_MCPS_CACHE", str(tmp_path / "cache"))
+    monkeypatch.setenv("FAC_API_KEY", FAC_KEY)
     up = Upstream()
     server.set_guard(server.Guard(transport=httpx.MockTransport(up), backoff=0, min_interval={}))
     yield up

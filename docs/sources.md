@@ -84,6 +84,13 @@ Test institution used for probes: Harvard University (UNITID 166027).
 - Join keys: UEI and EIN. IPEDS gives EIN and (maybe) UEI, so audits join by identifier when present. Many institutions file under a system or foundation entity, so a null result is not proof of no audit.
 - **I need a free FAC key from you (or you register one) to live-verify.** Key stays in env var `FAC_API_KEY`.
 
+### Update 2026-10-31: FAC verified live (Milestone 2)
+- `GET https://api.fac.gov/<table>` with header `X-Api-Key` returns a JSON array (PostgREST). Filters are `column=eq.value`, `report_id=in.(a,b)`, `findings_count=gt.0`; `select`, `order`, `limit` work. Rate limit headers show 1000/hr. Hostile filter values (quotes, operators) are treated as data and match nothing.
+- `general`: `auditee_ein` (9 digits), `auditee_uei`, `audit_year`, `fy_end_date`, `fac_accepted_date`, `gaap_results`, the `is_*` flags (values "Yes"/"No"), `total_amount_expended`, `resubmission_status` (seen: `most_recent`). It also carries auditee and auditor contact names, emails and phones: **never requested**.
+- `findings`: structured only (`reference_number`, `award_reference`, `type_requirement`, `is_*` flags with "Y"/"N"). No narrative. Joins to `federal_awards` on `report_id` + `award_reference` for program name and ALN (`federal_agency_prefix` + `federal_award_extension`).
+- Test College A (EIN 999000001, UEI TESTCOLLEG1A): reports for 2022, 2023, 2024; 2024 has 10 findings (9 on Pell, 1 on Federal Work-Study). The 2023 report flags a material weakness with no `findings` rows (upstream inconsistency, surfaced as a warning).
+- Not used: `findings_text` (free text), `additional_eins`, `notes_to_sefa`, `corrective_action_plans`.
+
 ## 7. NSF NCSES HERD (Milestone 3)
 
 - Survey pages: `https://ncses.nsf.gov/surveys/higher-education-research-development/2024` (200). Public-use microdata from FY1972, latest FY2024; Table Builder from 1973; FY2024 has 55 tables vs 86 in FY2023.
@@ -136,5 +143,5 @@ Top level: `.github/workflows` (21 files incl. `publish-pypi.yml`), `badges`, `d
 - **Composite scores**: legacy `.xls`, newest `ay-22-23-composite-scores.xls` (fiscal years 7/1/2022 to 6/30/2023, eZ-Audit data as of Dec 17, 2024). **Private nonprofit and proprietary only.** Columns include **OPEID (8-digit)** and composite score; needs `xlrd`. VERIFIED.
 - **Cohort default rates**: `https://fsapartners.ed.gov/knowledge-center/topics/default-management/official-cohort-default-rates-schools` links "Official CDRs for the past three fiscal years" (`.../sites/default/files/2026-09/EligibleSchoolFileFY2023OfficialFinal.xlsx`, FY2023 cohort). Keyed by **6-digit School Code (= OPEID6)**; three cohort years per row; rates in percent. fsapartners.ed.gov robots.txt allows all. VERIFIED. Test College A (OPEID6 099901) is not in it.
 - studentaid.gov robots.txt: `Crawl-delay: 7`.
-- **FAC**: unchanged. UNVERIFIED live (needs a key). Not built.
+- **FAC**: VERIFIED live 2026-10-31 (see section 6 update below).
 - The "UNVERIFIED download URLs" note in section 5 above is superseded by this section.

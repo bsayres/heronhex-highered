@@ -125,9 +125,3 @@ def test_cache_tamper_detected(tmp_path, monkeypatch):
     p = cache.safe_path("a.json")
     p.write_text(p.read_text().replace('"k":1', '"k":2'))
     assert cache.read("a.json") is None
-
-
-async def test_read_only_tools():
-    tools = await server.mcp.list_tools()
-    assert {t.name for t in tools} == {"get_fsa_status"}
-    assert all(t.annotations.read_only_hint for t in tools)

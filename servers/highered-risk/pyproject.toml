@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "highered-risk"
 version = "0.1.0"
-description = "MCP server: Title IV risk signals for U.S. institutions (heightened cash monitoring, financial responsibility composite scores, cohort default rates) from FSA public files."
+description = "MCP server: Title IV risk signals for U.S. institutions (heightened cash monitoring, financial responsibility composite scores, cohort default rates) from FSA public files, and Single Audit findings from the Federal Audit Clearinghouse."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }

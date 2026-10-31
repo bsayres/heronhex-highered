@@ -42,10 +42,6 @@ class Upstream:
             return httpx.Response(200, json={"count": len(rows), "next": None, "results": rows})
         if host == "api.data.gov":
             return httpx.Response(200, json=load("scorecard_999001.json"))
-        if host == "projects.propublica.org":
-            if path.endswith("/042103580.json"):
-                return httpx.Response(200, json=load("propublica_042103580.json"))
-            return httpx.Response(404, json={"error": "Organization not found"})
         return httpx.Response(500)
 
 

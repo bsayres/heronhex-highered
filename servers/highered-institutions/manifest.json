@@ -3,7 +3,7 @@
   "name": "highered-institutions",
   "display_name": "Higher Ed Institutions",
   "version": "0.1.0",
-  "description": "Resolve and compare U.S. higher-ed institutions from free public data (IPEDS, College Scorecard, Form 990).",
+  "description": "Resolve and compare U.S. higher-ed institutions from free public data (IPEDS, College Scorecard).",
   "author": { "name": "highered-mcps contributors" },
   "license": "MIT",
   "server": {
@@ -21,7 +21,7 @@
   "tools": [
     { "name": "resolve_institution", "description": "Resolve a name, UNITID, OPEID, EIN, UEI, or domain to ranked candidates." },
     { "name": "search_institutions", "description": "Filter institutions by state, control, Carnegie class, or name text." },
-    { "name": "get_institution_profile", "description": "Identifiers, system, Carnegie, enrollment, Scorecard, and Form 990 summary." },
+    { "name": "get_institution_profile", "description": "Identifiers, system, Carnegie, enrollment, and Scorecard." },
     { "name": "get_enrollment_trend", "description": "Fall headcount enrollment by year." },
     { "name": "compare_peers", "description": "Closest peers and their enrollment trends." }
   ]

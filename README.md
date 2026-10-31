@@ -7,7 +7,7 @@ Modeled on [1102tools/federal-contracting-mcps](https://github.com/1102tools/fed
 | Server | Status | Question it answers |
 |---|---|---|
 | [`highered-institutions`](servers/highered-institutions) | Milestone 1, built | "Show the enrollment trend for [institution] and its closest peers." |
-| [`highered-risk`](servers/highered-risk) | Milestone 2, part 1 built (FSA status); audit findings blocked on a FAC key | Title IV risk signals |
+| [`highered-risk`](servers/highered-risk) | Milestone 2 built (FSA status, audit findings) | Title IV risk signals |
 | `highered-funding` | Milestone 3, planned | Research spend, grants, state funding, enrollment outlook |
 
 ## Principles
@@ -38,4 +38,4 @@ See [docs/using-with-1102tools.md](docs/using-with-1102tools.md) (SAM.gov, USAsp
 [docs/sources.md](docs/sources.md) (what was verified, what was not) · [PLAN.md](PLAN.md) · [SECURITY.md](SECURITY.md) · [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## License
-MIT. Data licenses differ by source; each response names its source. ProPublica data must be credited to ProPublica; IPEDS via the Urban Institute is ODC-By 1.0.
+MIT. Data licenses differ by source; each response names its source. IPEDS via the Urban Institute is ODC-By 1.0.

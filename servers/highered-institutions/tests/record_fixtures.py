@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 
 from highered_institutions.http import Guard
-from highered_institutions.sources import propublica, scorecard, urban
+from highered_institutions.sources import scorecard, urban
 
 OUT = Path(__file__).parent / "fixtures"
 IDS = {  # target, its live top peers, shared-name and shared-OPEID cases, one private nonprofit, distractors
@@ -31,10 +31,6 @@ async def main():
     (OUT / "enrollment.json").write_text(json.dumps(enr, indent=1))
     sc, _ = await g.get_json(scorecard.URL, {"id": "999001", "fields": ",".join(["id", *scorecard.FIELDS])}, {"X-Api-Key": __import__("os").environ["COLLEGE_SCORECARD_API_KEY"]})
     (OUT / "scorecard_999001.json").write_text(json.dumps(sc, indent=1))
-    pp, _ = await g.get_json(f"{propublica.BASE}/042103580.json")
-    pp["filings_with_data"] = [{k: v for k, v in f.items() if k in propublica.FILING_FIELDS} for f in pp["filings_with_data"][:3]]
-    pp["organization"] = {k: v for k, v in pp["organization"].items() if k in propublica.ORG_FIELDS}
-    (OUT / "propublica_042103580.json").write_text(json.dumps(pp, indent=1))
     await g.aclose()
 
 

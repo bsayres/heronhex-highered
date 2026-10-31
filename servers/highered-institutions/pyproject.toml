@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "highered-institutions"
 version = "0.1.0"
-description = "MCP server: resolve and compare U.S. higher-ed institutions using free public data (IPEDS via Urban Institute, College Scorecard, ProPublica 990s). No hosted data."
+description = "MCP server: resolve and compare U.S. higher-ed institutions using free public data (IPEDS via Urban Institute, College Scorecard). No hosted data."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }

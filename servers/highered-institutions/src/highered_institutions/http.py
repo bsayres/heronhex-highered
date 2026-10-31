@@ -16,7 +16,6 @@ ALLOWED_HOSTS = frozenset(
     {
         "educationdata.urban.org",
         "api.data.gov",
-        "projects.propublica.org",
     }
 )
 MAX_REDIRECTS = 3

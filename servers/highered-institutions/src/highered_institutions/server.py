@@ -11,7 +11,7 @@ from pydantic import Field
 from . import crosswalk as cw
 from .http import Guard, UpstreamError
 from .models import Control, Kind, State, UnitId, Year, envelope, now, source_entry
-from .sources import propublica, scorecard, urban
+from .sources import scorecard, urban
 
 logging.basicConfig(stream=sys.stderr, level=logging.WARNING, format="%(levelname)s %(message)s")
 
@@ -149,10 +149,10 @@ async def search_institutions(
 
 
 @mcp.tool(annotations={"readOnlyHint": True})
-async def get_institution_profile(unitid: UnitId, include_990: bool = True) -> dict:
+async def get_institution_profile(unitid: UnitId) -> dict:
     """Profile of one institution: identifiers (UNITID, OPEID, EIN, UEI, domain), system and
-    same-OPEID campuses, Carnegie codes, latest fall enrollment, College Scorecard outcomes, and
-    (for private nonprofits) recent Form 990 financial summaries. Missing data is null with a reason."""
+    same-OPEID campuses, Carnegie codes, latest fall enrollment, College Scorecard outcomes.
+    Missing data is null with a reason."""
     index, c, year = await _directory()
     r = index.by_unitid.get(unitid)
     if r is None:
@@ -204,22 +204,6 @@ async def get_institution_profile(unitid: UnitId, include_990: bool = True) -> d
             data["scorecard"] = None
             nulls.append({"field": "scorecard", "reason": str(e)})
 
-    # 990 (exact join on EIN from IPEDS; no name search)
-    if include_990:
-        ein = ident["ein"]
-        if not ein:
-            data["form_990"] = None
-            nulls.append({"field": "form_990", "reason": "No EIN in IPEDS; a name-based match was not attempted."})
-        else:
-            try:
-                f, url = await propublica.fetch(guard(), ein)
-                data["form_990"] = f
-                sources.append(source_entry(propublica.SOURCE, url, "latest filings listed", now()))
-                if f is None:
-                    nulls.append({"field": "form_990", "reason": "EIN not found at ProPublica. Public institutions generally do not file Form 990."})
-            except UpstreamError as e:
-                data["form_990"] = None
-                nulls.append({"field": "form_990", "reason": str(e)})
     return envelope(sources, data, nulls, warnings)
 
 
