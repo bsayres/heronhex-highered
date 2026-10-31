@@ -3,6 +3,9 @@ updates:
   - package-ecosystem: "uv"
     directory: "/servers/highered-institutions"
     schedule: { interval: "weekly" }
+  - package-ecosystem: "uv"
+    directory: "/servers/highered-risk"
+    schedule: { interval: "weekly" }
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule: { interval: "weekly" }

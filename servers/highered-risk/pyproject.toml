@@ -1,0 +1,41 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "highered-risk"
+version = "0.1.0"
+description = "MCP server: Title IV risk signals for U.S. institutions (heightened cash monitoring, financial responsibility composite scores, cohort default rates) from FSA public files."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+keywords = ["mcp", "model-context-protocol", "title-iv", "fsa", "higher-education"]
+dependencies = [
+    "mcp>=2.3.0,<3",
+    "httpx>=0.28,<1",
+    "pydantic>=2.10,<3",
+    "openpyxl>=3.1.5,<4",  # FSA publishes HCM and default-rate files as .xlsx
+    "xlrd>=2.0.2,<3",      # FSA publishes composite scores only as legacy .xls
+]
+
+[project.scripts]
+highered-risk = "highered_risk.server:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio",
+    "pip-audit",
+    "ruff",
+    "xlwt>=1.3.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/highered_risk"]
+
+[tool.pytest.ini_options]
+markers = ["live: hits real upstream APIs; run with HIGHERED_LIVE=1"]
+testpaths = ["tests"]
+pythonpath = ["src"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"

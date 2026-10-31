@@ -127,3 +127,14 @@ SAM.gov entity search (UEI, registration status), USAspending (federal awards by
 ## 1102tools layout observed
 
 Top level: `.github/workflows` (21 files incl. `publish-pypi.yml`), `badges`, `deploy`, `docs`, `scripts`, `servers`, `shared`, `tests`, `glama.json`, `license`, `readme.md`. Nine server folders under `servers/*-mcp`. Inside a server (`bls-oews-mcp`): `src/<pkg>/`, `tests/`, `scripts/`, `pyproject.toml` (hatchling, `mcp>=2.0.0,<3`, httpx, filelock, platformdirs, `[project.scripts]` entry point), `uv.lock`, `server.json`, `smithery.yaml`, `Dockerfile`, `changelog.md`, `testing.md`, `readme.md`, `license`. Publishing: tag-triggered workflow with PyPI OIDC trusted publishing. **I found no `.mcpb` manifest or workflow** in what I could see (UNVERIFIED); I'll build `.mcpb` packaging from the MCPB spec instead.
+
+
+## Update 2026-10-31: FSA sources verified (Milestone 2)
+
+- **File discovery**: `https://studentaid.gov/data-center/school/{hcm,composite-scores}.json` returns the page content including file links (undocumented endpoint; VERIFIED). Files live at `https://studentaid.gov/sites/default/files/<name>`.
+- **HCM**: `Schools-on-hcm-<mon>-<year>.xlsx`, quarterly; newest seen `Schools-on-hcm-jun-2026.xlsx` (as of 2026-06-01, 491 rows). Columns: ID, **OPEID (8-digit string)**, Institution Name, City, State, Country, Institution Type Desc, Monitor Method, Reason On Description. Includes public institutions. VERIFIED.
+- **Composite scores**: legacy `.xls`, newest `ay-22-23-composite-scores.xls` (fiscal years 7/1/2022 to 6/30/2023, eZ-Audit data as of Dec 17, 2024). **Private nonprofit and proprietary only.** Columns include **OPEID (8-digit)** and composite score; needs `xlrd`. VERIFIED.
+- **Cohort default rates**: `https://fsapartners.ed.gov/knowledge-center/topics/default-management/official-cohort-default-rates-schools` links "Official CDRs for the past three fiscal years" (`.../sites/default/files/2026-09/EligibleSchoolFileFY2023OfficialFinal.xlsx`, FY2023 cohort). Keyed by **6-digit School Code (= OPEID6)**; three cohort years per row; rates in percent. fsapartners.ed.gov robots.txt allows all. VERIFIED. Test College A (OPEID6 099901) is not in it.
+- studentaid.gov robots.txt: `Crawl-delay: 7`.
+- **FAC**: unchanged. UNVERIFIED live (needs a key). Not built.
+- The "UNVERIFIED download URLs" note in section 5 above is superseded by this section.

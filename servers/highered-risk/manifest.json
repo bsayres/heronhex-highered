@@ -1,0 +1,13 @@
+{
+  "manifest_version": "0.4",
+  "name": "highered-risk",
+  "display_name": "Higher Ed Title IV Risk",
+  "version": "0.1.0",
+  "description": "Heightened cash monitoring, composite scores, and cohort default rates from FSA public files.",
+  "author": { "name": "highered-mcps contributors" },
+  "license": "MIT",
+  "server": { "type": "uv", "entry_point": "src/main.py" },
+  "tools": [
+    { "name": "get_fsa_status", "description": "HCM list, composite score, and cohort default rates by OPEID." }
+  ]
+}

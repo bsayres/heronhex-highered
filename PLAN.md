@@ -100,3 +100,10 @@ Built: `servers/highered-institutions` (5 tools), tests, docs, CI files, mcpb ma
 Deviations: the SDK is `mcp` 2.3.0, where FastMCP is renamed `MCPServer`. No `platformdirs`/`filelock` (plain env/home path, atomic rename). Dependencies: mcp, httpx, pydantic only.
 Deferred: NCES/IPEDS fallback source (only stale-cache fallback exists), Carnegie labels, ACE Carnegie file, SAM.gov-based UEI match, `.mcpb` and PyPI publish unverified, Windows untested.
 Reported upstream behavior: Urban `Disallow: /api/`; Urban HTTP 500 for unpublished years; Urban ignores name filters.
+
+## Milestone 2 note (2026-10-31): part 1 done, part 2 blocked
+Built: `servers/highered-risk` with `get_fsa_status(opeid)` (HCM, composite scores, cohort default rates), 23 tests, live run, uvx session, docs.
+New dependencies: `openpyxl` (FSA .xlsx files, read-only mode) and `xlrd` (composite scores exist only as legacy .xls). Dev-only: `xlwt` (builds the .xls test fixture).
+Design choice: the tool takes an 8-digit OPEID (resolve it with highered-institutions) instead of a UNITID, so the servers stay independent.
+Blocked: `get_audit_findings` needs a free FAC API key to verify the API live. Deferred as planned: accreditor actions, EMMA.
+Open: composite scores lag about two years and omit public institutions; confirm that is acceptable for the "Title IV financial responsibility score" question.

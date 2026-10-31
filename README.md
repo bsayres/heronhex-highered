@@ -7,7 +7,7 @@ Modeled on [1102tools/federal-contracting-mcps](https://github.com/1102tools/fed
 | Server | Status | Question it answers |
 |---|---|---|
 | [`highered-institutions`](servers/highered-institutions) | Milestone 1, built | "Show the enrollment trend for [institution] and its closest peers." |
-| `highered-risk` | Milestone 2, planned | Title IV financial responsibility, audit findings |
+| [`highered-risk`](servers/highered-risk) | Milestone 2, part 1 built (FSA status); audit findings blocked on a FAC key | Title IV risk signals |
 | `highered-funding` | Milestone 3, planned | Research spend, grants, state funding, enrollment outlook |
 
 ## Principles

@@ -1,0 +1,254 @@
+"""FSA public files: Heightened Cash Monitoring, financial responsibility composite scores, cohort default rates.
+
+File locations are discovered from the pages' published link lists (never guessed), downloaded on demand,
+parsed with read-only parsers, and cached as compact JSON with the source file's SHA-256.
+Downloaded content is only ever parsed as spreadsheet data; nothing is executed or extracted to disk.
+"""
+import hashlib
+import io
+import re
+import zipfile
+from datetime import UTC, datetime
+
+import openpyxl
+
+from .. import cache
+from ..http import Guard, UpstreamError
+
+STUDENTAID = "https://studentaid.gov"
+HCM_PAGE = f"{STUDENTAID}/data-center/school/hcm.json"
+COMPOSITE_PAGE = f"{STUDENTAID}/data-center/school/composite-scores.json"
+CDR_PAGE = "https://fsapartners.ed.gov/knowledge-center/topics/default-management/official-cohort-default-rates-schools"
+FSAPARTNERS = "https://fsapartners.ed.gov"
+MAX_FILE_BYTES = 25_000_000
+MAX_UNZIPPED = 250_000_000
+# Segments may not start with "." so ".." and hidden names can never match.
+FILE_PATH_RE = re.compile(r"^/sites/default/files/(?:[A-Za-z0-9_-][A-Za-z0-9_.-]*/)*[A-Za-z0-9_-][A-Za-z0-9_.-]*\.xlsx?$")
+MONTHS = {m: i for i, m in enumerate(["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"], 1)}
+
+SRC_HCM = "FSA Data Center: Heightened Cash Monitoring list"
+SRC_COMPOSITE = "FSA Data Center: Financial Responsibility Composite Scores"
+SRC_CDR = "FSA: Official Cohort Default Rates for Schools"
+TTL = {"hcm": 30, "composite": 90, "cdr": 90}
+
+
+class ParseError(UpstreamError):
+    pass
+
+
+def _check_zip(data: bytes) -> None:
+    try:
+        with zipfile.ZipFile(io.BytesIO(data)) as z:
+            infos = z.infolist()
+            if len(infos) > 500 or sum(i.file_size for i in infos) > MAX_UNZIPPED:
+                raise ParseError("Spreadsheet is unexpectedly large; refusing to parse it.")
+    except zipfile.BadZipFile:
+        raise ParseError("Downloaded file is not a valid .xlsx workbook.") from None
+
+
+def _norm(v) -> str:
+    return re.sub(r"[^a-z0-9]", "", str(v or "").lower())
+
+
+def _opeid8(v) -> str | None:
+    s = str(int(v)) if isinstance(v, float) else str(v or "").strip()
+    return s.zfill(8) if s.isdigit() and len(s) <= 8 else None
+
+
+def _clean_text(v) -> str | None:
+    s = re.sub(r"\s+", " ", str(v)).strip() if v is not None else ""
+    return s or None
+
+
+# ---- discovery ---------------------------------------------------------------------------------
+
+def pick_hcm(page_text: str) -> str:
+    best, best_key = None, None
+    for path in set(re.findall(r"/sites/default/files/[A-Za-z0-9_./-]+", page_text)):
+        m = re.search(r"schools-on-hcm-?([a-z]+)-?(\d{4})\.xlsx$", path.lower())
+        if m and m.group(1)[:3] in MONTHS and FILE_PATH_RE.match(path):
+            key = (int(m.group(2)), MONTHS[m.group(1)[:3]])
+            if best_key is None or key > best_key:
+                best, best_key = path, key
+    if not best:
+        raise ParseError("No HCM list file link found on the FSA page (page layout may have changed).")
+    return STUDENTAID + best
+
+
+def pick_composite(page_text: str) -> str:
+    best, best_end = None, -1
+    for path in set(re.findall(r"/sites/default/files/[A-Za-z0-9_./-]+", page_text)):
+        m = re.search(r"ay-?(\d\d)-(\d\d)-composite-scores\.xlsx?$", path.lower())
+        if m and FILE_PATH_RE.match(path) and int(m.group(2)) > best_end:
+            best, best_end = path, int(m.group(2))
+    if not best:
+        raise ParseError("No composite score file link found on the FSA page (page layout may have changed).")
+    return STUDENTAID + best
+
+
+def pick_cdr(html: str) -> str:
+    for href, text in re.findall(r'<a [^>]*href="([^"]+)"[^>]*>(.*?)</a>', html, flags=re.DOTALL):
+        if "official cdrs for the past three fiscal years" in re.sub(r"\s+", " ", text).lower():
+            path = re.sub(r"\s+", "", href)
+            if FILE_PATH_RE.match(path) and path.endswith(".xlsx"):
+                return FSAPARTNERS + path
+    raise ParseError("No official CDR file link found on the FSA page (page layout may have changed).")
+
+
+# ---- parsers (bytes in, plain data out) ---------------------------------------------------------
+
+def parse_hcm(data: bytes) -> dict:
+    _check_zip(data)
+    wb = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True)
+    rows, as_of = [], None
+    for ws in wb.worksheets:
+        title = ws.title.strip().lower()
+        if not (title.startswith(("all hcm", "reimbursement"))):
+            continue
+        header, cols = None, {}
+        for i, row in enumerate(ws.iter_rows(values_only=True)):
+            if i == 0 and row and row[0]:
+                m = re.search(r"as of (\d{2})-(\d{2})-(\d{4})", str(row[0]))
+                if m and title.startswith("all hcm"):
+                    as_of = f"{m.group(3)}-{m.group(1)}-{m.group(2)}"
+            if header is None:
+                names = [_norm(c) for c in row]
+                if "opeid" in names:
+                    header, cols = i, {n: j for j, n in enumerate(names) if n}
+                continue
+            if not row or row[0] in (None, "") or str(row[0]).strip().lower() == "no data":
+                continue
+            get = lambda k, row=row, cols=cols: row[cols[k]] if k in cols and cols[k] < len(row) else None
+            ope = _opeid8(get("opeid"))
+            if ope:
+                rows.append({
+                    "opeid": ope, "name": _clean_text(get("institutionname")), "city": _clean_text(get("city")),
+                    "state": _clean_text(get("state")), "institution_type": _clean_text(get("institutiontypedesc")),
+                    "monitor_method": _clean_text(get("monitormethod") or get("stoppaymonitormethod")),
+                    "reason": _clean_text(get("reasonondescription")),
+                    "list": "reimbursement" if title.startswith("reimbursement") else "hcm",
+                })
+    if as_of is None:
+        raise ParseError("HCM file has an unexpected layout (no 'All HCM' sheet or as-of date).")
+    return {"as_of": as_of, "rows": rows}
+
+
+def parse_composite(data: bytes) -> dict:
+    import xlrd
+
+    if data[:4] != b"\xd0\xcf\x11\xe0" and data[:4] != b"PK\x03\x04":
+        raise ParseError("Composite score file is not a spreadsheet.")
+    if data[:2] == b"PK":
+        raise ParseError("Composite score .xlsx layout not supported yet.")
+    try:
+        wb = xlrd.open_workbook(file_contents=data, on_demand=True)
+    except (xlrd.XLRDError, ValueError):
+        raise ParseError("Could not read the composite score workbook.") from None
+    ws = wb.sheet_by_index(0)
+    title = str(ws.cell_value(0, 0))
+    period = re.search(r"Ending Between ([\d/]+) and ([\d/]+)", title)
+    src_date = re.search(r"as of ([A-Za-z]+ \d{1,2}, \d{4})", title)
+    header = next((i for i in range(min(10, ws.nrows)) if any(_norm(c) == "opeid" for c in ws.row_values(i))), None)
+    if header is None:
+        raise ParseError("Composite score file has an unexpected layout.")
+    names = [_norm(c) for c in ws.row_values(header)]
+    col = {n: j for j, n in enumerate(names)}
+    score_col = next((j for j, n in enumerate(names) if n.startswith("compositescore")), None)
+    fye_col = next((j for j, n in enumerate(names) if "fiscalyearend" in n), None)
+    rows = []
+    for i in range(header + 1, ws.nrows):
+        r = ws.row_values(i)
+        ope = _opeid8(r[col["opeid"]])
+        if not ope:
+            continue
+        fye = r[fye_col] if fye_col is not None else None
+        fye_iso = xlrd.xldate_as_datetime(fye, wb.datemode).date().isoformat() if isinstance(fye, float) and fye else None
+        score = r[score_col] if score_col is not None else None
+        rows.append({
+            "opeid": ope, "name": _clean_text(r[col["institutionname"]]), "state": _clean_text(r[col.get("state", 0)]),
+            "institution_type": _clean_text(r[col["institutiontype"]]) if "institutiontype" in col else None,
+            "fiscal_year_end": fye_iso, "composite_score": score if isinstance(score, float) else None,
+            "composite_score_raw_text": None if isinstance(score, float) else _clean_text(score),
+        })
+    return {"period": f"{period.group(1)} to {period.group(2)}" if period else None,
+            "data_source_as_of": src_date.group(1) if src_date else None, "rows": rows}
+
+
+def parse_cdr(data: bytes) -> dict:
+    _check_zip(data)
+    wb = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True)
+    ws = wb.worksheets[0]
+    title, header, rows = None, None, []
+    for i, row in enumerate(ws.iter_rows(values_only=True)):
+        if i == 0:
+            title = str(row[0] or "")
+            continue
+        if header is None:
+            names = [_norm(c) for c in row]
+            if "schoolcode" in names:
+                header = {n: j for j, n in enumerate(names) if n}
+            continue
+        if not row or row[0] in (None, ""):
+            break  # the sheet's declared dimension can be huge; stop at the first blank row
+        g = lambda k, row=row, header=header: row[header[k]] if k in header and header[k] < len(row) else None
+        rates = []
+        for n in ("1", "2", "3"):
+            if g("year" + n) is not None:
+                rates.append({"cohort_fy": _clean_text(g("year" + n)), "defaulted": g("num" + n), "in_repayment": g("denom" + n), "rate_percent": g("defaultrate" + n)})
+        rows.append({"opeid6": str(row[0]).strip(), "name": _clean_text(g("name")), "city": _clean_text(g("city")), "state": _clean_text(g("state")), "rates": rates})
+    m = re.search(r"FY\s*(\d{4})", title)
+    if header is None or not m:
+        raise ParseError("Default rate file has an unexpected layout.")
+    return {"latest_cohort_fy": m.group(1), "rows": rows}
+
+
+# ---- fetch + cache ------------------------------------------------------------------------------
+
+class Loaded:
+    def __init__(self, data: dict, meta: dict, stale: bool):
+        self.data, self.meta, self.stale = data, meta, stale
+
+
+async def _load(guard: Guard, kind: str, finder, parser) -> Loaded:
+    name = f"fsa-{kind}.json"
+    hit = cache.read(name)
+    if hit and cache.is_fresh(hit["meta"], TTL[kind]):
+        return Loaded(hit["data"], hit["meta"], False)
+    try:
+        if kind == "cdr":
+            body, _ = await guard.get_bytes(CDR_PAGE, max_bytes=2_000_000)
+            file_url = pick_cdr(body.decode("utf-8", "replace"))
+        else:
+            page, _ = await guard.get_json(HCM_PAGE if kind == "hcm" else COMPOSITE_PAGE, max_bytes=2_000_000)
+            file_url = finder(_flatten(page))
+        raw, public = await guard.get_bytes(file_url, max_bytes=MAX_FILE_BYTES)
+        parsed = parser(raw)
+    except UpstreamError:
+        if hit:
+            return Loaded(hit["data"], hit["meta"], True)
+        raise
+    as_of = parsed.get("as_of") or parsed.get("period") or f"FY{parsed.get('latest_cohort_fy')} cohort"
+    meta = cache.write(name, parsed, str(as_of), public, file_sha256=hashlib.sha256(raw).hexdigest(), file_bytes=len(raw))
+    return Loaded(parsed, meta, False)
+
+
+def _flatten(page) -> str:
+    import json
+
+    return json.dumps(page)
+
+
+async def hcm(guard: Guard) -> Loaded:
+    return await _load(guard, "hcm", pick_hcm, parse_hcm)
+
+
+async def composite(guard: Guard) -> Loaded:
+    return await _load(guard, "composite", pick_composite, parse_composite)
+
+
+async def cdr(guard: Guard) -> Loaded:
+    return await _load(guard, "cdr", None, parse_cdr)
+
+
+def now_iso() -> str:
+    return datetime.now(UTC).isoformat(timespec="seconds")
