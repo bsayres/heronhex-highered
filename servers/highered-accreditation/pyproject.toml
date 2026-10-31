@@ -1,0 +1,42 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "highered-accreditation"
+version = "0.1.0"
+description = "MCP server: institutional, programmatic and state-agency accreditation status and dated accreditation actions for U.S. institutions, from the Department of Education's DAPIP."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+keywords = ["mcp", "model-context-protocol", "accreditation", "dapip", "higher-education"]
+dependencies = [
+    "mcp>=2.3.0,<3",
+    "httpx>=0.28,<1",
+    "pydantic>=2.10,<3",
+]
+
+[project.scripts]
+highered-accreditation = "highered_accreditation.server:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio",
+    "pip-audit",
+    "ruff",
+]
+
+[tool.uv]
+# Rebuild when source files change (uv's default only watches pyproject.toml, so a local `uvx --from <path>` would run a stale build).
+cache-keys = [{ file = "pyproject.toml" }, { file = "src/**/*.py" }]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/highered_accreditation"]
+
+[tool.pytest.ini_options]
+markers = ["live: hits real upstream APIs; run with HIGHERED_LIVE=1"]
+testpaths = ["tests"]
+pythonpath = ["src"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"

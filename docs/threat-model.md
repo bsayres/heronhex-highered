@@ -45,3 +45,15 @@
 | Upstream links (agency URLs) are untrusted | Only https URLs without whitespace and under 300 characters are passed through, as data; the server never fetches them |
 | The BLS contact address leaking to a second host | The address is attached only to `www.bls.gov` per hop; a test checks it is absent from every Projections Central request |
 | Misleading comparison of state and national numbers from different years | Each row carries its own years; the same-source United States row is returned for comparison; warnings and the SKILL forbid mixing with BLS 2025-35 |
+
+## Additions for highered-accreditation (Milestone 6)
+| Risk | Control |
+|---|---|
+| A POST to a federal host (the first server whose only request is a POST) | POST allowed to one exact URL on `ope.ed.gov` with a fixed body that no caller can change; a different URL, scheme, port, credentials or look-alike host is blocked before any request; redirects on the POST are refused, not followed |
+| Hostile or oversized zip | Members must be exactly the three expected names (no extras, no duplicates, no nested or traversal names); encrypted zips refused; declared size, total size and compression ratio checked before reading; each member read with a bounded read; zip held in memory, nothing extracted to disk or executed; a parse failure is never cached |
+| Personal data in the source (administrator names, emails, phone numbers, street addresses) | Dropped at parse time, so they are never cached or returned; a test plants sentinel values and searches every response and the cache file |
+| Misleading status ("Accredited" stays on ended records) | `current` is computed from the end date and explained in `status_note`; the response warns when it overrides the recorded status; tested by mutation |
+| Tool-made categories read as the agency's verdict | `category` is documented as this tool's grouping beside the agency's verbatim wording; unknown wording is `unclassified`; no score, rank or label; the SKILL forbids "in trouble" style conclusions |
+| Free text from agencies (justification detail, names) | Control characters removed, length capped, returned as labeled data under a notice, never in tool descriptions |
+| Absence read as proof (unmatched UNITID, a state with no board in DAPIP) | Explicit nulls with reasons; the state agencies DAPIP carries are listed in every status response |
+| robots.txt and terms could not be read for `ope.ed.gov` | Recorded in the README, testing.md and SOURCES; one download per 30 days per user, through the endpoint the site's own Download button uses; owner approved on that basis |
