@@ -99,6 +99,7 @@ FINANCE_FIELDS = [
     "rev_total_current", "exp_total_current", "assets", "liabilities", "net_position_end", "equity_end",
     "rev_tuition_fees_net", "rev_appropriations_state", "rev_grants_contracts_federal", "exp_instruc_total",
     "endowment_end", "longterm_debt", "est_fte", "form_type", "reporting_form",
+    "rev_operating", "rev_nonoperating", "rev_additions", "rev_capital_approps", "net_position_change",
 ]
 
 

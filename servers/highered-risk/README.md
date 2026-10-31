@@ -6,7 +6,7 @@ MCP server (read-only) for Title IV risk signals from FSA public files and Singl
 | Tool | Status | Purpose |
 |---|---|---|
 | `get_fsa_status(opeid)` | built | Heightened Cash Monitoring list, financial responsibility composite score, official cohort default rates. |
-| `get_audit_findings(ein \| uei, years=3)` | built | Latest Single Audit submissions from the Federal Audit Clearinghouse: opinion, internal control and compliance flags, and each finding's structured flags and federal program (ALN). No finding narratives; each audit links to its FAC report. |
+| `get_audit_findings(ein \| uei, years=3)` | built | Latest Single Audit submissions from the Federal Audit Clearinghouse: opinion, internal control and compliance flags, the filing timeline against the nine-month rule (2 CFR 200.512(a)), and each finding's structured flags, decoded compliance-requirement labels and federal program (ALN). No finding narratives; each audit links to its FAC report. |
 
 Response envelope: `source`, `source_url`, `as_of`, `retrieved_at`, `sources[]` (one per file, with file SHA-256), `data`, `nulls[]`, `warnings[]`.
 

@@ -66,7 +66,8 @@ async def test_compare_peers_is_deterministic_and_documented(upstream):
     a = await s.compare_peers("999001", n_peers=3)
     b = await s.compare_peers("999001", n_peers=3)
     assert a["data"] == b["data"]
-    assert a["data"]["peer_rule"]["match"] == {"control": "public", "cc_basic_2025": 12}
+    assert a["data"]["peer_rule"]["match"] == {"control": "public", "cc_basic_2025": 12} and a["data"]["peer_rule"]["scope"]["scope"] == "national"
+    assert any("not a market or system benchmark" in w for w in a["warnings"])
     ids = [p["unitid"] for p in a["data"]["peers"]]
     assert "999001" not in ids and len(ids) == 3
     assert sum(1 for row in a["data"]["rows"] if row[4]) == 10  # target rows, one per year
@@ -82,8 +83,10 @@ async def test_financial_snapshot_public_gasb_and_private_fasb(upstream):
     r = await s.get_financial_snapshot("999001")
     d = r["data"]
     assert d["year"] == 2023 and d["reported_basis"].startswith("GASB") and d["net_position_field_used"] == "net_position_end"
-    assert d["figures"]["rev_total_current"] == 46181628.0 and d["figures"]["net_position_or_net_assets_end"] == 61681116.0
-    assert any(n["field"] == "rev_appropriations_state" for n in r["nulls"]) is False
+    f = d["figures"]
+    assert f["rev_total_current"] == 46181628.0 and f["net_position_or_net_assets_end"] == 61681116.0 and f["rev_capital_approps"] == 1787499.0
+    assert f["revenues_minus_expenses"] == 741664.0 and f["revenue_components_sum_to_total"] is True  # computed from reported totals
+    assert "history" not in d and any("single year" in w and "not a trend" in w for w in r["warnings"])
     r = await s.get_financial_snapshot("166027")
     d = r["data"]
     assert d["reported_basis"].startswith("FASB") and d["net_position_field_used"] == "equity_end"
@@ -93,9 +96,45 @@ async def test_financial_snapshot_public_gasb_and_private_fasb(upstream):
         assert r[k]
 
 
-async def test_financial_snapshot_unknown_unitid_and_no_record(upstream):
+async def test_financial_snapshot_history_shows_the_trend_and_never_nets_out_capital(upstream):
+    r = await s.get_financial_snapshot("999001", years=3)
+    h = r["data"]["history"]
+    assert [row[0] for row in h["rows"]] == [2021, 2022, 2023] and h["columns"][4] == "revenues_minus_expenses"
+    result = {row[0]: row[4] for row in h["rows"]}
+    assert result[2023] == 741664.0 and result[2021] < 0 < result[2022]  # the surplus is not stable: a single year would mislead
+    assert not any("single year" in w for w in r["warnings"])
+    assert any("not netted out" in w for w in r["warnings"]) and not any("excluding" in k for k in r["data"]["figures"])
+    assert r["as_of"] == "IPEDS finance surveys 2021-2023"
+    upstream.finance["2022"].pop("999001")
+    r = await s.get_financial_snapshot("999001", years=3)
+    assert [row[0] for row in r["data"]["history"]["rows"]] == [2021, 2023] and any(n["field"] == "FY2022" for n in r["nulls"])
+
+
+async def test_financial_snapshot_unknown_unitid_no_record_and_bad_years(upstream):
     with pytest.raises(ToolError):
         await s.get_financial_snapshot("999999")
-    upstream.finance.pop("166027")
+    upstream.finance["2023"].pop("166027")
     r = await s.get_financial_snapshot("166027")
-    assert r["data"]["figures"] is None and r["nulls"][0]["field"] == "figures"
+    assert r["data"]["figures"] is None and any(n["field"] == "FY2023" for n in r["nulls"])
+    for bad in (0, 11):
+        with pytest.raises(Exception):  # noqa: B017
+            await s.mcp.call_tool("get_financial_snapshot", {"unitid": "999001", "years": bad})
+
+
+async def test_compare_peers_same_system_and_same_state_relax_the_carnegie_class_and_say_so(upstream):
+    r = await s.compare_peers("999001", n_peers=5, scope="same_system")
+    rule = r["data"]["peer_rule"]
+    assert [p["unitid"] for p in r["data"]["peers"]] == ["999004"]  # Test College D CC: same system, different Carnegie class (11 vs 12)
+    assert rule["scope"] == {"scope": "same_system", "state": None, "system": "Massachusetts Community Colleges"}
+    assert rule["carnegie_class_required"] is False and rule["match"] == {"control": "public", "institution_level": 2}
+    assert any("Only 1 peers" in w for w in r["warnings"]) and not any("size-matched across the country" in w for w in r["warnings"])
+    r = await s.compare_peers("999001", n_peers=5, scope="same_state")
+    assert {p["state"] for p in r["data"]["peers"]} == {"MA"} and "999001" not in [p["unitid"] for p in r["data"]["peers"]]
+    assert "166027" not in [p["unitid"] for p in r["data"]["peers"]]  # Harvard is MA but private
+
+
+async def test_compare_peers_same_system_needs_a_system_and_bad_scope_is_rejected(upstream):
+    with pytest.raises(ToolError, match="no system name"):
+        await s.compare_peers("177065", scope="same_system")  # Columbia College (MO) has no system in the directory
+    with pytest.raises(Exception):  # noqa: B017
+        await s.mcp.call_tool("compare_peers", {"unitid": "999001", "scope": "regional"})

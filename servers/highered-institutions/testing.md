@@ -29,6 +29,13 @@ Verified live against real upstreams:
 ## Found while testing
 - Full-width digits (e.g. `１６７６３１`) are rejected as UNITIDs (they used to satisfy `\d`); regression cases for `get_enrollment_trend` and `get_financial_snapshot`.
 
+## Review fixes (2026-10-31, after a test brief for Test College A)
+- `get_financial_snapshot(years=N)`: history table, revenue components and capital appropriations as reported; `revenues_minus_expenses` computed from reported totals and labeled. Live Test College A FY2019-23: +2.94M, -5.09M, -2.40M, +1.14M, +0.74M while net position fell from 67.8M to 60.3M before partly recovering. Found that Urban's revenue components reconcile to total revenue in FY2020 and FY2023 but not FY2019, FY2021 or FY2022 (in FY2022 total revenue equals operating plus nonoperating with no additions line even though capital appropriations of 4.1M were reported), so no "excluding capital" figure is computed.
+- `compare_peers(scope='same_state'|'same_system')`: narrowed scopes match on control and institution level (Carnegie class relaxed, and the returned rule says so). Live: Test College A ranks 1 of 11 in the Massachusetts Community Colleges system for 2019-2024 (+22.1% vs a peer median of +2.3%); the national size-match gave a peer median of -6.6%.
+
+## Found while verifying the fixes
+- `uvx --from <local path>` reused a stale build after source edits (uv only watched `pyproject.toml`), so a stdio session ran code without the new `scope` option. Fixed for all four servers with `[tool.uv] cache-keys` including `src/**/*.py`; verified by a stdio launch that then exercised the new options.
+
 ## Source behavior reported, not worked around
 1. Urban `robots.txt` lists `Disallow: /api/`. Owner decision (2026-10-31): call Urban once per quarter (cache TTL 90 days) with 1 request/second pacing; NCES/IPEDS as backup. Contacting Urban to confirm is recommended.
 2. Urban returns **HTTP 500** (not 404) for a year not yet published (fall enrollment 2025). The year-detection probe treats a failure as "not published" for that probe only; data requests still surface errors.

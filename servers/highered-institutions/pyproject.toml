@@ -27,6 +27,10 @@ dev = [
     "pytest-asyncio>=1.4.1",
 ]
 
+[tool.uv]
+# Rebuild when source files change (uv's default only watches pyproject.toml, so a local `uvx --from <path>` would run a stale build).
+cache-keys = [{ file = "pyproject.toml" }, { file = "src/**/*.py" }]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/highered_institutions"]
 

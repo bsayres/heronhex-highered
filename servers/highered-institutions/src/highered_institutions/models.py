@@ -8,6 +8,7 @@ UnitId = Annotated[str, Field(pattern=r"^[0-9]{6}$", description="6-digit IPEDS 
 State = Annotated[str, Field(pattern=r"^[A-Za-z]{2}$", description="2-letter state/territory code")]
 Year = Annotated[int, Field(ge=1980, le=2100)]
 Control = Literal["public", "private_nonprofit", "private_for_profit"]
+PeerScope = Literal["national", "same_state", "same_system"]
 Kind = Literal["auto", "name", "unitid", "opeid", "ein", "uei", "domain"]
 
 DISCLAIMER = (

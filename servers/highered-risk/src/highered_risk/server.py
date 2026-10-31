@@ -90,7 +90,9 @@ async def get_audit_findings(ein: Ein | None = None, uei: Uei | None = None, yea
     """Single Audit (Uniform Guidance) submissions and findings for one auditee from the Federal Audit
     Clearinghouse. Give exactly one of `ein` (9 digits) or `uei` (12 characters); resolve_institution in
     highered-institutions returns both. Returns the latest `years` submissions with opinion, internal
-    control and compliance flags, and each finding's structured flags and federal program.
+    control and compliance flags, the filing timeline against the nine-month rule, and each finding's structured flags,
+    decoded compliance-requirement labels and federal program. A finding's modified_opinion flag is FAC's, and FAC does not
+    say which opinion it refers to; the financial statement opinion is gaap_opinion.
 
     Matches are exact on the identifier; there is no name search. Finding narratives are not returned;
     open report_url for them. Some public institutions are audited inside a state or system-wide audit
@@ -117,7 +119,15 @@ async def get_audit_findings(ein: Ein | None = None, uei: Uei | None = None, yea
         if (a["internal_control_material_weakness"] or a["material_noncompliance"]) and not a["finding_count"]:
             warnings.append(f"Report {a['report_id']} discloses a material weakness or noncompliance but the findings table has no rows for it; "
                             "read the report at report_url. This is how FAC returned it, not an error in this tool.")
-    data = {"matched_on": "uei" if uei else "ein", "identifier": uei or ein, "audits": r["audits"]}
+    for a in r["audits"]:
+        late = a["filing_timeline"]["days_after_nine_month_mark"]
+        if late is not None and late > 0:
+            warnings.append(f"Report {a['report_id']} (audit year {a['audit_year']}) was submitted {late} days after the nine-month mark ({a['filing_timeline']['nine_month_mark']}). "
+                            "An approved extension would not appear in FAC data, so this is a question to ask, not proof of noncompliance.")
+    data = {"matched_on": "uei" if uei else "ein", "identifier": uei or ein, "filing_rule": fac.RULE,
+            "field_notes": {"modified_opinion": fac.MODIFIED_OPINION_NOTE,
+                            "compliance_requirement_labels": f"Letters decoded with the FAC API Data Dictionary ({fac.DICTIONARY_URL}); a code can combine several letters."},
+            "audits": r["audits"]}
     t = now()
     return envelope([source_entry(fac.SOURCE, r["url"], f"submissions accepted through {max((a['fac_accepted'] or '' for a in r['audits']), default='') or 'n/a'}", t)], data, nulls, warnings)
 

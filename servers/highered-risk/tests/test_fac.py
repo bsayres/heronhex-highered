@@ -136,3 +136,56 @@ async def test_read_only_tools_now_two():
     tools = await server.mcp.list_tools()
     assert {t.name for t in tools} == {"get_fsa_status", "get_audit_findings"}
     assert all(t.annotations.read_only_hint for t in tools)
+
+
+@pytest.mark.parametrize("fy_end,expected", [
+    ("2024-06-30", "2025-03-31"),  # month-end stays month-end (Monday)
+    ("2023-06-30", "2024-04-01"),  # 2024-03-31 is a Sunday: next business day
+    ("2022-06-30", "2023-03-31"),  # Friday
+    ("2024-12-31", "2025-09-30"),  # December year-end crosses a calendar year
+    ("2024-02-29", "2024-12-02"),  # leap-day month-end: Nov 30 is a Saturday
+    ("2025-09-15", "2026-06-15"),  # mid-month stays on the same day (Monday)
+])
+def test_nine_month_mark(fy_end, expected):
+    from datetime import date
+
+    from highered_risk.sources import fac
+    assert fac.nine_month_mark(date.fromisoformat(fy_end)).isoformat() == expected
+
+
+async def test_filing_timeline_dates_months_and_late_warning(upstream):
+    r = await server.get_audit_findings(ein="999000001", years=2)
+    a24, a23 = r["data"]["audits"]
+    t24, t23 = a24["filing_timeline"], a23["filing_timeline"]
+    assert t24["submitted"] == "2026-05-12" and t24["auditor_certified"] == "2026-05-07" and t24["nine_month_mark"] == "2025-03-31"
+    assert t24["months_from_fy_end_to_submission"] == 22.4 and t24["days_after_nine_month_mark"] == 407
+    assert t23["nine_month_mark"] == "2024-04-01" and t23["days_after_nine_month_mark"] == 92
+    assert sum("days after the nine-month mark" in w for w in r["warnings"]) == 2
+    assert all("not proof of noncompliance" in w for w in r["warnings"] if "nine-month mark" in w)
+    assert "200.512" in r["data"]["filing_rule"] and "extension" in r["data"]["filing_rule"]
+
+
+async def test_on_time_filing_has_no_late_warning(upstream):
+    upstream.fac["general"][0]["submitted_date"] = "2025-03-20"
+    upstream.fac["general"][0]["fac_accepted_date"] = "2025-03-20"
+    r = await server.get_audit_findings(ein="999000001", years=2)
+    assert r["data"]["audits"][0]["filing_timeline"]["days_after_nine_month_mark"] == -11
+    assert sum("nine-month mark" in w for w in r["warnings"]) == 1
+
+
+@pytest.mark.parametrize("code,expected", [
+    ("E", ["Eligibility"]), ("N", ["Special tests and provisions"]), ("EN", ["Eligibility", "Special tests and provisions"]),
+    ("P", ["Other"]), ("O", None), ("D", None), ("K", None), ("EX", None), ("", None), (None, None), ("en", None), ("E\n", None),
+])
+def test_requirement_labels_follow_the_fac_dictionary(code, expected):
+    from highered_risk.sources import fac
+    assert fac.requirement_labels(code) == expected
+
+
+async def test_findings_carry_labels_and_field_notes(upstream):
+    r = await server.get_audit_findings(ein="999000001", years=1)
+    labels = {f["compliance_requirement_code"]: f["compliance_requirement_labels"] for f in r["data"]["audits"][0]["findings"]}
+    assert labels["E"] == ["Eligibility"] and labels["N"] == ["Special tests and provisions"]
+    notes = r["data"]["field_notes"]
+    assert "does not say" in notes["modified_opinion"] and "gaap_opinion" in notes["modified_opinion"]
+    assert "fac.gov/api/dictionary" in notes["compliance_requirement_labels"]

@@ -26,6 +26,12 @@ Verified live:
 ## Found while testing
 - Full-width digits are rejected as OPEID and EIN (they used to satisfy `\d`); regression cases added.
 
+## Review fixes (2026-10-31, after a test brief for Test College A)
+- `filing_timeline` (submitted, certified and accepted dates, months from fiscal year end, the nine-month mark rolled past weekends, days after it) replaces ad hoc date arithmetic by the model, which had mis-stated one filing as 14 months after year end when it was 22.4. Live Test College A: FY2022 submitted 2023-03-29 (8.9 months, 2 days before the mark), FY2023 2024-07-02 (12.1 months, 92 days after), FY2024 2026-05-12 (22.4 months, 407 days after). The rule text is from eCFR 2 CFR 200.512(a); extensions are authorized by the cognizant or oversight agency and are not visible in FAC data, so the warning says "a question to ask, not proof of noncompliance".
+- `compliance_requirement_labels` decoded from the FAC API Data Dictionary (A to P, D and K reserved, no O, codes can combine letters); unknown letters give null.
+- FAC's definition of `is_modified_opinion` is "the auditor identified the finding as the basis for a modified opinion"; it does not say which opinion, so the tool says so instead of calling it a compliance opinion (an earlier review comment had assumed that).
+- Date helper tests include month-ends, weekend roll-forward, a leap-day month-end and a December year end.
+
 ## Source behavior reported
 1. studentaid.gov Data Center pages are JavaScript apps. File lists are available as page-content JSON at `<page>.json` (undocumented). Used with a clear failure if the layout changes. The file's own links are the only source of file URLs.
 2. studentaid.gov over HTTP/2 intermittently failed for plain clients (`INTERNAL_ERROR`) during research; httpx worked in tests. Not reproduced in the server runs.

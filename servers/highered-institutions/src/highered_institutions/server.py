@@ -10,7 +10,17 @@ from pydantic import Field
 
 from . import crosswalk as cw
 from .http import Guard, UpstreamError
-from .models import Control, Kind, State, UnitId, Year, envelope, now, source_entry
+from .models import (
+    Control,
+    Kind,
+    PeerScope,
+    State,
+    UnitId,
+    Year,
+    envelope,
+    now,
+    source_entry,
+)
 from .sources import scorecard, urban
 
 logging.basicConfig(stream=sys.stderr, level=logging.WARNING, format="%(levelname)s %(message)s")
@@ -227,12 +237,18 @@ async def get_enrollment_trend(unitid: UnitId, start_year: Year | None = None, e
 
 
 @mcp.tool(annotations={"readOnlyHint": True})
-async def compare_peers(unitid: UnitId, n_peers: Annotated[int, Field(ge=1, le=10)] = 5, start_year: Year | None = None, end_year: Year | None = None) -> dict:
+async def compare_peers(unitid: UnitId, n_peers: Annotated[int, Field(ge=1, le=10)] = 5, start_year: Year | None = None, end_year: Year | None = None,
+                        scope: PeerScope = "national") -> dict:
     """Closest peers and their enrollment trends in one long table.
 
     Peer rule (deterministic, returned in the response): active institutions with the same control
     and 2025 Carnegie basic class (2021 class if 2025 is missing), ranked by closeness of latest
-    fall enrollment (absolute log ratio). The target's own system is not excluded."""
+    fall enrollment (absolute log ratio). The target's own system is not excluded.
+
+    `scope` narrows the pool: 'same_state' or 'same_system' (the target's system name in the IPEDS directory, for example a state
+    community college system). Within a narrowed scope the Carnegie class is not required (the pool is already small), so peers
+    match on control and institution level only; the returned rule says which was used. The default 'national' is size-matched
+    anywhere in the country, which is not the same as a market or system benchmark."""
     index, c, latest = await _directory()
     t = index.by_unitid.get(unitid)
     if t is None:
@@ -250,14 +266,23 @@ async def compare_peers(unitid: UnitId, n_peers: Annotated[int, Field(ge=1, le=1
     warnings = _stale_warning(c, *metas)
     if cls is None:
         warnings.append("Target has no Carnegie basic class; peers matched on control and institution_level only.")
+    system = cw.clean(t.get("inst_system_name"))
+    if scope == "same_system" and not system:
+        raise ToolError("This institution has no system name in the IPEDS directory, so same_system peers cannot be found.")
+    narrowed = scope != "national"
     pool = []
     for r in index.rows:
         uid = str(r["unitid"])
         if uid == unitid or not cw.is_active(r) or r.get("inst_control") != t.get("inst_control"):
             continue
-        if cls is not None and r.get(cls_field) != cls:
+        if scope == "same_state" and r.get("state_abbr") != t.get("state_abbr"):
             continue
-        if cls is None and r.get("institution_level") != t.get("institution_level"):
+        if scope == "same_system" and cw.clean(r.get("inst_system_name")) != system:
+            continue
+        if narrowed or cls is None:
+            if r.get("institution_level") != t.get("institution_level"):
+                continue
+        elif r.get(cls_field) != cls:
             continue
         v = _enr_value(tables[ref_year].get(uid))
         if v:
@@ -273,49 +298,91 @@ async def compare_peers(unitid: UnitId, n_peers: Annotated[int, Field(ge=1, le=1
         long_rows += [[uid, names[uid], x["year"], x["enrollment_fall"], uid == unitid] for x in rows]
     data = {
         "target_unitid": unitid,
-        "peer_rule": {"match": {"control": cw.CONTROL.get(t.get("inst_control")), cls_field: cls}, "ranked_by": f"abs(ln(enrollment/target)) in fall {ref_year}", "candidates_considered": len(pool)},
+        "peer_rule": {"match": ({"control": cw.CONTROL.get(t.get("inst_control")), "institution_level": t.get("institution_level")} if narrowed or cls is None
+                                else {"control": cw.CONTROL.get(t.get("inst_control")), cls_field: cls}),
+                      "scope": {"scope": scope, "state": t.get("state_abbr") if scope == "same_state" else None, "system": system if scope == "same_system" else None},
+                      "carnegie_class_required": not (narrowed or cls is None),
+                      "ranked_by": f"abs(ln(enrollment/target)) in fall {ref_year}", "candidates_considered": len(pool)},
         "peers": [{"unitid": p[1], "name": p[2]["inst_name"], "state": p[2]["state_abbr"], f"enrollment_fall_{ref_year}": p[3]} for p in peers],
         "columns": ["unitid", "name", "year", "enrollment_fall", "is_target"],
         "rows": long_rows,
     }
     if len(peers) < n_peers:
         warnings.append(f"Only {len(peers)} peers met the rule.")
+    if scope == "national":
+        warnings.append("Peers are size-matched across the country, not a market or system benchmark. Use scope='same_state' or 'same_system' for a local comparison.")
     srcs = [_entry(urban.SOURCE, c), source_entry("IPEDS fall enrollment via Urban Institute (ODC-By 1.0)", metas[0].meta["source_url"], f"IPEDS fall enrollment {s}-{e}", min(m.meta["retrieved_at"] for m in metas), served_stale_cache=any(m.stale for m in metas))]
     return envelope(srcs, data, nulls, warnings)
 
 
-@mcp.tool(annotations={"readOnlyHint": True})
-async def get_financial_snapshot(unitid: UnitId) -> dict:
-    """Headline finances for one institution from the latest IPEDS finance survey, as reported, in dollars.
-    Covers public institutions too (unlike FSA composite scores). Values are never scored or estimated.
+def _finance_figures(row: dict) -> tuple[str | None, str | None, dict]:
+    """(basis label, net-position field used, figures) from one IPEDS finance row. Arithmetic is on reported figures only."""
+    net_field = "net_position_end" if row["net_position_end"] is not None else "equity_end" if row["equity_end"] is not None else None
+    basis = {"net_position_end": "GASB-style (net position)", "equity_end": "FASB-style (net assets)"}.get(net_field)
+    keep = ["rev_total_current", "exp_total_current", "assets", "liabilities", "rev_tuition_fees_net", "rev_appropriations_state",
+            "rev_grants_contracts_federal", "exp_instruc_total", "endowment_end", "longterm_debt", "est_fte",
+            "rev_operating", "rev_nonoperating", "rev_additions", "rev_capital_approps"]
+    figures = {k: row[k] for k in keep}
+    figures["net_position_or_net_assets_end"] = row[net_field] if net_field else None
+    rev, exp = row["rev_total_current"], row["exp_total_current"]
+    figures["revenues_minus_expenses"] = rev - exp if rev is not None and exp is not None else None
+    parts = [row["rev_operating"], row["rev_nonoperating"]]
+    figures["revenue_components_sum_to_total"] = (None if rev is None or any(p is None for p in parts)
+                                                  else abs(sum(parts) + (row["rev_additions"] or 0) - rev) < 1)
+    return basis, net_field, figures
 
-    Institutions report on GASB-style (net position) or FASB-style (net assets) statements, whichever they use
-    (public institutions may use either). The two are not directly comparable; the response names which one was reported."""
+
+@mcp.tool(annotations={"readOnlyHint": True})
+async def get_financial_snapshot(unitid: UnitId, years: Annotated[int, Field(ge=1, le=10)] = 1) -> dict:
+    """Headline finances for one institution from IPEDS finance surveys, as reported, in dollars. Covers public institutions
+    too (unlike FSA composite scores). Values are never scored or estimated. `years` > 1 adds a year-by-year history ending at
+    the latest published year: use it, because one year's surplus or deficit is not a trend.
+
+    Institutions report on GASB-style (net position) or FASB-style (net assets) statements, whichever they use (public
+    institutions may use either); the two are not directly comparable and the response names which one was reported.
+    `revenues_minus_expenses` is computed here as reported total revenues minus reported total expenses; it is not an official
+    surplus measure. Total revenues can include capital appropriations or gifts depending on the filer and year, so the
+    reported component lines are returned and no 'excluding capital' figure is computed."""
     index, _c, dir_year = await _directory()
     r = index.by_unitid.get(unitid)
     if r is None:
         raise ToolError("UNITID not found in the IPEDS directory.")
-    year = await urban.latest_finance_year(guard(), dir_year)
-    row, url = await urban.finance(guard(), unitid, year)
-    nulls, warnings = [], []
-    if row is None:
-        data = {"unitid": unitid, "name": r["inst_name"], "year": year, "figures": None}
-        nulls.append({"field": "figures", "reason": f"No IPEDS finance record for this UNITID in {year}. Some institutions report through a parent, or did not file."})
+    latest = await urban.latest_finance_year(guard(), dir_year)
+    nulls, warnings, history, first_url = [], [], [], None
+    data: dict = {"unitid": unitid, "name": r["inst_name"], "year": latest, "units": "US dollars (est_fte is a count)", "figures": None}
+    for year in range(latest, latest - years, -1):
+        row, url = await urban.finance(guard(), unitid, year)
+        first_url = first_url or url
+        if row is None:
+            nulls.append({"field": f"FY{year}", "reason": f"No IPEDS finance record for this UNITID in {year}. Some institutions report through a parent, or did not file."})
+            continue
+        basis, net_field, figures = _finance_figures(row)
+        if year == latest:
+            data.update({"reported_basis": basis, "net_position_field_used": net_field, "form_type_code": row["form_type"],
+                         "reporting_form_code": row["reporting_form"], "figures": figures})
+            for k, v in figures.items():
+                if v is None:
+                    nulls.append({"field": k, "reason": "Not reported on this institution's finance form."})
+        history.append([year, basis, figures["rev_total_current"], figures["exp_total_current"], figures["revenues_minus_expenses"],
+                        figures["net_position_or_net_assets_end"], figures["rev_appropriations_state"], figures["rev_tuition_fees_net"],
+                        figures["rev_capital_approps"], figures["est_fte"]])
+    if years > 1:
+        history.sort()
+        data["history"] = {"columns": ["year", "basis", "total_revenues", "total_expenses", "revenues_minus_expenses", "net_position_or_net_assets_end",
+                                       "state_appropriations", "net_tuition_and_fees", "capital_appropriations", "est_fte"], "rows": history}
+        if len({h[1] for h in history}) > 1:
+            warnings.append("The institution changed between GASB-style and FASB-style reporting within this period; do not compare across that change.")
     else:
-        net_field = "net_position_end" if row["net_position_end"] is not None else "equity_end" if row["equity_end"] is not None else None
-        basis = {"net_position_end": "GASB-style (net position)", "equity_end": "FASB-style (net assets)"}.get(net_field)
-        keep = ["rev_total_current", "exp_total_current", "assets", "liabilities", "rev_tuition_fees_net", "rev_appropriations_state",
-                "rev_grants_contracts_federal", "exp_instruc_total", "endowment_end", "longterm_debt", "est_fte"]
-        figures = {k: row[k] for k in keep}
-        figures["net_position_or_net_assets_end"] = row[net_field] if net_field else None
-        data = {"unitid": unitid, "name": r["inst_name"], "year": year, "units": "US dollars (est_fte is a count)",
-                "reported_basis": basis, "net_position_field_used": net_field, "form_type_code": row["form_type"],
-                "reporting_form_code": row["reporting_form"], "figures": figures}
-        for k, v in figures.items():
-            if v is None:
-                nulls.append({"field": k, "reason": "Not reported on this institution's finance form."})
-        warnings.append("GASB-style and FASB-style figures are not directly comparable; compare like with like. This is the latest published IPEDS finance year and lags the present.")
-    entry = source_entry(urban.SOURCE, url, f"IPEDS finance survey {year}", now())
+        warnings.append("This is a single year. A one-year surplus or deficit is not a trend: request years=5 or more before drawing conclusions.")
+    if data["figures"] is not None and data["figures"]["revenue_components_sum_to_total"] is False:
+        warnings.append("Reported revenue components do not add up to total revenues for this institution and year, so the lines are not directly reconcilable.")
+    if data["figures"] is not None:
+        warnings.append("GASB-style and FASB-style figures are not directly comparable; compare like with like. The latest published IPEDS finance year lags the present.")
+        warnings.append("Capital appropriations (capital_appropriations / rev_capital_approps) may or may not be inside total revenues depending on the filer and year; "
+                        "they are returned as reported, not netted out.")
+    if not history:
+        nulls.append({"field": "figures", "reason": "No IPEDS finance data could be retrieved for this institution."})
+    entry = source_entry(urban.SOURCE, first_url or urban.BASE, f"IPEDS finance surveys {latest - years + 1}-{latest}" if years > 1 else f"IPEDS finance survey {latest}", now())
     return envelope([entry], data, nulls, warnings)
 
 

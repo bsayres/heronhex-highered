@@ -5,8 +5,10 @@ and phone numbers for auditee and auditor staff; those are never requested. The 
 holds structured flags only (the free-text finding narratives live in a different table that this
 module does not query).
 """
+import calendar
 import os
 import re
+from datetime import date, timedelta
 
 from ..http import Guard, UpstreamError
 
@@ -20,7 +22,7 @@ MAX_FINDINGS = 500
 
 GENERAL_FIELDS = [
     "report_id", "audit_year", "auditee_name", "auditee_ein", "auditee_uei", "fy_start_date", "fy_end_date",
-    "fac_accepted_date", "audit_type", "type_audit_code", "gaap_results", "is_going_concern_included",
+    "fac_accepted_date", "submitted_date", "auditor_certified_date", "auditee_certified_date", "audit_type", "type_audit_code", "gaap_results", "is_going_concern_included",
     "is_internal_control_deficiency_disclosed", "is_internal_control_material_weakness_disclosed",
     "is_material_noncompliance_disclosed", "is_low_risk_auditee", "dollar_threshold", "total_amount_expended",
     "oversight_agency", "cognizant_agency", "resubmission_status", "resubmission_version",
@@ -38,6 +40,60 @@ FINDING_FLAGS = ["is_material_weakness", "is_significant_deficiency", "is_questi
 AUDIT_FLAGS = ["is_going_concern_included", "is_internal_control_deficiency_disclosed",
                "is_internal_control_material_weakness_disclosed", "is_material_noncompliance_disclosed",
                "is_low_risk_auditee"]
+
+
+# FAC API Data Dictionary (https://fac.gov/api/dictionary): type_requirement is one or more of these letters, alphabetical,
+# no repeats. D and K are reserved; there is no "O".
+REQUIREMENT_LABELS = {
+    "A": "Activities allowed or unallowed", "B": "Allowable costs/cost principles", "C": "Cash management", "E": "Eligibility",
+    "F": "Equipment and real property management", "G": "Matching, level of effort, earmarking",
+    "H": "Period of performance (or availability) of Federal funds", "I": "Procurement and suspension and debarment",
+    "J": "Program income", "L": "Reporting", "M": "Subrecipient monitoring", "N": "Special tests and provisions", "P": "Other",
+}
+DICTIONARY_URL = "https://fac.gov/api/dictionary"
+MODIFIED_OPINION_NOTE = ("FAC definition: 'Y' if the auditor identified the finding as the basis for a modified opinion. FAC does not say here which "
+                         "opinion; the report-level financial statement opinion is gaap_opinion. Read the report for details.")
+RULE = ("2 CFR 200.512(a): the reporting package is due within 30 days after the auditee receives the auditor's report or nine months after the end "
+        "of the audit period, whichever is earlier (next business day if it falls on a weekend or federal holiday); the cognizant or oversight "
+        "agency may authorize an extension. FAC data does not show extensions or the date the auditor's report was received.")
+
+
+def requirement_labels(code: str | None) -> list[str] | None:
+    """Label each letter of a requirement code; None if the code is empty or has a letter FAC does not define."""
+    if not code or not re.fullmatch(r"[A-Z]{1,15}", code):
+        return None
+    labels = [REQUIREMENT_LABELS.get(c) for c in code]
+    return None if any(x is None for x in labels) else labels
+
+
+def _date(s) -> date | None:
+    try:
+        return date.fromisoformat(str(s)[:10])
+    except ValueError:
+        return None
+
+
+def nine_month_mark(fy_end: date) -> date:
+    """Nine months after the end of the audit period (month-end stays month-end), rolled to Monday if it lands on a weekend.
+    Federal holidays are not applied."""
+    month = fy_end.month + 9
+    year, month = fy_end.year + (month - 1) // 12, (month - 1) % 12 + 1
+    last = calendar.monthrange(year, month)[1]
+    day = last if fy_end.day == calendar.monthrange(fy_end.year, fy_end.month)[1] else min(fy_end.day, last)
+    d = date(year, month, day)
+    return d + timedelta(days=(7 - d.weekday()) % 7 if d.weekday() >= 5 else 0)
+
+
+def filing_timeline(g: dict) -> dict:
+    fy_end, filed = _date(g.get("fy_end_date")), _date(g.get("submitted_date")) or _date(g.get("fac_accepted_date"))
+    mark = nine_month_mark(fy_end) if fy_end else None
+    return {
+        "fy_end": g.get("fy_end_date"), "auditor_certified": g.get("auditor_certified_date"), "auditee_certified": g.get("auditee_certified_date"),
+        "submitted": g.get("submitted_date"), "fac_accepted": g.get("fac_accepted_date"),
+        "months_from_fy_end_to_submission": round((filed - fy_end).days / 30.44, 1) if fy_end and filed else None,
+        "nine_month_mark": mark.isoformat() if mark else None,
+        "days_after_nine_month_mark": (filed - mark).days if mark and filed else None,
+    }
 
 
 def has_key() -> bool:
@@ -92,6 +148,7 @@ async def fetch(guard: Guard, *, ein: str | None, uei: str | None, years: int) -
             fs.append({
                 "reference_number": f.get("reference_number"),
                 "compliance_requirement_code": f.get("type_requirement"),
+                "compliance_requirement_labels": requirement_labels(f.get("type_requirement")),
                 "program": None if a is None else {
                     "aln": f"{a['federal_agency_prefix']}.{a['federal_award_extension']}", "name": a["federal_program_name"]},
                 **{k.removeprefix("is_"): _flag(f.get(k)) for k in FINDING_FLAGS},
@@ -100,6 +157,7 @@ async def fetch(guard: Guard, *, ein: str | None, uei: str | None, years: int) -
             "report_id": g["report_id"], "report_url": REPORT_URL.format(g["report_id"]),
             "audit_year": g.get("audit_year"), "auditee_name": g.get("auditee_name"),
             "fy_start": g.get("fy_start_date"), "fy_end": g.get("fy_end_date"), "fac_accepted": g.get("fac_accepted_date"),
+            "filing_timeline": filing_timeline(g),
             "audit_type": g.get("audit_type"), "gaap_opinion": g.get("gaap_results"),
             "total_federal_expended": g.get("total_amount_expended"), "oversight_agency": g.get("oversight_agency") or None,
             "resubmission_status": g.get("resubmission_status"), "resubmission_version": g.get("resubmission_version"),

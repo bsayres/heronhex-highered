@@ -17,3 +17,7 @@ uv run --no-sync ruff check src tests && uv run --no-sync pip-audit
 macOS note: if the project lives under a folder macOS flags as hidden-file inheriting, the editable install's `.pth` file can be marked `hidden` and Python skips it (`ModuleNotFoundError`). Using `PYTHONPATH=src` (as above) avoids this; `uvx --from <path>` is unaffected.
 
 Re-record fixtures with `tests/record_fixtures.py`; check that no key appears in them before committing.
+
+## Running from a local path with `uvx`
+`uvx --from <path>` builds the package once and reuses that build. By default uv only notices changes to `pyproject.toml`, not to source files, so a client (Claude Desktop, Claude Code) could keep running an old build after you change code. Each server's `pyproject.toml` therefore sets `[tool.uv] cache-keys` to include `src/**/*.py`; the next launch rebuilds. If a client still shows old behavior, restart it, or run `uv cache clean <package-name>`.
+
