@@ -19,6 +19,23 @@ BLS_ROWS = [("Registered nurses", "29-1141", "Line item", 3465.4, 3660.1, 180.8,
 ONET_VERSION = "31_0"
 
 
+def pc_row(fips: str, area: str, soc: str, title: str, base: int, proj: int, openings: int, years=("2024", "2034"), url="https://www.mass.gov/info-details/employment-projections") -> dict:
+    return {"Area": area, "Title": title, "Base": str(base), "Projected": str(proj), "Change": str(proj - base), "PercentChange": str(round((proj - base) / base * 100, 1)),
+            "AvgAnnualOpenings": str(openings), "STFIPS": fips, "StateURL": url, "OccCode": soc, "BaseYear": years[0], "ProjYear": years[1]}
+
+
+def pc_data() -> dict:
+    long = [pc_row("0", " United States", "29-1141", "Registered Nurses", 3300000, 3500000, 189100, url=""),
+            pc_row("25", "Massachusetts", "29-1141", "Registered Nurses", 91850, 94850, 4930),
+            pc_row("1", "Alabama", "29-1141", "Registered Nurses", 50000, 52000, 3270, url="https://www.labor.alabama.gov/lmi"),
+            pc_row("0", " United States", "25-1072", "Nursing Instructors and Teachers, Postsecondary", 90000, 99000, 8600, url=""),
+            pc_row("25", "Massachusetts", "25-1072", "Nursing Instructors and Teachers, Postsecondary", 2790, 3370, 280),
+            pc_row("0", " United States", "31-1120", "Home Health and Personal Care Aides", 4000000, 4800000, 800000, url=""),
+            pc_row("25", "Massachusetts", "31-1120", "Home Health and Personal Care Aides", 160000, 180000, 18800)]
+    short = [pc_row("25", "Massachusetts", "29-1141", "Registered Nurses", 91770, 93140, 5280, years=("2025", "2027"))]
+    return {"LongTermRestJson": long, "ShortTermRestJson": short}
+
+
 def xlsx(sheets: dict[str, list[list]]) -> bytes:
     wb = openpyxl.Workbook()
     wb.remove(wb.active)
@@ -80,6 +97,10 @@ class Upstream:
         self.onet = onet_files()
         self.scorecard = scorecard_json()
         self.bls_status = 200
+        self.pc = pc_data()
+        self.pc_extra = []
+        self.pc_pages = 1
+        self.pc_status = 200
 
     def __call__(self, req: httpx.Request) -> httpx.Response:
         self.requests.append(req)
@@ -96,6 +117,18 @@ class Upstream:
             for name, body in self.onet.items():
                 if path == f"/dl_files/database/db_{ONET_VERSION}_csv/{name}.csv":
                     return httpx.Response(200, content=body.encode())
+        if host == "public.projectionscentral.org":
+            if self.pc_status != 200:
+                return httpx.Response(self.pc_status)
+            parts = path.strip("/").split("/")
+            if len(parts) != 4 or parts[0] != "Projections" or parts[1] not in self.pc:
+                return httpx.Response(404, text="No results found.")
+            fips = {str(int(f)) for f in parts[2].split("+") if f.isdigit()}
+            socs = set(parts[3].split("+"))
+            rows = [r for r in self.pc[parts[1]] if r["STFIPS"] in fips and r["OccCode"] in socs] + self.pc_extra
+            if not rows:
+                return httpx.Response(404, text="No results found.")
+            return httpx.Response(200, json={"rows": rows, "pager": {"current_page": 0, "total_items": len(rows), "total_pages": self.pc_pages, "items_per_page": 1000}})
         if host == "api.data.gov":
             return httpx.Response(200, json=self.scorecard if req.url.params.get("id") == "999001" else {"results": [], "metadata": {"total": 0}})
         return httpx.Response(404)

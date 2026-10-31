@@ -126,7 +126,7 @@ def test_cache_tamper_detected(tmp_path, monkeypatch):
 
 async def test_tools_are_read_only_static_and_secret_free(upstream):
     tools = await server.mcp.list_tools()
-    assert {t.name for t in tools} == {"map_program_to_occupations", "get_occupation_outlook", "get_occupation_skills", "get_program_outcomes", "get_program_alignment"}
+    assert {t.name for t in tools} == {"map_program_to_occupations", "get_occupation_outlook", "get_state_occupation_outlook", "get_occupation_skills", "get_program_outcomes", "get_program_alignment"}
     assert all(t.annotations and t.annotations.read_only_hint for t in tools)
     blob = json.dumps([t.description for t in tools])
     assert CONTACT not in blob and SC_KEY not in blob and "Ignore previous" not in blob

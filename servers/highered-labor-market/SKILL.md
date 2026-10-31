@@ -10,7 +10,7 @@ description: Use for questions about whether an institution's programs line up w
 2. `get_program_outcomes` lists the institution's programs, with awards and earnings. Pick a program from it.
 3. `get_program_alignment` for that program: awards beside demand for each mapped occupation.
 4. For one occupation use `get_occupation_outlook` (demand) and `get_occupation_skills` (what the work requires). `map_program_to_occupations` shows the program-to-occupation links on their own.
-5. Pair with the 1102tools BLS OEWS server for regional wages.
+5. For a state's own projections use `get_state_occupation_outlook`, or pass `state` to `get_program_alignment`. Pair with the 1102tools BLS OEWS server for regional wages.
 
 ## Rules for answers
 1. **Never reduce alignment to a score, ratio or "gap".** Show the awards, the occupation table and the two openings totals, and say what each does and does not mean.
@@ -26,3 +26,6 @@ description: Use for questions about whether an institution's programs line up w
 11. Do not infer demand conclusions from a zero in the education-matched total; say the BLS classification differs from the credential and that real hiring practice is unknown from this data.
 12. For regional or state demand, say it is not available from this server unless a state projections tool is available and was used.
 13. End every brief or comparison with a sources list: for each source give its name, its `as_of`, and the period the figures cover (`sources[]` in each response). Do not drop the dates.
+14. **State projections.** Say they come from the state's own agency through Projections Central and give their years (for example 2024-2034). Never put them in the same sentence or total as BLS national 2025-35 figures as if comparable; compare a state with the United States row from the same source. Quote the disclaimer's point that projections have errors and should not be the sole basis for a career choice.
+15. State figures are statewide, not the institution's region. Say that sub-state projections are not available here, and point to the `agency_url` the response gives.
+16. A null state value means the state did not submit that occupation (short-term projections are published by far fewer states), not that demand is zero.

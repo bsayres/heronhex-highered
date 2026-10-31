@@ -10,17 +10,20 @@ from pydantic import Field
 from .http import Guard, UpstreamError
 from .models import (
     CREDENTIALS,
+    STATE_FIPS,
     Cip4,
     CipAny,
     Credential,
+    Horizon,
     Soc,
+    StateCode,
     Top,
     UnitId,
     envelope,
     now,
     source_entry,
 )
-from .sources import bls, crosswalk, onet, scorecard
+from .sources import bls, crosswalk, onet, projections, scorecard
 
 logging.basicConfig(stream=sys.stderr, level=logging.WARNING, format="%(levelname)s %(message)s")
 
@@ -199,12 +202,14 @@ async def get_program_outcomes(unitid: UnitId, cip4: Cip4 | None = None, credent
 
 
 @mcp.tool(annotations={"readOnlyHint": True})
-async def get_program_alignment(unitid: UnitId, cip4: Cip4, credential: Credential) -> dict:
+async def get_program_alignment(unitid: UnitId, cip4: Cip4, credential: Credential, state: StateCode | None = None, horizon: Horizon = "long") -> dict:
     """Puts one program beside labor-market demand: the institution's awards and earnings for a 4-digit CIP and credential level
     (College Scorecard), the occupations the CIP-SOC crosswalk links to it, and for each occupation BLS national projected
     annual openings, typical entry education and median wage. It reports openings two ways, for all mapped occupations and for the
     subset whose typical entry education corresponds to the credential (a disclosed rule), and never reduces them to one score
-    or ratio. Needs HIGHERED_MCPS_CONTACT for the BLS part; without it the rest is still returned."""
+    or ratio. Needs HIGHERED_MCPS_CONTACT for the BLS part; without it the rest is still returned.
+    With `state` it also adds that state's own projections (Projections Central) for each mapped occupation beside the United States figures from
+    the same source and years; these are a different period from BLS national 2025-35 and are never combined with it."""
     school, sc_url = await _programs(unitid)
     if school is None:
         raise ToolError("UNITID not found in College Scorecard.")
@@ -245,6 +250,15 @@ async def get_program_alignment(unitid: UnitId, cip4: Cip4, credential: Credenti
                             "BLS classifies each occupation's typical entrant, and many workers enter these occupations with other credentials. Read the occupation table.")
         if len(rows) > len(counted):
             warnings.append("Some mapped occupations share a BLS row (broad group) or have no BLS row; openings are summed over distinct BLS rows.")
+    state_block = None
+    if state:
+        edu = {r[0]: r[5] for r in rows} if L else None
+        try:
+            state_block, pc_src, pc_warnings = await _state_demand(state, horizon, socs, edu)
+            sources.append(pc_src)
+            warnings.extend(pc_warnings)
+        except UpstreamError as e:
+            nulls.append({"field": "state_projections", "reason": str(e)})
     data = {
         "unitid": unitid, "institution": school["name"], "cip4": cip4, "credential": {"level": credential, "title": CREDENTIALS[credential]},
         "institution_program": prog and {"title": prog["title"], "awards_period_1": prog["awards_period_1"], "awards_period_2": prog["awards_period_2"],
@@ -253,10 +267,101 @@ async def get_program_alignment(unitid: UnitId, cip4: Cip4, credential: Credenti
                                  "note": "Deterministic mapping from Scorecard credential level to BLS typical entry education; occupations with other typical education are still listed."},
         "occupations": {"columns": ["soc", "occupation", "bls_code", "bls_match", "entry_education", "education_matches_credential", "annual_openings", "median_annual_wage_usd"], "rows": rows},
         "openings_summary": summary, "projection_period": L.data["projection_period"] if L else None,
+        "state_demand": state_block,
     }
     if prog and prog["earnings_1yr_median_institution"] is None:
         nulls.append({"field": "earnings_1yr_median_institution", "reason": "Suppressed for privacy (Scorecard 'PS') or not reported for this program; the national median is shown separately."})
     return envelope(sources, data, nulls, warnings)
+
+
+def _pc_row(r: dict | None) -> dict | None:
+    return None if r is None else {
+        "area": r["area"], "occupation": r["title"], "base_year": r["base_year"], "projection_year": r["projection_year"], "employment_base": r["base"],
+        "employment_projected": r["projected"], "change": r["change"], "percent_change": r["percent_change"], "annual_openings": r["annual_openings"],
+        "agency_url": r["agency_url"]}
+
+
+def _pc_entry(res) -> dict:
+    return source_entry(projections.SOURCE, res.url, "state agency projections as published", res.retrieved_at, served_stale_cache=res.stale)
+
+
+async def _state_demand(state: str, horizon: str, socs: dict, edu_matched: dict | None) -> tuple[dict, dict, list[str]]:
+    fips = STATE_FIPS[state]
+    res = await projections.get(guard(), horizon, [fips, projections.US], list(socs))
+    rows, st_seen, us_seen = [], {}, {}
+    for soc, v in sorted(socs.items()):
+        st, how = projections.pick(res.entries, str(int(fips)), soc)
+        us, _ = projections.pick(res.entries, projections.US, soc)
+        rows.append([soc, v["title"], how, st and st["annual_openings"], st and st["base"], st and st["projected"], us and us["annual_openings"],
+                     st and f"{st['base_year']}-{st['projection_year']}", edu_matched.get(soc) if edu_matched else None])
+        if st:
+            st_seen[st["soc"]] = (st, soc)
+        if us:
+            us_seen[us["soc"]] = us
+    warnings = [projections.DISCLAIMER, "State projections are a different period from BLS national 2025-35; compare a state only with the United States column from the same source.",
+                "State openings are for the whole state, not the institution's region."]
+    periods = {(r["base_year"], r["projection_year"]) for r, _ in st_seen.values()} | {(r["base_year"], r["projection_year"]) for r in us_seen.values()}
+    summary = None
+    if len(periods) <= 1:
+        summary = {
+            "state_annual_openings_all_mapped": sum(r["annual_openings"] or 0 for r, _ in st_seen.values()),
+            "state_annual_openings_education_matched": (sum(r["annual_openings"] or 0 for r, s in st_seen.values() if edu_matched.get(s)) if edu_matched else None),
+            "united_states_same_source_annual_openings_all_mapped": sum(r["annual_openings"] or 0 for r in us_seen.values()),
+            "occupations_mapped": len(socs), "occupations_with_state_data": sum(1 for r in rows if r[3] is not None or r[4] is not None),
+            "distinct_state_rows_counted": len(st_seen),
+            "period": f"{next(iter(periods))[0]}-{next(iter(periods))[1]}" if periods else None,
+            "note": "Occupations a state reports only as a broad group are counted once. The education-matched total uses BLS's typical entry education (national)."}
+    else:
+        warnings.append("Rows cover more than one projection period, so no totals are given.")
+    if len(socs) > len(st_seen):
+        warnings.append(f"{len(socs) - len(st_seen)} mapped occupation(s) have no state projection (not submitted, or only reported as a broad group already counted).")
+    if res.dropped:
+        warnings.append(f"{res.dropped} upstream row(s) were dropped because they did not match what was requested.")
+    if res.stale:
+        warnings.append("A refresh failed; served cached projections past their refresh interval.")
+    block = {"state": state, "horizon": horizon, "regional_projections": "Not available here; sub-state projections are published by each state agency.",
+             "columns": ["soc", "occupation", "state_match", "state_annual_openings", "state_employment_base", "state_employment_projected",
+                         "united_states_annual_openings_same_source", "state_period", "education_matches_credential"], "rows": rows, "summary": summary}
+    return block, _pc_entry(res), warnings
+
+
+@mcp.tool(annotations={"readOnlyHint": True})
+async def get_state_occupation_outlook(state: StateCode, soc: Soc, horizon: Horizon = "long") -> dict:
+    """A state's own employment projection for one occupation (SOC 2018) from Projections Central, the State Projections
+    Consortium's public service: base and projected employment, change, average annual openings, and the projection years
+    (typically 10 years for 'long', 2 years for 'short'). The United States row from the same source and years is returned
+    for a like-for-like comparison. Do not compare it with BLS national 2025-35 numbers: the periods differ.
+
+    State agencies produce these projections and are responsible for them. Some states report an occupation only as a broad
+    group (the response says when). An occupation a state has not submitted is a null with a reason. Regional (sub-state)
+    projections are not available here; the response links the state agency's own page."""
+    fips = STATE_FIPS[state]
+    try:
+        res = await projections.get(guard(), horizon, [fips, projections.US], [soc])
+    except UpstreamError as e:
+        raise _fail(e) from None
+    st, how = projections.pick(res.entries, str(int(fips)), soc)
+    us, us_how = projections.pick(res.entries, projections.US, soc)
+    nulls, warnings = [], [projections.DISCLAIMER]
+    if st is None:
+        nulls.append({"field": "state_outlook", "reason": "This state has not submitted a projection for this occupation (or its broad group) to Projections Central, "
+                                                          "or the occupation is not projected there. Short-term projections are published by far fewer states than long-term ones."})
+    elif how == "broad_group":
+        warnings.append(f"This state reports the occupation only within broad group {projections.broad(soc)} ({st['title']}); the figures cover the whole group.")
+    if us is None:
+        nulls.append({"field": "united_states_same_source", "reason": "Projections Central has no United States row for this occupation (or its broad group)."})
+    elif us_how == "broad_group":
+        warnings.append(f"The United States row is for broad group {projections.broad(soc)} ({us['title']}).")
+    if st and us and (st["base_year"], st["projection_year"]) != (us["base_year"], us["projection_year"]):
+        warnings.append("The state and United States rows cover different years; do not compare their levels or openings directly.")
+    warnings.append("These are not BLS national 2025-35 projections; the state and national periods differ. Compare a state only with the United States row returned here.")
+    if res.dropped:
+        warnings.append(f"{res.dropped} upstream row(s) were dropped because they did not match what was requested.")
+    if res.stale:
+        warnings.append("A refresh failed; served cached projections past their refresh interval.")
+    data = {"state": state, "soc": soc, "horizon": horizon, "state_match": how, "state_outlook": _pc_row(st), "united_states_same_source": _pc_row(us),
+            "regional_projections": "Not available here; sub-state projections are published by each state agency (see agency_url)."}
+    return envelope([_pc_entry(res)], data, nulls, warnings)
 
 
 def main() -> None:

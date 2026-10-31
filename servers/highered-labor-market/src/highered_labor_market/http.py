@@ -20,6 +20,7 @@ ALLOWED_HOSTS = frozenset(
         "www.bls.gov",
         "www.onetcenter.org",
         "api.data.gov",
+        "public.projectionscentral.org",
     }
 )
 CONTACT_VAR = "HIGHERED_MCPS_CONTACT"
@@ -27,7 +28,7 @@ EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9.-]{1,200}\.[A-Za-z]{2
 MAX_REDIRECTS = 3
 MAX_ATTEMPTS = 3
 RETRY_STATUS = {429, 500, 502, 503, 504}
-MIN_INTERVAL = {"nces.ed.gov": 1.0, "www.bls.gov": 1.0, "www.onetcenter.org": 1.0}
+MIN_INTERVAL = {"nces.ed.gov": 1.0, "www.bls.gov": 1.0, "www.onetcenter.org": 1.0, "public.projectionscentral.org": 1.0}
 
 
 class _Result:

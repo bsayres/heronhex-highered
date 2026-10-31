@@ -1,6 +1,6 @@
 """Response envelope and strict input types shared by tools."""
 from datetime import UTC, datetime
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import Field
 
@@ -11,6 +11,14 @@ CipAny = Annotated[str, Field(pattern=r"^[0-9]{2}\.[0-9]{2}(?:[0-9]{2})?$", desc
 Soc = Annotated[str, Field(pattern=r"^[0-9]{2}-[0-9]{4}$", description="6-digit SOC 2018 code, e.g. 29-1141")]
 Credential = Annotated[int, Field(ge=1, le=8, description="Scorecard credential level: 1 certificate, 2 associate, 3 bachelor, 4 post-bacc certificate, 5 master, 6 doctoral, 7 first professional, 8 graduate certificate")]
 Top = Annotated[int, Field(ge=1, le=30, description="How many items to return")]
+
+StateCode = Literal[
+    "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY", "PR", "GU", "VI",
+]
+STATE_FIPS = {
+    "AL": "1", "AK": "2", "AZ": "4", "AR": "5", "CA": "6", "CO": "8", "CT": "9", "DE": "10", "DC": "11", "FL": "12", "GA": "13", "HI": "15", "ID": "16", "IL": "17", "IN": "18", "IA": "19", "KS": "20", "KY": "21", "LA": "22", "ME": "23", "MD": "24", "MA": "25", "MI": "26", "MN": "27", "MS": "28", "MO": "29", "MT": "30", "NE": "31", "NV": "32", "NH": "33", "NJ": "34", "NM": "35", "NY": "36", "NC": "37", "ND": "38", "OH": "39", "OK": "40", "OR": "41", "PA": "42", "RI": "44", "SC": "45", "SD": "46", "TN": "47", "TX": "48", "UT": "49", "VT": "50", "VA": "51", "WA": "53", "WV": "54", "WI": "55", "WY": "56", "PR": "72", "GU": "66", "VI": "78",
+}
+Horizon = Literal["long", "short"]
 
 CREDENTIALS = {1: "Undergraduate Certificate or Diploma", 2: "Associate's Degree", 3: "Bachelor's Degree", 4: "Post-Baccalaureate Certificate",
                5: "Master's Degree", 6: "Doctoral Degree", 7: "First Professional Degree", 8: "Graduate / Professional Certificate"}

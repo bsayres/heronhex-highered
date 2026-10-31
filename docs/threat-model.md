@@ -36,3 +36,12 @@
 | Misleading analytics (a single "alignment" number from a loose, non-empirical crosswalk and national data) | The alignment tool returns tables and two disclosed totals, never a score or ratio; every response carries caveats; the SKILL forbids presenting national openings as local demand |
 | Bulk O*NET and workbook downloads | Strict URL construction from a discovered version, size caps per file, workbook zip-bomb check, parse failures reported safely, nothing written outside the cache |
 | License obligations (O*NET CC BY 4.0) | Credit, version and license link returned with every O*NET response |
+
+## Additions for state projections (Milestone 5)
+| Risk | Control |
+|---|---|
+| A new host with a different request style (path-based filters joined with '+') | Host allowlisted, GET only; state is a fixed enum mapped to FIPS in code and SOC codes are validated `[0-9]{2}-[0-9]{4}`, so a caller cannot inject path segments, `+` lists or 'all'; at most 100 codes per request |
+| Upstream returns rows for other areas or occupations | Every row is validated and kept only if its area and occupation were requested; dropped rows are counted and reported; nothing relies on the API's own filtering (tested by mutation) |
+| Upstream links (agency URLs) are untrusted | Only https URLs without whitespace and under 300 characters are passed through, as data; the server never fetches them |
+| The BLS contact address leaking to a second host | The address is attached only to `www.bls.gov` per hop; a test checks it is absent from every Projections Central request |
+| Misleading comparison of state and national numbers from different years | Each row carries its own years; the same-source United States row is returned for comparison; warnings and the SKILL forbid mixing with BLS 2025-35 |

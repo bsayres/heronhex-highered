@@ -9,7 +9,7 @@ Modeled on [1102tools/federal-contracting-mcps](https://github.com/1102tools/fed
 | [`highered-institutions`](servers/highered-institutions) | Milestone 1 built (plus financial snapshot) | "Show the enrollment trend for [institution] and its closest peers." |
 | [`highered-risk`](servers/highered-risk) | Milestone 2 built (FSA status, audit findings) | Title IV risk signals |
 | [`highered-funding`](servers/highered-funding) | Milestone 3 built | Research spend, federal awards and opportunities, state funding, graduate projections |
-| [`highered-labor-market`](servers/highered-labor-market) | Milestone 4 built (first stage) | Do programs line up with labor-market demand? |
+| [`highered-labor-market`](servers/highered-labor-market) | Milestones 4 and 5 built | Do programs line up with national and state labor-market demand? |
 
 ## Principles
 - Every response carries `source`, `source_url`, `as_of` (dataset period), and `retrieved_at`.
