@@ -135,3 +135,9 @@ def test_tools_are_read_only_and_descriptions_static():
     tools = asyncio.run(server.mcp.list_tools())
     assert {t.name for t in tools} == {"resolve_institution", "search_institutions", "get_institution_profile", "get_enrollment_trend", "compare_peers", "get_financial_snapshot"}
     assert all(t.annotations and t.annotations.read_only_hint for t in tools)
+
+
+async def test_trailing_newline_never_ends_up_inside_a_resolved_identifier(upstream):
+    # Identifier patterns use \Z (Python's `$` also matches before a trailing newline); input is stripped, so the identifier stays clean.
+    r = await server.resolve_institution("999001\n")
+    assert [c["unitid"] for c in r["data"]["candidates"]] == ["999001"]

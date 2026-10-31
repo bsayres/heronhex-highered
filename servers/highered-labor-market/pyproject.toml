@@ -1,0 +1,39 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "highered-labor-market"
+version = "0.1.0"
+description = "MCP server: align higher-ed programs with labor-market demand using free public data (CIP-SOC crosswalk, BLS Employment Projections, O*NET, College Scorecard field of study)."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+keywords = ["mcp", "model-context-protocol", "higher-education", "labor-market", "workforce"]
+dependencies = [
+    "mcp>=2.3.0,<3",
+    "httpx>=0.28,<1",
+    "pydantic>=2.10,<3",
+    "openpyxl>=3.1.5,<4",  # NCES crosswalk and BLS projections are .xlsx
+]
+
+[project.scripts]
+highered-labor-market = "highered_labor_market.server:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio",
+    "pip-audit",
+    "ruff",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/highered_labor_market"]
+
+[tool.pytest.ini_options]
+markers = ["live: hits real upstream APIs; run with HIGHERED_LIVE=1"]
+testpaths = ["tests"]
+pythonpath = ["src"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"

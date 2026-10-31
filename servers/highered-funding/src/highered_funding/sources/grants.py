@@ -6,7 +6,7 @@ from ..http import Guard, UpstreamError
 URL = "https://api.grants.gov/v1/api/search2"
 SOURCE = "Grants.gov Search API (funding opportunities, not awards)"
 ELIGIBILITY = {"public_ihe": "06", "private_ihe": "20", "any": ""}
-ID_RE = re.compile(r"^[0-9]{1,12}$")
+ID_RE = re.compile(r"^[0-9]{1,12}\Z")
 
 
 def _hit(h: dict) -> dict | None:

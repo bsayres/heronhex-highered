@@ -9,6 +9,9 @@ updates:
   - package-ecosystem: "uv"
     directory: "/servers/highered-funding"
     schedule: { interval: "weekly" }
+  - package-ecosystem: "uv"
+    directory: "/servers/highered-labor-market"
+    schedule: { interval: "weekly" }
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule: { interval: "weekly" }

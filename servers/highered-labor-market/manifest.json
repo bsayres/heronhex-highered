@@ -1,0 +1,20 @@
+{
+  "manifest_version": "0.4",
+  "name": "highered-labor-market",
+  "display_name": "Higher Ed Labor Market",
+  "version": "0.1.0",
+  "description": "Align programs with labor-market demand: CIP-SOC crosswalk, BLS projections, O*NET skills, Scorecard program outcomes.",
+  "author": { "name": "highered-mcps contributors" },
+  "license": "MIT",
+  "server": { "type": "uv", "entry_point": "src/main.py" },
+  "user_config": {
+    "contact_email": { "type": "string", "title": "Your email address", "description": "Required by BLS in the User-Agent; sent only to bls.gov.", "required": true }
+  },
+  "tools": [
+    { "name": "map_program_to_occupations", "description": "Occupations linked to a CIP program code (NCES/BLS crosswalk)." },
+    { "name": "get_occupation_outlook", "description": "BLS 2025-35 employment projections for an occupation." },
+    { "name": "get_occupation_skills", "description": "O*NET skills, tasks and technologies for an occupation." },
+    { "name": "get_program_outcomes", "description": "An institution's programs: awards and earnings (College Scorecard)." },
+    { "name": "get_program_alignment", "description": "One program beside demand for its mapped occupations." }
+  ]
+}

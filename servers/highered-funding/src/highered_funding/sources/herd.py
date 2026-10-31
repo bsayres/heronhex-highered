@@ -15,14 +15,14 @@ from ..http import Guard, UpstreamError
 PAGE = "https://ncses.nsf.gov/explore-data/microdata/higher-education-research-development"
 BASE = "https://ncses.nsf.gov"
 SOURCE = "NSF NCSES Higher Education Research and Development (HERD) Survey"
-FILE_RE = re.compile(r"^/[0-9]{1,5}/assets/0/files/higher_education_r_and_d_([0-9]{4})(_short)?\.zip$")
+FILE_RE = re.compile(r"^/[0-9]{1,5}/assets/0/files/higher_education_r_and_d_([0-9]{4})(_short)?\.zip\Z")
 MAX_ZIP_BYTES = 25_000_000
 MAX_CSV_BYTES = 120_000_000
 TTL_DAYS = 90
 
 LINES = {"01.a": "federal", "01.b": "state_local", "01.c": "business", "01.d": "nonprofit", "01.e": "institution",
          "01.f": "other", "01.g": "total"}
-UNITID_RE = re.compile(r"^[0-9]{6}$")
+UNITID_RE = re.compile(r"^[0-9]{6}\Z")
 
 
 class ParseError(UpstreamError):

@@ -15,7 +15,7 @@ SOURCE = "WICHE Knocking at the College Door: Projections of High School Graduat
 CITATION = ("Lane, P., Falkenstern, C., & Bransberger, P. (2024). Knocking at the College Door: Projections of High School Graduates. "
             "Western Interstate Commission for Higher Education. https://www.wiche.edu/knocking")
 LICENSE = "CC BY-NC-SA 4.0 (attribution, non-commercial, share-alike): https://creativecommons.org/licenses/by-nc-sa/4.0/"
-FILE_RE = re.compile(r"^(?:https://www\.wiche\.edu)?(/wp-content/uploads/[0-9]{4}/[0-9]{2}/Knocking-at-the-College-Door-[A-Za-z0-9-]{1,60}-Projections-Dataset-[0-9-]{1,20}\.xlsx)$")
+FILE_RE = re.compile(r"^(?:https://www\.wiche\.edu)?(/wp-content/uploads/[0-9]{4}/[0-9]{2}/Knocking-at-the-College-Door-[A-Za-z0-9-]{1,60}-Projections-Dataset-[0-9-]{1,20}\.xlsx)\Z")
 TTL_DAYS = 180
 SECTORS = {"Public (total, any)": "public", "Private (total, any)": "private", "Grand Total (public+private)": "total"}
 RACES = {"Total/any": "total", "American Indian/Alaska Native": "american_indian_alaska_native", "Asian": "asian",

@@ -27,3 +27,12 @@
 | Unicode digits pass `\d` validation | All validation patterns use `[0-9]`; full-width-digit negative tests in every server |
 | Boolean operators in NSF parameter values are interpreted by the API | UEI inputs validated to `[A-Z0-9]{12}` before use; injection-shaped inputs rejected |
 | License obligations for redistributed data (WICHE CC BY-NC-SA 4.0) | Nothing hosted or bundled; license and citation returned in every WICHE response; documented in the README and SKILL |
+
+## Additions for highered-labor-market (Milestone 4)
+| Risk | Control |
+|---|---|
+| A user-supplied contact email is sent to a third party (BLS requires one in the User-Agent) | Sent only to `www.bls.gov`, attached per request hop so a redirect cannot carry it elsewhere; never in URLs, bodies, output, descriptions, logs or errors; strict address pattern with `\Z` (no trailing newline, no CR/LF) checked before any BLS request; absent address gives a clear instruction, not a guess; tested across all hosts |
+| `$` in Python patterns matches before a trailing newline | All internal `re` patterns use `\Z`; Pydantic patterns reject newlines already |
+| Misleading analytics (a single "alignment" number from a loose, non-empirical crosswalk and national data) | The alignment tool returns tables and two disclosed totals, never a score or ratio; every response carries caveats; the SKILL forbids presenting national openings as local demand |
+| Bulk O*NET and workbook downloads | Strict URL construction from a discovered version, size caps per file, workbook zip-bomb check, parse failures reported safely, nothing written outside the cache |
+| License obligations (O*NET CC BY 4.0) | Credit, version and license link returned with every O*NET response |

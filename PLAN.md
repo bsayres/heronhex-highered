@@ -169,3 +169,12 @@ No new Python dependency expected (`openpyxl` already used; O*NET CSV via stdlib
 
 ### Verify before building
 Urban award-level codes and CIP encoding; Scorecard field-of-study field names for credential levels and the exact suppression markers; crosswalk handling of CIP codes with trailing letters or older CIP editions in completions; O*NET-SOC (8-digit) to SOC (6-digit) mapping; BLS file layout once reachable.
+
+## Milestone 4 note (2026-10-31): first stage built (`highered-labor-market`)
+Owner decisions: build on the O*NET bulk database (no key); add a setting where each user supplies their own contact email, sent only to BLS; owner supplied a test address for BLS (kept only in the gitignored `.env`).
+Built: `map_program_to_occupations`, `get_occupation_outlook`, `get_occupation_skills`, `get_program_outcomes`, `get_program_alignment` (5 tools, 58 tests, live run, stdio session).
+Changes from the proposal: supply now comes from Scorecard's award counts (labeled credential levels) instead of Urban completions, because Urban's award-level codes could not be decoded; there is no separate `get_program_supply` tool. BLS access is solved by the contact email (`HIGHERED_MCPS_CONTACT`).
+Found and fixed in all servers: `$` in Python patterns matches before a trailing newline; patterns now end with `\Z`.
+Still open: ask BLS to confirm its automated-access policy (draft below); PSEO (needs a free Census key or verified raw-file names); state or regional projections; Scorecard debt and 3-year earnings; which award-count period is newer.
+
+Draft message to BLS (owner to send if desired): "We maintain an open-source, read-only tool (github.com/bsayres/highered-mcps, MIT) that lets college staff look up the national Employment Projections workbook (https://www.bls.gov/emp/ind-occ-matrix/occupation.xlsx) on demand, about once a quarter per user, at no more than 1 request per second, with the user's own contact email in the User-Agent. Is that an acceptable way to fetch it, and is there a preferred format or endpoint for automated clients?"

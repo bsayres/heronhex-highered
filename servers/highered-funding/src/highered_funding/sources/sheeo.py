@@ -9,7 +9,7 @@ from ._xlsx import MAX_FILE_BYTES, ParseError, open_workbook
 PAGE = "https://shef.sheeo.org/data-downloads/"
 SOURCE = "SHEEO State Higher Education Finance (SHEF)"
 CITATION = "State Higher Education Executive Officers Association. (2026). State Higher Education Finance: FY 2025. Boulder, CO."
-FILE_RE = re.compile(r"^https://shef\.sheeo\.org/wp-content/uploads/[0-9]{4}/[0-9]{2}/SHEEO_SHEF_FY([0-9]{2})_(Report|Sector)_Data\.xlsx$")
+FILE_RE = re.compile(r"^https://shef\.sheeo\.org/wp-content/uploads/[0-9]{4}/[0-9]{2}/SHEEO_SHEF_FY([0-9]{2})_(Report|Sector)_Data\.xlsx\Z")
 TTL_DAYS = 90
 
 REPORT_COLS = {

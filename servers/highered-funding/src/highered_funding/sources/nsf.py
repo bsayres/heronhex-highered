@@ -13,7 +13,7 @@ KEEP = {"id": "id", "title": "title", "awardeeName": "awardee", "awardeeStateCod
         "startDate": "start_date", "expDate": "end_date", "fundsObligatedAmt": "obligated_usd", "estimatedTotalAmt": "estimated_total_usd",
         "fundProgramName": "program", "cfdaNumber": "aln", "transType": "award_type", "ueiNumber": "uei", "parentUeiNumber": "parent_uei"}
 MONEY = {"fundsObligatedAmt", "estimatedTotalAmt"}
-ID_RE = re.compile(r"^[0-9]{4,10}$")
+ID_RE = re.compile(r"^[0-9]{4,10}\Z")
 PAGE = 25  # API maximum per page
 
 

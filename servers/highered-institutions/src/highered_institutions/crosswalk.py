@@ -14,11 +14,11 @@ SENTINELS = {None, "", "-1", "-2", "-3", -1, -2, -3}
 CONTROL = {1: "public", 2: "private_nonprofit", 3: "private_for_profit"}
 CONTROL_CODE = {v: k for k, v in CONTROL.items()}
 
-UNITID_RE = re.compile(r"^[0-9]{6}$")
-OPEID8_RE = re.compile(r"^[0-9]{8}$")
-EIN_RE = re.compile(r"^[0-9]{2}-?[0-9]{7}$")
-UEI_RE = re.compile(r"^[A-Za-z0-9]{12}$")
-DOMAIN_RE = re.compile(r"^(?=.{4,100}$)([a-z0-9-]+\.)+[a-z]{2,}$")
+UNITID_RE = re.compile(r"^[0-9]{6}\Z")
+OPEID8_RE = re.compile(r"^[0-9]{8}\Z")
+EIN_RE = re.compile(r"^[0-9]{2}-?[0-9]{7}\Z")
+UEI_RE = re.compile(r"^[A-Za-z0-9]{12}\Z")
+DOMAIN_RE = re.compile(r"^(?=.{4,100}\Z)([a-z0-9-]+\.)+[a-z]{2,}\Z")
 
 
 def clean(v):

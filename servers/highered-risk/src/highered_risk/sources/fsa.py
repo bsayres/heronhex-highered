@@ -23,7 +23,7 @@ FSAPARTNERS = "https://fsapartners.ed.gov"
 MAX_FILE_BYTES = 25_000_000
 MAX_UNZIPPED = 250_000_000
 # Segments may not start with "." so ".." and hidden names can never match.
-FILE_PATH_RE = re.compile(r"^/sites/default/files/(?:[A-Za-z0-9_-][A-Za-z0-9_.-]*/)*[A-Za-z0-9_-][A-Za-z0-9_.-]*\.xlsx?$")
+FILE_PATH_RE = re.compile(r"^/sites/default/files/(?:[A-Za-z0-9_-][A-Za-z0-9_.-]*/)*[A-Za-z0-9_-][A-Za-z0-9_.-]*\.xlsx?\Z")
 MONTHS = {m: i for i, m in enumerate(["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"], 1)}
 
 SRC_HCM = "FSA Data Center: Heightened Cash Monitoring list"

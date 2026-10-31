@@ -3,7 +3,7 @@
 name: publish-pypi
 on:
   push:
-    tags: ["highered-institutions/v*", "highered-risk/v*", "highered-funding/v*"]
+    tags: ["highered-institutions/v*", "highered-risk/v*", "highered-funding/v*", "highered-labor-market/v*"]
 permissions:
   contents: read
 jobs:
@@ -16,7 +16,7 @@ jobs:
       - name: Build the package named in the tag
         run: |
           server="${GITHUB_REF_NAME%%/*}"
-          case "$server" in highered-institutions|highered-risk|highered-funding) ;; *) echo "unknown server"; exit 1;; esac
+          case "$server" in highered-institutions|highered-risk|highered-funding|highered-labor-market) ;; *) echo "unknown server"; exit 1;; esac
           cd "servers/$server" && uv build --out-dir "$GITHUB_WORKSPACE/dist"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with: { name: dist, path: dist/ }

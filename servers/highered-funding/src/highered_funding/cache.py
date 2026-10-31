@@ -6,7 +6,7 @@ import re
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-NAME_RE = re.compile(r"^[a-z0-9][a-z0-9_.-]{0,80}\.json$")
+NAME_RE = re.compile(r"^[a-z0-9][a-z0-9_.-]{0,80}\.json\Z")
 TTL_DAYS = 90  # quarterly refresh
 
 
