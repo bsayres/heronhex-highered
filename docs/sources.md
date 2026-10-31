@@ -181,3 +181,34 @@ Top level: `.github/workflows` (21 files incl. `publish-pypi.yml`), `badges`, `d
 ### WICHE Knocking at the College Door: VERIFIED, LICENSE FLAG
 - 11th edition, December 2024. Dataset: `https://www.wiche.edu/wp-content/uploads/2024/12/Knocking-at-the-College-Door-11th-Edition-Projections-Dataset-12-11-2024.xlsx` (12 MB, sheet `Data`, 246,468 rows: `Stabbr, StateRegionUS, ClassOf, SchoolYear, SchoolSector, Grade, RaceEthnicity, Students, ActualProjected, ...`). State, region and US level only.
 - **License: CC BY-NC-SA 4.0** (attribution, NonCommercial, ShareAlike). Needs an owner decision (see PLAN).
+
+
+## Update 2026-10-31: Milestone 4 research (labor-market alignment)
+
+### NACE and CCRC
+- **NACE**: the First-Destination Survey report is free to the public (national annual report, not institution-level, not an API). The Salary Survey is member-gated and its summer edition is built from First-Destination data. No NACE data tool is planned. Reuse terms for NACE content (e.g. the career-readiness competencies) were not read; do not embed NACE text until they are.
+- **CCRC**: publishes research reports and interactive data tools, no downloadable datasets found. The tools appear to rest on federal data already used here. No data tool is planned; cite CCRC research in SKILL guidance where it applies. Contact ccrc@columbia.edu to ask whether data is offered.
+
+### CIP-SOC crosswalk (NCES + BLS): VERIFIED
+- `https://nces.ed.gov/ipeds/cipcode/Files/CIP2020_SOC2018_Crosswalk.xlsx` (429 KB). Sheets: `CIP-SOC` (6,097 rows, columns CIP2020Code, CIP2020Title, SOC2018Code, SOC2018Title), `SOC-CIP`, `Unmatched CIP Codes`, `Unmatched SOC Codes`, `Added Matches`, and others. NCES: "not based on actual empirical data".
+- 2,143 CIP codes; median 2 SOC codes per CIP, max 180, 10 CIPs map to more than 10 SOCs. Unmatched CIPs appear as SOC `99-9999` "NO MATCH" and must become explicit nulls. Mappings include postsecondary teachers (nursing 51.3801 maps to 25-1072 nursing instructors and 29-1141 registered nurses), so supply/demand views must show the occupation list, not one number.
+
+### BLS Employment Projections: ACCESS ISSUE
+- The current table is "Occupational projections, 2025-35, and worker characteristics, 2025": `https://www.bls.gov/emp/ind-occ-matrix/occupation.xlsx` (employment 2025 and 2035, annual openings, typical entry education, work experience, on-the-job training).
+- **`www.bls.gov` and `download.bls.gov` return HTTP 403 "Access Denied" to this project's client, including for `robots.txt`**, with a plain research user agent and with one naming the repository. `api.bls.gov` answers normally but did not expose projections under a guessed series id. Secondhand reports (R and Stata package docs, forum posts) say BLS expects a contact email address in the User-Agent; the official wording was not found. **Not worked around: no browser user agent was spoofed, and the owner's email was not sent.** Decision needed (see PLAN).
+
+### O*NET: VERIFIED
+- Database 31.0 is CC BY 4.0, downloadable without a key: `https://www.onetcenter.org/dl_files/database/db_31_0_excel.zip` (also per-file CSV/JSON under `/dl_files/database/db_31_0_csv/`). Includes skills, task statements, software/technology skills. Attribution must name the O*NET 31.0 Database, USDOL/ETA, link the license, and note changes. It does **not** include BLS projections.
+- Web Services (v2): free account at `https://services.onetcenter.org/developer/signup`, keys created under My Account, sent in the `X-API-Key` header (never in the query string), GET only, JSON, JSON 429 means wait at least 200 ms. Terms: free if a prominent attribution link to O*NET Web Services is shown; access may be throttled above 5 requests/second or 50,000/day; data may not be altered; use limited to applications the registrant controls. The API serves the latest version; the bulk files do not need it.
+
+### IPEDS completions via Urban: VERIFIED endpoints
+- `.../college-university/ipeds/completions-cip-2/{year}/` and `.../completions-cip-6/{year}/` (there is no 4-digit endpoint). Rows are per institution, award_level, majornum, race, sex: use `race=99&sex=99&majornum=1` for totals (Test College A 2023: 28 rows). `cipcode_6digit` is stored as an integer without the dot and leading zero (e.g. 510000, 520201). Code 99 appears as a total. **Award-level codes and the CIP integer encoding must be confirmed against Urban's documentation before building.**
+
+### College Scorecard field of study: VERIFIED via the existing key
+- `latest.programs.cip_4_digit` on the schools endpoint returns, per institution, a list of programs (4-digit CIP, credential level, IPEDS award counts, debt, repayment, earnings at 1 year and 3 years). Test College A: 28 programs, 27 with some earnings value, but the institution's own medians are often null (small cell suppression) while `*_national` comparison values are present. The tool must label national comparison values as national and explain suppression as a null with a reason.
+
+### Census PSEO: NEEDS A KEY (deferred)
+- API variables confirmed (`INSTITUTION`, `INST_STATE`, `CIPCODE`, `CIP_LEVEL`, `DEGREE_LEVEL`, `GRAD_COHORT`, earnings P25/P50/P75 at 1, 5 and 10 years). The API redirects to a "missing key" page without a free Census API key. Raw state files exist under `https://lehd.ces.census.gov/data/pseo/latest_release/` but their file names were not verified. Coverage is partner institutions only (about 29% of graduates as of the January 2024 release).
+
+### Not verified
+- State and regional projections (Projections Central or individual state labor agencies), CareerOneStop API (registration and terms), Credential Engine, O*NET API job-outlook endpoint contents.

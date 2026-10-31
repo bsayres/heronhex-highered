@@ -134,3 +134,38 @@ New dependency: `openpyxl` (SHEEO and WICHE workbooks). Guard gains POST, limite
 Found and fixed: Unicode digits passed `\d` validation in all three servers (now `[0-9]` with regression tests).
 Deviations from the original plan: SHEEO institution-level data (SHEF Expansion) not found, so `get_state_funding` is state-level only; HERD short-form institutions are included (separate file); HERD join is by UNITID with 32 of 681 FY2024 institutions unjoinable.
 Not done: NCES/IPEDS backup for Urban; Carnegie labels; `.mcpb`, PyPI publishing, new-server CI run, Windows.
+
+## Milestone 4 plan (2026-10-31): `highered-labor-market` (proposal for owner review, no code written)
+
+Goal: help institutions look at aligning programs with labor-market demand, using only free public data. Audience assumption (owner has not answered): community-college workforce and program review first, but nothing community-college specific. Every number is labeled with its level (national, state, institution) and source; no composite "alignment score".
+
+### Data chain (all verified in docs/sources.md unless marked)
+program (CIP) -> occupations (NCES/BLS CIP-SOC crosswalk) -> demand (BLS Employment Projections 2025-35) and skills (O*NET 31.0) ; supply (IPEDS completions via Urban) ; outcomes (College Scorecard field-of-study).
+
+### Tools (proposed)
+1. `map_program_to_occupations(cip)`: crosswalk rows for a 6-digit (or 4-digit prefix) CIP. NO MATCH becomes a null with reason. States that the crosswalk is not empirical and lists every mapped occupation.
+2. `get_occupation_outlook(soc)`: BLS projections: employment 2025 and 2035, change, annual openings (growth plus replacement), typical entry education, experience, training. National only. **Blocked on BLS access, see below.**
+3. `get_occupation_skills(soc)`: O*NET skills, tasks, technology skills, with the required O*NET attribution and database version.
+4. `get_program_outcomes(unitid, cip4?, credential?)`: Scorecard field-of-study earnings, debt, counts. Suppressed institution values are nulls with the suppression reason; national comparison values are returned under their own label.
+5. `get_program_supply(unitid, cip?, award_level?)`: latest IPEDS completions for the institution by CIP and award level.
+6. `get_program_alignment(unitid, cip6, award_level)`: joins 1, 2, 4 and 5 into a table, not a score: the institution's completions beside, for each mapped occupation, national projected annual openings and typical entry education, plus a deterministic filter (disclosed in the response) that marks occupations whose typical entry education matches the award level. Totals are shown as a range across the filter (all mapped vs education-matched), never one ratio.
+
+Honest limits the responses must state: national openings are not regional demand; completions are not graduates who stay in the region; BLS entry education is a classification, not a requirement; the crosswalk is many-to-many (max 180 occupations per CIP); Scorecard programs use 4-digit CIP while completions use 6-digit; projections lag and cannot see current postings.
+
+### Stage 2 (after 4a review)
+Census PSEO earnings and industry flows (needs a free Census key or verified raw-file names; partner-institution coverage only); state or regional projections (Projections Central or state labor agencies, unverified; 50 sources, so start with a few states); CareerOneStop (unverified).
+
+### Out of scope
+Job-postings data (Lightcast, Indeed and similar are paid or gated); NACE and CCRC data tools (reasons in docs/sources.md); employer surveys; any hosted data. Wage benchmarks stay with the 1102tools BLS OEWS server (document the combined use in docs/using-with-1102tools.md rather than duplicating).
+
+### Dependencies and keys
+No new Python dependency expected (`openpyxl` already used; O*NET CSV via stdlib `csv`). New hosts to allowlist: `www.bls.gov` (if access is resolved), `www.onetcenter.org`, `nces.ed.gov`, plus existing Urban and api.data.gov. Keys: Scorecard (already). **O*NET API key is not needed for 4a** because skills and tasks come from the CC BY 4.0 bulk files; it is only needed if we use Web Services (for example its job-outlook endpoint, contents unverified). Census key only for stage 2.
+
+### Decisions needed from the owner
+1. **BLS access.** `www.bls.gov` returns 403 to our client. Options: (a) add a required-contact setting (for example `HIGHERED_MCPS_CONTACT`, an email each user supplies, sent only to BLS in the User-Agent) if BLS confirms that is its policy; the owner would choose a contact address to test with. (b) Ask BLS (their data-help contact) how automated clients should fetch the projections file. (c) Fall back to O*NET Web Services job-outlook data if it carries the BLS projections (unverified). Recommendation: (b) and (a) together; I will not spoof a browser or use anyone's email without being told.
+2. **Audience** (see above).
+3. **O*NET key**: owner is comfortable registering; recommendation is to register now but build 4a on the bulk files first.
+4. **Order of build**: crosswalk and O*NET and outcomes and supply first (all verified), outlook and the combined alignment tool after BLS access is settled.
+
+### Verify before building
+Urban award-level codes and CIP encoding; Scorecard field-of-study field names for credential levels and the exact suppression markers; crosswalk handling of CIP codes with trailing letters or older CIP editions in completions; O*NET-SOC (8-digit) to SOC (6-digit) mapping; BLS file layout once reachable.
