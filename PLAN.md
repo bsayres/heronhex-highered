@@ -194,3 +194,44 @@ Hosts and keys: no key, no contact email. A User-Agent naming the project is pol
 ## Milestone 5 note (2026-10-31): built
 Built in `highered-labor-market`: `get_state_occupation_outlook(state, soc, horizon)` and a `state` option on `get_program_alignment`. 85 tests (27 new for projections), live run, stdio session through the Desktop config. Terms check done: no restrictions found, disclaimer returned in responses. Deviations from the plan: short-term (2-year) projections included as `horizon='short'` (coverage is partial and the tool says so); the single-occupation tool fetches the state and the nation in one request and the alignment option batches up to 100 codes per request; broad-group codes are requested alongside detailed ones. A safety review by mutation showed the "drop unrequested rows" filter was invisible to the first test; the dropped-row count is now returned and asserted.
 Still open: sub-state (regional) projections (each state publishes its own; not in this API), Census PSEO, accreditation and state or board actions (the other gap in the Test College A brief), BLS policy confirmation (draft message above), `.mcpb` bundles, PyPI publishing, Windows.
+
+## Milestone 6 plan: accreditation (proposal for owner review, no code written)
+Research done 2026-10-31 against the live source. This is the "accreditation and state or board actions" gap in the Test College A provost brief.
+
+### Source (verified)
+- **DAPIP**, the Department of Education's Database of Accredited Postsecondary Institutions and Programs. The site's own Download button POSTs `{"CSVChecked":true,"ExcelChecked":false}` to `https://ope.ed.gov/dapip/api/downloadFiles/accreditationDataFiles` and gets `DAPIPData.zip` (3.7 MB; 48.5 MB unpacked) with exactly three CSVs: `InstitutionCampus.csv` (OPE ID, IPEDS UNITID, name), `AccreditationRecords.csv` (agency, program, status, dates) and `AccreditationActions.csv` (90,065 dated actions with a justification code). No key. The file is generated on request and was current to 2026-10-29 when fetched.
+- Join: UNITID to DapipId (Test College A: DapipId 990001, OPE ID 09990100), then DapipId to records and actions.
+- Scorecard also has the institutional accreditor name (`school.accreditor`; Test College A: NECHE). DAPIP is the richer source, so Scorecard is only a cross-check.
+
+### What the live data shows for Test College A (as DAPIP records it; not confirmed with the agencies)
+- Institutional: New England Commission of Higher Education, accredited since 1981, "Heightened Monitoring or Focused Review" recorded 2023-03-03, renewal recorded 2025-09-25.
+- Nursing (associate degree, ACEN): "Show Cause" 2018-09-12, then "Voluntary Withdrawal" 2019-12-31. The record's end date is 2019-12-31, but its status field still says "Accredited".
+- Radiologic technology (JRCERT): probation 2022-01-18, "Loss of Accreditation: Other" 2022-08-23; record end date 2022-08-23, status still "Accredited".
+
+### Data quirks the tools must handle
+- `AccreditationStatus` is never updated when a record ends (27,472 records have an end date and still say "Accredited"). Current status must be computed from the end date, and the tool must say so.
+- 2,920 institution rows have no UNITID (they cannot be joined to IPEDS); 19 rows list two UNITIDs in one field. A UNITID with no match returns a null with a reason, never a guess.
+- 2,279 agency names contain a "?" where a dash was lost, with a "Formerly:" suffix. Shown as given (no rewriting) and documented.
+- Justification is "Other - Provide unlisted or multiple justifications" on 35,784 actions: many actions have no stated reason, and the tool says "no reason given in DAPIP" rather than implying none exists.
+- `InstitutionCampus.csv` carries administrator names, emails and phone numbers. These are dropped when the file is parsed and never cached or returned (personal-data rule); a test asserts no such field appears anywhere.
+- Locations and branches ("Additional Location", "Site") are not returned; only the institution row matching the UNITID.
+
+### Tools (proposed, added to `highered-risk`, which already holds the compliance signals)
+1. `get_accreditation_status(unitid)`: institutional accreditor(s) and every programmatic accreditor on file, each with first accredited date, agency review date, end date, and `current` computed from the end date.
+2. `get_accreditation_actions(unitid, since_year=None, scope='all'|'institutional'|'program')`: the dated actions, each with the agency's words verbatim, its justification, and a fixed documented `category` (adverse, monitoring, routine, substantive_change, other; unknown wording is `unclassified`). Newest first, capped. No score, no verdict, no "distress" label.
+Both carry source, source_url, as_of (the latest action date in the file), retrieved_at.
+
+### Build rules
+- Allowlist adds `ope.ed.gov`; the Guard's POST is limited to that host and this one path; fixed body, not user-controlled. The zip is handled in memory only: exact member-name allowlist, declared and streamed size caps, compression-ratio limit, nothing extracted to disk, never executed. The cache holds a compact JSON of only the joined, projected rows (no admin fields), with checksum and as-of, written atomically under the cache dir.
+- Refresh: 30 days (actions are added daily; one request a month per user is tiny). Stale cache is served with a warning if the refresh fails.
+- Strict input: UNITID `[0-9]{6}`, enums for scope; negative tests as in the other servers (bad IDs, oversize zip, unexpected member name, path-traversal member name, zip bomb ratio, redirect to another host, disallowed host).
+- README prompt-injection note: agency and justification text is upstream text, treated as data.
+
+### Not covered (stated in the tools and SKILL)
+State board and state approval actions (for example the Massachusetts nursing board's program approvals). DAPIP lists some state approval agencies as accreditors, but there is no single national feed for board actions; each state publishes separately. Agencies' own sites (NECHE's institution pages, ACEN's search) hold more detail and are not scraped (crawlers are out of scope); the tools link to them. Also not covered: Test College A-style program closures that the agency never reported to the Department.
+
+### Decisions needed from the owner
+1. Put these in `highered-risk` (recommended) or a new `highered-accreditation` server?
+2. robots.txt and terms: `ope.ed.gov/robots.txt` could not be read (it redirects to an ed.gov page, and my request was blocked by a web application firewall), and I found no terms page for DAPIP. The file is a public federal dataset fetched through the same endpoint as the site's Download button, once a month per user. Comfortable proceeding on that basis, with the question noted in SECURITY and the README, or do you want to email the Department first?
+3. Refresh interval 30 days (recommended) or the 90 days used elsewhere?
+4. Include programmatic accreditors (nursing, radiologic technology and so on)? Recommended yes: that is the part the Test College A brief missed.
