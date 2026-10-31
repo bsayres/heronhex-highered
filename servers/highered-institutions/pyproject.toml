@@ -1,0 +1,37 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "highered-institutions"
+version = "0.1.0"
+description = "MCP server: resolve and compare U.S. higher-ed institutions using free public data (IPEDS via Urban Institute, College Scorecard, ProPublica 990s). No hosted data."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+keywords = ["mcp", "model-context-protocol", "ipeds", "higher-education", "college-scorecard"]
+dependencies = [
+    "mcp>=2.3.0,<3",
+    "httpx>=0.28,<1",
+    "pydantic>=2.10,<3",
+]
+
+[project.scripts]
+highered-institutions = "highered_institutions.server:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "pip-audit",
+    "ruff",
+    "pytest-asyncio>=1.4.1",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/highered_institutions"]
+
+[tool.pytest.ini_options]
+markers = ["live: hits real upstream APIs; run with HIGHERED_LIVE=1"]
+testpaths = ["tests"]
+pythonpath = ["src"]
+asyncio_mode = "auto"

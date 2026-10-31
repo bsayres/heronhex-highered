@@ -1,0 +1,26 @@
+{
+ "metadata": {
+  "page": 0,
+  "total": 1,
+  "per_page": 20
+ },
+ "results": [
+  {
+   "latest.student.size": 1977,
+   "latest.cost.avg_net_price.overall": 12552,
+   "latest.cost.tuition.in_state": 7755,
+   "latest.aid.pell_grant_rate": 0.5978,
+   "latest.completion.completion_rate_4yr_150nt": null,
+   "latest.completion.completion_rate_less_than_4yr_150nt": 0.3333,
+   "latest.earnings.10_yrs_after_entry.median": 46578,
+   "latest.aid.median_debt.completers.overall": null,
+   "school.main_campus": 1,
+   "school.operating": 1,
+   "school.ownership": 1,
+   "school.degrees_awarded.predominant": 2,
+   "id": 999001,
+   "ope6_id": "099901",
+   "ope8_id": "09990100"
+  }
+ ]
+}
