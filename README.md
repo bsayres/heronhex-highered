@@ -6,9 +6,9 @@ Modeled on [1102tools/federal-contracting-mcps](https://github.com/1102tools/fed
 
 | Server | Status | Question it answers |
 |---|---|---|
-| [`highered-institutions`](servers/highered-institutions) | Milestone 1, built | "Show the enrollment trend for [institution] and its closest peers." |
+| [`highered-institutions`](servers/highered-institutions) | Milestone 1 built (plus financial snapshot) | "Show the enrollment trend for [institution] and its closest peers." |
 | [`highered-risk`](servers/highered-risk) | Milestone 2 built (FSA status, audit findings) | Title IV risk signals |
-| `highered-funding` | Milestone 3, planned | Research spend, grants, state funding, enrollment outlook |
+| [`highered-funding`](servers/highered-funding) | Milestone 3 built | Research spend, federal awards and opportunities, state funding, graduate projections |
 
 ## Principles
 - Every response carries `source`, `source_url`, `as_of` (dataset period), and `retrieved_at`.

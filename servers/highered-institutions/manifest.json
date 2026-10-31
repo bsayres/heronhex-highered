@@ -21,6 +21,7 @@
   "tools": [
     { "name": "resolve_institution", "description": "Resolve a name, UNITID, OPEID, EIN, UEI, or domain to ranked candidates." },
     { "name": "search_institutions", "description": "Filter institutions by state, control, Carnegie class, or name text." },
+    { "name": "get_financial_snapshot", "description": "Headline IPEDS finance figures as reported (public and private)." },
     { "name": "get_institution_profile", "description": "Identifiers, system, Carnegie, enrollment, and Scorecard." },
     { "name": "get_enrollment_trend", "description": "Fall headcount enrollment by year." },
     { "name": "compare_peers", "description": "Closest peers and their enrollment trends." }

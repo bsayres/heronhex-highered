@@ -126,3 +126,11 @@ Decisions needed from owner:
 1. WICHE license (CC BY-NC-SA 4.0): include with attribution and a warning, or skip `get_enrollment_projection`?
 2. Add an IPEDS-finance snapshot tool for publics (raw reported figures, no composite)?
 3. NIH matching by name plus UEI verification: acceptable?
+
+## Milestone 3 note (2026-10-31): built
+Owner decisions: include WICHE with attribution and license warning; build the IPEDS finance snapshot; keep NIH name-plus-UEI matching and gather community feedback.
+Built: `servers/highered-funding` with `get_research_spend`, `search_grant_awards` (NSF + NIH), `search_funding_opportunities` (Grants.gov, a separate tool so awards and opportunities are never mixed; deviation: one more tool than the brief), `get_state_funding`, `get_enrollment_projection`. 64 tests, live run, stdio session. `get_financial_snapshot` added to highered-institutions (Urban finance endpoint, reported as filed, no scoring).
+New dependency: `openpyxl` (SHEEO and WICHE workbooks). Guard gains POST, limited to the NIH and Grants.gov hosts.
+Found and fixed: Unicode digits passed `\d` validation in all three servers (now `[0-9]` with regression tests).
+Deviations from the original plan: SHEEO institution-level data (SHEF Expansion) not found, so `get_state_funding` is state-level only; HERD short-form institutions are included (separate file); HERD join is by UNITID with 32 of 681 FY2024 institutions unjoinable.
+Not done: NCES/IPEDS backup for Urban; Carnegie labels; `.mcpb`, PyPI publishing, new-server CI run, Windows.

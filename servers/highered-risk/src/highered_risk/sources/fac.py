@@ -14,7 +14,7 @@ BASE = "https://api.fac.gov"
 KEY_VAR = "FAC_API_KEY"
 SOURCE = "Federal Audit Clearinghouse (GSA), Single Audit database"
 REPORT_URL = "https://app.fac.gov/dissemination/summary/{}"
-REPORT_ID_RE = re.compile(r"^\d{4}-\d{2}-(?:GSAFAC|CENSUS)-\d{10}$")
+REPORT_ID_RE = re.compile(r"^[0-9]{4}-[0-9]{2}-(?:GSAFAC|CENSUS)-[0-9]{10}$")
 
 MAX_FINDINGS = 500
 

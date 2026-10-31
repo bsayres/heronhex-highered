@@ -1,0 +1,40 @@
+{
+ "999001": {
+  "unitid": 999001,
+  "year": 2023,
+  "rev_total_current": 46181628.0,
+  "exp_total_current": 45439964.0,
+  "assets": 78001928.0,
+  "liabilities": 16386706.0,
+  "net_position_end": 61681116.0,
+  "equity_end": null,
+  "rev_tuition_fees_net": 3091661.0,
+  "rev_appropriations_state": 26708496.0,
+  "rev_grants_contracts_federal": 6666226.0,
+  "exp_instruc_total": 10079237.0,
+  "endowment_end": 4715159.0,
+  "longterm_debt": 7318495.0,
+  "est_fte": 1094,
+  "form_type": 3,
+  "reporting_form": 2
+ },
+ "166027": {
+  "unitid": 166027,
+  "year": 2023,
+  "rev_total_current": 9433391104.0,
+  "exp_total_current": 6426911232.0,
+  "assets": 76783132672.0,
+  "liabilities": 12451835904.0,
+  "net_position_end": null,
+  "equity_end": 64331296768.0,
+  "rev_tuition_fees_net": 1152112000.0,
+  "rev_appropriations_state": null,
+  "rev_grants_contracts_federal": 680598976.0,
+  "exp_instruc_total": 1582180000.0,
+  "endowment_end": 53235204096.0,
+  "longterm_debt": null,
+  "est_fte": 27904,
+  "form_type": 4,
+  "reporting_form": 4
+ }
+}

@@ -70,7 +70,7 @@ async def test_exactly_one_identifier(upstream, args):
 
 
 @pytest.mark.parametrize("args", [
-    {"ein": "99-9000001"}, {"ein": "49000001"}, {"ein": "9990000010"}, {"ein": "04272685a"}, {"ein": "999000001&limit=9999"},
+    {"ein": "99-9000001"}, {"ein": "０４２７２６８５７"}, {"ein": "49000001"}, {"ein": "9990000010"}, {"ein": "04272685a"}, {"ein": "999000001&limit=9999"},
     {"ein": "999000001\n"}, {"ein": "eq.1,or=(a.eq.b)"}, {"uei": "TESTCOLLEG1A"}, {"uei": "TESTCOLLEG1"}, {"uei": "TESTCOLLEG1AX"},
     {"uei": "TESTCOLLEG1A or 1=1"}, {"ein": "x" * 5000}, {"ein": "999000001", "years": 0}, {"ein": "999000001", "years": 11},
 ])

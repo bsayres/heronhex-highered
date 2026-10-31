@@ -284,6 +284,41 @@ async def compare_peers(unitid: UnitId, n_peers: Annotated[int, Field(ge=1, le=1
     return envelope(srcs, data, nulls, warnings)
 
 
+@mcp.tool(annotations={"readOnlyHint": True})
+async def get_financial_snapshot(unitid: UnitId) -> dict:
+    """Headline finances for one institution from the latest IPEDS finance survey, as reported, in dollars.
+    Covers public institutions too (unlike FSA composite scores). Values are never scored or estimated.
+
+    Institutions report on GASB-style (net position) or FASB-style (net assets) statements, whichever they use
+    (public institutions may use either). The two are not directly comparable; the response names which one was reported."""
+    index, _c, dir_year = await _directory()
+    r = index.by_unitid.get(unitid)
+    if r is None:
+        raise ToolError("UNITID not found in the IPEDS directory.")
+    year = await urban.latest_finance_year(guard(), dir_year)
+    row, url = await urban.finance(guard(), unitid, year)
+    nulls, warnings = [], []
+    if row is None:
+        data = {"unitid": unitid, "name": r["inst_name"], "year": year, "figures": None}
+        nulls.append({"field": "figures", "reason": f"No IPEDS finance record for this UNITID in {year}. Some institutions report through a parent, or did not file."})
+    else:
+        net_field = "net_position_end" if row["net_position_end"] is not None else "equity_end" if row["equity_end"] is not None else None
+        basis = {"net_position_end": "GASB-style (net position)", "equity_end": "FASB-style (net assets)"}.get(net_field)
+        keep = ["rev_total_current", "exp_total_current", "assets", "liabilities", "rev_tuition_fees_net", "rev_appropriations_state",
+                "rev_grants_contracts_federal", "exp_instruc_total", "endowment_end", "longterm_debt", "est_fte"]
+        figures = {k: row[k] for k in keep}
+        figures["net_position_or_net_assets_end"] = row[net_field] if net_field else None
+        data = {"unitid": unitid, "name": r["inst_name"], "year": year, "units": "US dollars (est_fte is a count)",
+                "reported_basis": basis, "net_position_field_used": net_field, "form_type_code": row["form_type"],
+                "reporting_form_code": row["reporting_form"], "figures": figures}
+        for k, v in figures.items():
+            if v is None:
+                nulls.append({"field": k, "reason": "Not reported on this institution's finance form."})
+        warnings.append("GASB-style and FASB-style figures are not directly comparable; compare like with like. This is the latest published IPEDS finance year and lags the present.")
+    entry = source_entry(urban.SOURCE, url, f"IPEDS finance survey {year}", now())
+    return envelope([entry], data, nulls, warnings)
+
+
 def main() -> None:
     mcp.run()
 

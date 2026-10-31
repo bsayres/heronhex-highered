@@ -1,0 +1,17 @@
+{
+  "manifest_version": "0.4",
+  "name": "highered-funding",
+  "display_name": "Higher Ed Funding",
+  "version": "0.1.0",
+  "description": "Research spending, federal awards and opportunities, state funding, and graduate projections from free public sources.",
+  "author": { "name": "highered-mcps contributors" },
+  "license": "MIT",
+  "server": { "type": "uv", "entry_point": "src/main.py" },
+  "tools": [
+    { "name": "get_research_spend", "description": "NSF HERD R&D expenditures by source of funds, by UNITID." },
+    { "name": "search_grant_awards", "description": "NSF and NIH awards to an institution, identified by UEI." },
+    { "name": "search_funding_opportunities", "description": "Open Grants.gov funding opportunities (not awards)." },
+    { "name": "get_state_funding", "description": "SHEEO state and local support for higher education." },
+    { "name": "get_enrollment_projection", "description": "WICHE high school graduate projections by state." }
+  ]
+}

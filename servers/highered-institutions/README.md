@@ -7,6 +7,7 @@ MCP server (read-only) to resolve U.S. higher-ed institutions across identifiers
 |---|---|
 | `resolve_institution` | name / UNITID / OPEID / EIN / UEI / domain -> ranked candidates with match basis. Never guesses when ambiguous. |
 | `search_institutions` | Filter by state, control, Carnegie 2025 basic code, name text. |
+| `get_financial_snapshot(unitid)` | Headline revenues, expenses, assets, liabilities, net position/assets, endowment and more from the latest IPEDS finance survey, in dollars, as reported. Works for public institutions. Never scored or estimated. |
 | `get_institution_profile` | Identifiers, system, same-OPEID campuses, Carnegie codes, latest enrollment, Scorecard. |
 | `get_enrollment_trend` | Fall headcount by year (table). |
 | `compare_peers` | Closest peers (same control and Carnegie class, nearest enrollment) with trends (long table). |

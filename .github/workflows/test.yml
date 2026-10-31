@@ -10,7 +10,7 @@ jobs:
     strategy:
       matrix:
         python: ["3.11", "3.13"]
-        server: [highered-institutions, highered-risk]
+        server: [highered-institutions, highered-risk, highered-funding]
     defaults:
       run:
         working-directory: servers/${{ matrix.server }}

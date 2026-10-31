@@ -1,0 +1,40 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "highered-funding"
+version = "0.1.0"
+description = "MCP server: research spending, federal grant awards and opportunities, state higher-ed funding, and enrollment projections for U.S. institutions from free public sources (NSF HERD, NSF, NIH, Grants.gov, SHEEO, WICHE)."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+keywords = ["mcp", "model-context-protocol", "higher-education", "research-funding", "grants"]
+dependencies = [
+    "mcp>=2.3.0,<3",
+    "httpx>=0.28,<1",
+    "pydantic>=2.10,<3",
+    "openpyxl>=3.1.5,<4",  # SHEEO and WICHE publish .xlsx
+]
+
+[project.scripts]
+highered-funding = "highered_funding.server:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio",
+    "pip-audit",
+    "ruff",
+    "openpyxl>=3.1.5,<4",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/highered_funding"]
+
+[tool.pytest.ini_options]
+markers = ["live: hits real upstream APIs; run with HIGHERED_LIVE=1"]
+testpaths = ["tests"]
+pythonpath = ["src"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"

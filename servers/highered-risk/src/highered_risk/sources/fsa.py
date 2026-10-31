@@ -65,7 +65,7 @@ def _clean_text(v) -> str | None:
 def pick_hcm(page_text: str) -> str:
     best, best_key = None, None
     for path in set(re.findall(r"/sites/default/files/[A-Za-z0-9_./-]+", page_text)):
-        m = re.search(r"schools-on-hcm-?([a-z]+)-?(\d{4})\.xlsx$", path.lower())
+        m = re.search(r"schools-on-hcm-?([a-z]+)-?([0-9]{4})\.xlsx$", path.lower())
         if m and m.group(1)[:3] in MONTHS and FILE_PATH_RE.match(path):
             key = (int(m.group(2)), MONTHS[m.group(1)[:3]])
             if best_key is None or key > best_key:
@@ -78,7 +78,7 @@ def pick_hcm(page_text: str) -> str:
 def pick_composite(page_text: str) -> str:
     best, best_end = None, -1
     for path in set(re.findall(r"/sites/default/files/[A-Za-z0-9_./-]+", page_text)):
-        m = re.search(r"ay-?(\d\d)-(\d\d)-composite-scores\.xlsx?$", path.lower())
+        m = re.search(r"ay-?([0-9][0-9])-([0-9][0-9])-composite-scores\.xlsx?$", path.lower())
         if m and FILE_PATH_RE.match(path) and int(m.group(2)) > best_end:
             best, best_end = path, int(m.group(2))
     if not best:
@@ -108,7 +108,7 @@ def parse_hcm(data: bytes) -> dict:
         header, cols = None, {}
         for i, row in enumerate(ws.iter_rows(values_only=True)):
             if i == 0 and row and row[0]:
-                m = re.search(r"as of (\d{2})-(\d{2})-(\d{4})", str(row[0]))
+                m = re.search(r"as of ([0-9]{2})-([0-9]{2})-([0-9]{4})", str(row[0]))
                 if m and title.startswith("all hcm"):
                     as_of = f"{m.group(3)}-{m.group(1)}-{m.group(2)}"
             if header is None:
@@ -146,8 +146,8 @@ def parse_composite(data: bytes) -> dict:
         raise ParseError("Could not read the composite score workbook.") from None
     ws = wb.sheet_by_index(0)
     title = str(ws.cell_value(0, 0))
-    period = re.search(r"Ending Between ([\d/]+) and ([\d/]+)", title)
-    src_date = re.search(r"as of ([A-Za-z]+ \d{1,2}, \d{4})", title)
+    period = re.search(r"Ending Between ([0-9/]+) and ([0-9/]+)", title)
+    src_date = re.search(r"as of ([A-Za-z]+ [0-9]{1,2}, [0-9]{4})", title)
     header = next((i for i in range(min(10, ws.nrows)) if any(_norm(c) == "opeid" for c in ws.row_values(i))), None)
     if header is None:
         raise ParseError("Composite score file has an unexpected layout.")
@@ -196,7 +196,7 @@ def parse_cdr(data: bytes) -> dict:
             if g("year" + n) is not None:
                 rates.append({"cohort_fy": _clean_text(g("year" + n)), "defaulted": g("num" + n), "in_repayment": g("denom" + n), "rate_percent": g("defaultrate" + n)})
         rows.append({"opeid6": str(row[0]).strip(), "name": _clean_text(g("name")), "city": _clean_text(g("city")), "state": _clean_text(g("state")), "rates": rates})
-    m = re.search(r"FY\s*(\d{4})", title)
+    m = re.search(r"FY\s*([0-9]{4})", title)
     if header is None or not m:
         raise ParseError("Default rate file has an unexpected layout.")
     return {"latest_cohort_fy": m.group(1), "rows": rows}

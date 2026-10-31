@@ -93,3 +93,34 @@ async def latest_enrollment_year(guard: Guard, directory_year: int) -> int:
         raise UpstreamError("Could not determine the latest IPEDS enrollment year.")
 
     return (await _cached(guard, "urban-latest-enrollment-year.json", fetch)).data["year"]
+
+
+FINANCE_FIELDS = [
+    "rev_total_current", "exp_total_current", "assets", "liabilities", "net_position_end", "equity_end",
+    "rev_tuition_fees_net", "rev_appropriations_state", "rev_grants_contracts_federal", "exp_instruc_total",
+    "endowment_end", "longterm_debt", "est_fte", "form_type", "reporting_form",
+]
+
+
+async def latest_finance_year(guard: Guard, directory_year: int) -> int:
+    """Newest year with finance data (published later than the directory)."""
+    async def fetch():
+        for year in range(directory_year, directory_year - 4, -1):
+            try:
+                data, url = await guard.get_json(f"{BASE}/finance/{year}/", {"unitid": "999001"}, attempts=1)
+            except UpstreamError:
+                continue
+            if data.get("count"):
+                return {"year": year}, f"IPEDS finance {year}", url
+        raise UpstreamError("Could not determine the latest IPEDS finance year.")
+
+    return (await _cached(guard, "urban-latest-finance-year.json", fetch)).data["year"]
+
+
+async def finance(guard: Guard, unitid: str, year: int) -> tuple[dict | None, str]:
+    """One institution's finance row for one year (small request, not cached)."""
+    data, url = await guard.get_json(f"{BASE}/finance/{year}/", {"unitid": unitid})
+    rows = data.get("results") or []
+    if not rows:
+        return None, url
+    return {k: rows[0].get(k) for k in FINANCE_FIELDS}, url

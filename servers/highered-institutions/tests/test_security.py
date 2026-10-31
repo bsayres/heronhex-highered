@@ -19,6 +19,8 @@ async def rejected(name, args) -> bool:
     ("get_enrollment_trend", {"unitid": "12ab56"}),
     ("get_enrollment_trend", {"unitid": "1234567"}),
     ("get_enrollment_trend", {"unitid": "123456; DROP"}),
+    ("get_enrollment_trend", {"unitid": "１６７６３１"}),  # full-width digits must not satisfy a digit pattern
+    ("get_financial_snapshot", {"unitid": "１６７６３１"}),
     ("get_institution_profile", {"unitid": "../../etc"}),
     ("resolve_institution", {"query": "x" * 5000}),
     ("resolve_institution", {"query": "ok name", "kind": "sql"}),
@@ -131,5 +133,5 @@ async def test_stale_cache_served_when_refresh_fails(upstream, tmp_path):
 def test_tools_are_read_only_and_descriptions_static():
     import asyncio
     tools = asyncio.run(server.mcp.list_tools())
-    assert {t.name for t in tools} == {"resolve_institution", "search_institutions", "get_institution_profile", "get_enrollment_trend", "compare_peers"}
+    assert {t.name for t in tools} == {"resolve_institution", "search_institutions", "get_institution_profile", "get_enrollment_trend", "compare_peers", "get_financial_snapshot"}
     assert all(t.annotations and t.annotations.read_only_hint for t in tools)

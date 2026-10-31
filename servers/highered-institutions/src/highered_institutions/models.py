@@ -4,7 +4,7 @@ from typing import Annotated, Literal
 
 from pydantic import Field
 
-UnitId = Annotated[str, Field(pattern=r"^\d{6}$", description="6-digit IPEDS UNITID")]
+UnitId = Annotated[str, Field(pattern=r"^[0-9]{6}$", description="6-digit IPEDS UNITID")]
 State = Annotated[str, Field(pattern=r"^[A-Za-z]{2}$", description="2-letter state/territory code")]
 Year = Annotated[int, Field(ge=1980, le=2100)]
 Control = Literal["public", "private_nonprofit", "private_for_profit"]

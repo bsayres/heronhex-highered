@@ -21,6 +21,14 @@ Verified live against real upstreams:
 - Scorecard profile fields returned for 999001 with a real key (1,000/hour limit header observed).
 - End-to-end MCP stdio session through `uvx --from <local path> highered-institutions`: initialize, tools/list (5 tools), a successful tools/call, and a rejected malformed call.
 
+## get_financial_snapshot
+- Fixture tests: GASB-style public (Test College A) and FASB-style private (Harvard) headline figures, basis named from which net-position field is populated, per-field nulls with reasons for fields the form does not carry, unknown UNITID rejected, no-record case.
+- Live: Test College A FY2023 revenues 46,181,628 and net position 61,681,116; Harvard FY2023 revenues 9,433,391,104.
+- Observed: `form_type` does not track sector (Penn State, a public institution, reports FASB-style `equity_end`), so the tool reports which field was populated rather than inferring sector or basis from codes.
+
+## Found while testing
+- Full-width digits (e.g. `１６７６３１`) are rejected as UNITIDs (they used to satisfy `\d`); regression cases for `get_enrollment_trend` and `get_financial_snapshot`.
+
 ## Source behavior reported, not worked around
 1. Urban `robots.txt` lists `Disallow: /api/`. Owner decision (2026-10-31): call Urban once per quarter (cache TTL 90 days) with 1 request/second pacing; NCES/IPEDS as backup. Contacting Urban to confirm is recommended.
 2. Urban returns **HTTP 500** (not 404) for a year not yet published (fall enrollment 2025). The year-detection probe treats a failure as "not published" for that probe only; data requests still surface errors.

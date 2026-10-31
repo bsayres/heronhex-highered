@@ -14,9 +14,9 @@ SENTINELS = {None, "", "-1", "-2", "-3", -1, -2, -3}
 CONTROL = {1: "public", 2: "private_nonprofit", 3: "private_for_profit"}
 CONTROL_CODE = {v: k for k, v in CONTROL.items()}
 
-UNITID_RE = re.compile(r"^\d{6}$")
-OPEID8_RE = re.compile(r"^\d{8}$")
-EIN_RE = re.compile(r"^\d{2}-?\d{7}$")
+UNITID_RE = re.compile(r"^[0-9]{6}$")
+OPEID8_RE = re.compile(r"^[0-9]{8}$")
+EIN_RE = re.compile(r"^[0-9]{2}-?[0-9]{7}$")
 UEI_RE = re.compile(r"^[A-Za-z0-9]{12}$")
 DOMAIN_RE = re.compile(r"^(?=.{4,100}$)([a-z0-9-]+\.)+[a-z]{2,}$")
 
@@ -127,7 +127,7 @@ def resolve(index: Index, query: str, kind: str = "auto", state: str | None = No
             kind = "opeid"
         elif EIN_RE.match(q):
             kind = "ein"
-        elif UEI_RE.match(q) and re.search(r"\d", q) and re.search(r"[A-Za-z]", q) and q.upper() == q:
+        elif UEI_RE.match(q) and re.search(r"[0-9]", q) and re.search(r"[A-Za-z]", q) and q.upper() == q:
             kind = "uei"
         elif DOMAIN_RE.match(norm_domain(q) or ""):
             kind = "domain"

@@ -1,4 +1,7 @@
 
+import pytest
+from mcp.server.mcpserver.exceptions import ToolError
+
 from highered_institutions import server as s
 
 
@@ -73,3 +76,26 @@ async def test_search_filters(upstream):
     r = await s.search_institutions(state="MO", name_contains="columbia")
     assert [row[0] for row in r["data"]["rows"]] == ["177065"]
     assert (await s.search_institutions(control="private_nonprofit", state="MA"))["data"]["total_matches"] >= 1
+
+
+async def test_financial_snapshot_public_gasb_and_private_fasb(upstream):
+    r = await s.get_financial_snapshot("999001")
+    d = r["data"]
+    assert d["year"] == 2023 and d["reported_basis"].startswith("GASB") and d["net_position_field_used"] == "net_position_end"
+    assert d["figures"]["rev_total_current"] == 46181628.0 and d["figures"]["net_position_or_net_assets_end"] == 61681116.0
+    assert any(n["field"] == "rev_appropriations_state" for n in r["nulls"]) is False
+    r = await s.get_financial_snapshot("166027")
+    d = r["data"]
+    assert d["reported_basis"].startswith("FASB") and d["net_position_field_used"] == "equity_end"
+    assert {n["field"] for n in r["nulls"]} >= {"longterm_debt", "rev_appropriations_state"} and all(n["reason"] for n in r["nulls"])
+    assert any("not directly comparable" in w for w in r["warnings"])
+    for k in ("source", "source_url", "as_of", "retrieved_at"):
+        assert r[k]
+
+
+async def test_financial_snapshot_unknown_unitid_and_no_record(upstream):
+    with pytest.raises(ToolError):
+        await s.get_financial_snapshot("999999")
+    upstream.finance.pop("166027")
+    r = await s.get_financial_snapshot("166027")
+    assert r["data"]["figures"] is None and r["nulls"][0]["field"] == "figures"

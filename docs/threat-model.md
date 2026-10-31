@@ -16,3 +16,14 @@
 | Personal data | Only needed fields returned; officer/employee and chief-administrator fields dropped; no person-name search. |
 
 **Residual risks:** a compromised upstream can serve false numbers (answers cite sources and dates so users can check); a compromised dependency; the model may still be influenced by text it reads despite labeling.
+
+## Additions for highered-funding (Milestone 3)
+| Risk | Control |
+|---|---|
+| Upstream returns personal data we did not ask for (NSF returns PI, co-PI and program-officer names, emails, phones for every award and ignores field selection) | Fixed projection to award fields in code; person fields dropped before anything is returned; tested with person data in the mock |
+| POST-capable client widens the attack surface | POST only to `api.reporter.nih.gov` and `api.grants.gov`, checked before the request; redirects never followed on POST; bodies built from validated inputs only |
+| Upstream filter fails open (NIH returns everything for an unknown criterion) | The server never trusts a server-side filter for identity: every NIH row's own `org_ueis` is checked against the institution's UEIs; truncation and "nothing verified" are reported |
+| Hostile or oversized archive (HERD zip) | 25 MB download cap, only the expected CSV member read, decompressed bytes counted while streaming with a hard cap, nothing extracted to disk |
+| Unicode digits pass `\d` validation | All validation patterns use `[0-9]`; full-width-digit negative tests in every server |
+| Boolean operators in NSF parameter values are interpreted by the API | UEI inputs validated to `[A-Z0-9]{12}` before use; injection-shaped inputs rejected |
+| License obligations for redistributed data (WICHE CC BY-NC-SA 4.0) | Nothing hosted or bundled; license and citation returned in every WICHE response; documented in the README and SKILL |

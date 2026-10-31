@@ -20,6 +20,7 @@ class Upstream:
     def __init__(self):
         self.directory = load("directory.json")
         self.enrollment = load("enrollment.json")
+        self.finance = load("finance_2023.json")
         self.requests: list[httpx.Request] = []
 
     def __call__(self, req: httpx.Request) -> httpx.Response:
@@ -32,6 +33,11 @@ class Upstream:
                 if int(year) > self.directory["year"]:
                     return httpx.Response(404)
                 rows = self.directory["results"]
+            elif kind == "finance":
+                if year != "2023":
+                    return httpx.Response(500)
+                row = self.finance.get(q.get("unitid"))
+                return httpx.Response(200, json={"count": 1 if row else 0, "next": None, "results": [row] if row else []})
             else:  # fall-enrollment: latest year has no data yet in these fixtures
                 table = self.enrollment.get(year)
                 if table is None:

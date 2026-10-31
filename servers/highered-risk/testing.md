@@ -23,6 +23,9 @@ Verified live:
 - 30 fixture tests in `tests/test_fac.py` (fixture recorded live for Test College A, only the requested fields, no contact data). Covers: results by EIN and by UEI; header-only key; no personal-contact fields requested or returned; unknown identifier gives a null with a reason; missing key errors with no request; exactly-one-identifier; malformed or oversized EIN/UEI and `years` out of range rejected before any network call (including filter-injection strings like `eq.1,or=(a.eq.b)`); upstream report ids validated before they are used in a follow-up query; findings truncation reported; redirect to another host blocked without sending the key; errors carry no key or URL; non-list upstream shape fails safely.
 - Live (`HIGHERED_LIVE=1`, `FAC_API_KEY` set): Test College A returns 2024 (10 findings, 9 on Pell, 1 on Federal Work-Study), 2023 and 2022 submissions. Stdio session over `uvx` returned the same and rejected a malformed EIN.
 
+## Found while testing
+- Full-width digits are rejected as OPEID and EIN (they used to satisfy `\d`); regression cases added.
+
 ## Source behavior reported
 1. studentaid.gov Data Center pages are JavaScript apps. File lists are available as page-content JSON at `<page>.json` (undocumented). Used with a clear failure if the layout changes. The file's own links are the only source of file URLs.
 2. studentaid.gov over HTTP/2 intermittently failed for plain clients (`INTERNAL_ERROR`) during research; httpx worked in tests. Not reproduced in the server runs.
