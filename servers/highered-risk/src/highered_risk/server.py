@@ -64,8 +64,9 @@ async def get_fsa_status(opeid: Opeid) -> dict:
     else:
         comp_out = None
         nulls.append({"field": "financial_responsibility", "reason": (
-            f"OPEID not in the composite score file for fiscal years {comp.data['period']}. The file covers private "
-            "nonprofit and proprietary institutions only (public institutions are not scored), and scores publish with a lag.")})
+            f"OPEID not in the composite score file for fiscal years {comp.data['period']}. The file covers private nonprofit and proprietary "
+            "institutions only (public institutions are not scored), and scores publish with a lag. A private institution can also be missing from a "
+            "year's file for reasons the file does not state; do not read the absence as good or bad, and check the institution's audited financial statements.")})
     if comp.data["period"] and "2022" in comp.data["period"]:
         warnings.append(f"Latest published composite scores are for fiscal years {comp.data['period']}; they lag the present.")
 

@@ -13,7 +13,8 @@ async def test_live_Test College A(tmp_path, monkeypatch):
     d = r["data"]
     assert d["opeid"] == "09990100" and r["as_of"].startswith("actions recorded through 20")
     assert d["summary"]["current_institutional_accreditors"], "an institutional accreditor should be current"
-    assert d["summary"]["not_current_programs"], "Test College A's ended nursing and radiography records should be listed as not current"
+    ended = d["summary"]["not_current_programs"]
+    assert ended and all(p["last_action"] for p in ended), "Test College A's ended nursing and radiography records should carry the action that precedes the end"
     a = await s.get_accreditation_actions("999001", scope="programmatic")
     assert a["data"]["counts_by_category"].get("loss") and a["data"]["actions"][0]["date"]
     assert (tmp_path / "accreditation" / "dapip.json").exists()

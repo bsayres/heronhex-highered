@@ -268,6 +268,10 @@ def _kind(program: str | None) -> str:
     return "institutional" if program == INSTITUTIONAL_PROGRAM else "programmatic"
 
 
+def _last(found: tuple | None) -> dict | None:
+    return None if found is None else {"date": found[0], "action": found[1], "category": categorize(found[1])}
+
+
 def institution(data: dict, unitid: str) -> dict | None:
     return data["institutions"].get(unitid)
 
@@ -282,6 +286,11 @@ def accreditors(data: dict, unitid: str, scope: str, today: date) -> list[dict]:
         return []
     s, out = data["strings"], []
     iso = today.isoformat()
+    latest: dict[tuple, tuple] = {}  # (agency, program, sequence) -> newest dated action on that record
+    for aid, prog, seq, action, when, *_ in data["actions"].get(inst["dapip_id"], []):
+        key = (aid, prog, seq)
+        if when and (key not in latest or when > latest[key][0]):
+            latest[key] = (when, s[action] if action is not None else None)
     for aid, prog, seq, flag, first, status, review, end in data["records"].get(inst["dapip_id"], []):
         program = s[prog] if prog is not None else None
         if not _scope_ok(scope, program, aid):
@@ -300,7 +309,7 @@ def accreditors(data: dict, unitid: str, scope: str, today: date) -> list[dict]:
             "scope": _kind(program), "program": program, "sequence": seq,
             "first_accredited": first, "first_accredited_flag": s[flag] if flag is not None else None,
             "status_as_recorded": status_text, "review_date": review, "end_date": end,
-            "current": current, "status_note": note,
+            "current": current, "status_note": note, "last_action": _last(latest.get((aid, prog, seq))),
         })
     out.sort(key=lambda r: (r["scope"] != "institutional", not r["current"], r["program"] or "", r["agency_id"]))
     return out

@@ -18,6 +18,7 @@ No API key and no contact address are needed.
 
 ## What the data does and does not say
 - **`current` is computed.** DAPIP does not update the status text when a record ends. In the live file 27,472 records say "Accredited" and also carry an end date. The tool treats a record as current only when its status is Accredited or Preaccredited and its end date is empty or in the future, and says so in `status_note`.
+- **An ended record is not necessarily a loss.** Each record has `last_action`, the newest dated action for that record, or null when DAPIP records none. `summary.not_current_programs` lists each ended program with its agency, end date and `last_action`.
 - **`category` is this tool's grouping**, not the Department's or the agency's: `loss`, `adverse`, `monitoring`, `resolved`, `routine`, `substantive_change`, `closure`, `agency_recognition`, or `unclassified` for wording it has no rule for. The agency's own words are always returned beside it. There is no score or verdict.
 - **A justification of "Other - Provide unlisted or multiple justifications"** means the agency listed no reason; `justification_detail` holds the agency's free text when there is some.
 - **Not matched:** about 2,900 institutions in DAPIP have no IPEDS id and cannot be reached by UNITID. An unmatched UNITID returns a null with that reason; it does not show the institution is unaccredited.

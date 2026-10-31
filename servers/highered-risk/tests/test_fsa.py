@@ -21,6 +21,12 @@ def test_discovery_picks_newest_and_rejects_bad_paths():
     assert fsa.pick_cdr(f'<a href="{CDR_PATH[:25]}\n{CDR_PATH[25:]}">Official CDRs for the past three fiscal years</a>').endswith("FY2023OfficialFinal.xlsx")
 
 
+async def test_missing_composite_score_reason_does_not_blame_public_status_alone(upstream):
+    r = await server.get_fsa_status("00100200")
+    reason = next(n["reason"] for n in r["nulls"] if n["field"] == "financial_responsibility")
+    assert "public institutions are not scored" in reason and "can also be missing" in reason and "does not state" in reason
+
+
 async def test_status_for_listed_scored_and_missing(upstream):
     d = (await server.get_fsa_status("00100200"))["data"]
     assert d["heightened_cash_monitoring"]["listed"] and d["heightened_cash_monitoring"]["as_of"] == "2026-06-01"

@@ -28,10 +28,25 @@ async def test_status_for_Test College A(upstream):
     assert by_scope == {("institutional", True), ("programmatic", False)}
     s = d["summary"]
     assert s["current_institutional_accreditors"] == ["New England Commission of Higher Education"]
-    assert s["current_programs"] == [] and len(s["not_current_programs"]) == 2 and s["not_current"] == 2
+    assert s["current_programs"] == [] and s["not_current"] == 2
+    ended = {p["program"].split(" ")[0]: p for p in s["not_current_programs"]}
+    assert ended["Nursing"]["end_date"] == "2019-12-31" and ended["Nursing"]["last_action"]["category"] == "loss"
+    assert ended["Nursing"]["last_action"]["action"].startswith("Loss of Accreditation") and ended["Nursing"]["last_action"]["date"] == "2019-12-31"
+    assert ended["Radiologic"]["last_action"] == {"date": "2022-08-23", "action": "Loss of Accreditation or Preaccreditation: Other", "category": "loss"}
     assert any("end date that has passed" in w for w in r["warnings"])
     assert d["coverage"]["state_agencies_in_dapip"] and "authority" in d["coverage"]["verify_with"]
     assert r["notice"]
+
+
+async def test_last_action_is_the_newest_action_on_that_record_or_null(upstream):
+    recs = {(r["agency_name"], r["program"]): r for r in (await server.get_accreditation_status("999001"))["data"]["accreditors"]}
+    neche = next(r for (a, p), r in recs.items() if p == "Institutional Accreditation")
+    assert neche["last_action"] == {"date": "2025-09-25", "action": "Renewal of Accreditation", "category": "routine"}  # newest of three
+    # An ended record with no recorded action must say so (null), not borrow another record's action.
+    none = next(r for r in (await server.get_accreditation_status("111111"))["data"]["accreditors"] if r["agency_name"] == "Some Specialty Council")
+    assert none["last_action"] is None and not none["current"]
+    summary = (await server.get_accreditation_status("111111", scope="programmatic"))["data"]["summary"]["not_current_programs"]
+    assert summary == [{"program": "Business (BUS)", "agency_name": "Some Specialty Council", "end_date": None, "status_as_recorded": "Denied Accreditation", "last_action": None}]
 
 
 async def test_sources_carry_checksum_and_download_endpoint(upstream):

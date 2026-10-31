@@ -10,6 +10,9 @@ Negative tests: malformed UNITIDs (5 and 7 digits, letters, full-width digits, t
 
 Mutation checks (a safety check was broken on purpose and a test had to fail): member-name allowlist, compression-ratio limit, location filter, personal-data leak, `current` computed from the end date, bounded member read, control-character removal, POST URL allowlist, redirect refusal, https-only, `..` in cache names, cache checksum, branch records dropped. Four of the first thirteen survived (location filter, bounded read, https-only and `..` in cache names had no test that could tell); tests were added and all four are now caught.
 
+## Change after the three-college validation (2026-10-31)
+Found by reading Test University C's output: an ended nursing record from a previous accreditor (ended 2013, no recorded action) was listed in `not_current_programs` by program name only, which could be read as a lost accreditation. Each record now carries `last_action`, and `not_current_programs` returns the agency, end date, status text and `last_action`. Two tests added (newest action wins; null when none), and a mutation that picks the oldest action is caught. 122 passed, 1 skipped.
+
 ## Live (opt-in) — `HIGHERED_LIVE=1 pytest -m live`
 Run 2026-10-31: **1 passed** (8 s cold, one 3.7 MB download).
 

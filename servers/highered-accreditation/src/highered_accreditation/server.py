@@ -67,8 +67,10 @@ async def get_accreditation_status(unitid: Unitid, scope: Scope = "all") -> dict
     (some state boards of nursing and career-technical boards).
 
     Each record has the agency, program, first accredited date, the status as DAPIP recorded it, the review date, the end
-    date, and `current`. `current` is computed: DAPIP does not update the status text when a record ends, so a record with
-    a passed end date and the status "Accredited" is not current. `scope` is all, institutional, programmatic or state
+    date, `current`, and `last_action` (the newest dated action DAPIP holds for that record, or null). `current` is computed:
+    DAPIP does not update the status text when a record ends, so a record with a passed end date and the status "Accredited"
+    is not current. An ended record is not necessarily a loss of accreditation: an agency can be replaced by another, so read
+    `last_action` and the actions list before saying why a record ended. `scope` is all, institutional, programmatic or state
     (records from state agencies).
 
     The institution's own record only: branch campuses and additional locations are not included. State board approvals
@@ -93,7 +95,9 @@ async def get_accreditation_status(unitid: Unitid, scope: Scope = "all") -> dict
             "records": len(recs), "current": len(current), "not_current": len(recs) - len(current),
             "current_institutional_accreditors": sorted({r["agency_name"] for r in current if r["scope"] == "institutional" and r["agency_name"]}),
             "current_programs": sorted({r["program"] for r in current if r["scope"] == "programmatic" and r["program"]}),
-            "not_current_programs": sorted({r["program"] for r in recs if r["scope"] == "programmatic" and not r["current"] and r["program"]}),
+            "not_current_programs": [
+                {"program": r["program"], "agency_name": r["agency_name"], "end_date": r["end_date"], "status_as_recorded": r["status_as_recorded"], "last_action": r["last_action"]}
+                for r in recs if r["scope"] == "programmatic" and not r["current"] and r["program"]],
         },
         "coverage": {
             "state_agencies_in_dapip": dapip.state_agencies(d),

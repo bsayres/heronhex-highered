@@ -32,6 +32,9 @@ Verified live:
 - FAC's definition of `is_modified_opinion` is "the auditor identified the finding as the basis for a modified opinion"; it does not say which opinion, so the tool says so instead of calling it a compliance opinion (an earlier review comment had assumed that).
 - Date helper tests include month-ends, weekend roll-forward, a leap-day month-end and a December year end.
 
+## Change after the three-college validation (2026-10-31)
+Test University C (private nonprofit) is absent from the composite score files for 2021-22 and 2022-23 (it is in the 2020-21 file), while Notre Dame of Maryland University is present with a score of 3.0. The null reason said only that public institutions are not scored, which is not the explanation for a private institution. The reason now adds that a private institution can be missing from a year's file for reasons the file does not state. One test added.
+
 ## Source behavior reported
 1. studentaid.gov Data Center pages are JavaScript apps. File lists are available as page-content JSON at `<page>.json` (undocumented). Used with a clear failure if the layout changes. The file's own links are the only source of file URLs.
 2. studentaid.gov over HTTP/2 intermittently failed for plain clients (`INTERNAL_ERROR`) during research; httpx worked in tests. Not reproduced in the server runs.
