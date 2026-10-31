@@ -145,3 +145,39 @@ Top level: `.github/workflows` (21 files incl. `publish-pypi.yml`), `badges`, `d
 - studentaid.gov robots.txt: `Crawl-delay: 7`.
 - **FAC**: VERIFIED live 2026-10-31 (see section 6 update below).
 - The "UNVERIFIED download URLs" note in section 5 above is superseded by this section.
+
+
+## Update 2026-10-31: composite-score alternatives and Milestone 3 sources (all checked live)
+
+### Is there a more current or broader source for financial responsibility?
+- **FSA composite scores**: the Data Center page still lists `ay-22-23-composite-scores.xls` as the newest file (fiscal years ending 7/1/2022 to 6/30/2023). No newer file exists; FSA is the only publisher. Public institutions are not scored.
+- **IPEDS finance** (Urban `college-university/ipeds/finance/{year}/`, one unified table, 153 fields, includes public institutions such as Test College A): newest year is **2023**. NCES raw files agree (`F2223_F1A.zip`/`F2223_F2.zip` posted 2024-12-06; `F2324_*` returns 404). Same period as the composite scores, so no gain in recency, but it covers publics. Fields differ by `form_type` (GASB public vs FASB private): `net_position` for GASB, `equity_*`/`assets_net` for FASB. A composite score cannot be reproduced from it without estimating, which this project does not do.
+- **More current risk signals that already exist**: HCM (as of 2026-06-01) and FAC audits (accepted through 2026-05-12, includes `is_going_concern_included`).
+
+### HERD (NSF NCSES): VERIFIED
+- Microdata page `https://ncses.nsf.gov/explore-data/microdata/higher-education-research-development` links one zip per year, e.g. `/821/assets/0/files/higher_education_r_and_d_2024.zip` (7.5 MB; holds `herd2024.csv` 49 MB and a `.sas7bdat`). Latest FY2024, posted Sept 2025. robots.txt: only `/cms/` disallowed.
+- **`ipeds_unitid` is present** (also `inst_id`, `ncses_inst_id`). FY2024: 681 institutions, 649 with a UNITID, **32 without** (e.g. Oregon State, University of New Hampshire). Identical header FY2015 through FY2024.
+- Long format: `questionnaire_no, question, row, column, data, status`. Values are **thousands of dollars** (user guide). Total R&D by source of funds is questionnaire `01.a`-`01.g` (Federal, State and local, Business, Nonprofit, Institution, All other, Total). Test College A has no HERD rows (below the survey threshold), so the answer is a null with a reason.
+
+### NSF Awards API: VERIFIED, with caveats
+- `GET https://api.nsf.gov/services/v1/awards.json`, no key. `ueiNumber` is an exact filter (Penn State: 6,526 awards; `dateStart`/`dateEnd` work). `rpp` max 25, max 3,000 results per query.
+- **`printFields` is "no longer functional"**: every record comes back in full, including PI and co-PI names and emails and program-officer name, email and phone. The server must project to a safe field list in code and drop all person fields.
+- `awardeeName` is a free-text keyword search that also matches abstracts (a Harvard query returned LSU). Never use it for identity. Boolean operators inside parameter values are parsed by the API; strict UEI validation on our side prevents misuse.
+
+### NIH RePORTER v2: VERIFIED, with caveats
+- `POST https://api.reporter.nih.gov/v2/projects/search`, no key. Policy: at most 1 request/second, large jobs off-hours. Offset max 14,999.
+- **There is no UEI search criterion.** `org_ueis` is silently ignored and an invalid filter fails open: a junk UEI returned all 2,983,713 projects. Valid criteria are `org_names` (wildcard) and `org_names_exact_match`.
+- Workable and still identifier-exact: query by name, then keep only rows whose returned `organization.org_ueis` intersect the institution's UEIs. Tested with Penn State FY2025: 181 rows, all UEI NPM2J7MSCF61. The tool must say results are name-queried and UEI-verified, and warn when truncated.
+- Intramural NIH rows have no org UEI and are dropped by the UEI check.
+
+### Grants.gov search2: VERIFIED (opportunities only)
+- `POST https://api.grants.gov/v1/api/search2`, no key. Filters: `keyword`, `oppStatuses` (`forecasted|posted|closed|archived`), `eligibilities` (`06` public IHE, `20` private IHE, `25` other), `agencies`, `fundingCategories`, `rows`, `sortBy`. Returns number, title, agency, openDate, closeDate, cfdaList. The response also embeds a JWT `token` and large facet lists; neither is returned by the tool.
+
+### SHEEO SHEF: VERIFIED (state level only)
+- `https://shef.sheeo.org/data-downloads/` links `SHEEO_SHEF_FY25_Report_Data.xlsx` (FY1980-FY2025, 52 jurisdictions, 45 columns) and `..._Sector_Data.xlsx` (FY2019-FY2025, two-year vs four-year). Published April 2026 under a dated folder (`/wp-content/uploads/2026/04/`), so the link must be discovered from the page, not guessed. robots.txt allows all.
+- Required citation: State Higher Education Executive Officers Association. (2026). State Higher Education Finance: FY 2025. Boulder, CO. Data are unadjusted; divide by the adjustment factors for real dollars.
+- No institution-level data in these files. Institution-level SHEF Expansion data (2008-2022) were not located and are not planned.
+
+### WICHE Knocking at the College Door: VERIFIED, LICENSE FLAG
+- 11th edition, December 2024. Dataset: `https://www.wiche.edu/wp-content/uploads/2024/12/Knocking-at-the-College-Door-11th-Edition-Projections-Dataset-12-11-2024.xlsx` (12 MB, sheet `Data`, 246,468 rows: `Stabbr, StateRegionUS, ClassOf, SchoolYear, SchoolSector, Grade, RaceEthnicity, Students, ActualProjected, ...`). State, region and US level only.
+- **License: CC BY-NC-SA 4.0** (attribution, NonCommercial, ShareAlike). Needs an owner decision (see PLAN).

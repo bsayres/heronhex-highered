@@ -111,3 +111,18 @@ Open: composite scores lag about two years and omit public institutions; confirm
 ## Decisions log addendum (2026-10-31, after M2)
 - ProPublica **dropped** from highered-institutions (owner decision): source module, allowlist host, `include_990` parameter, fixtures and docs removed. 990 data is no longer part of the profile.
 - Urban stays paced at 1 request/second (owner-approved) with a 90-day cache.
+
+## Milestone 3 research outcome (2026-10-31): sources verified, build not started
+
+Composite scores: no newer or broader FSA source exists; IPEDS finance (FY2023) covers publics but is the same period. See docs/sources.md.
+
+Proposed design (pending owner answers below):
+- `get_research_spend(unitid)`: HERD. Per-year zip (7.5 MB), stream-parse the CSV (49 MB), keep only the `01.*` rows for the institutions, cache a compact per-year JSON with the zip's SHA-256. Thousands of dollars converted and labeled. 32 institutions lack a UNITID in HERD; for those the tool returns a null and lists same-state unmatched HERD entries as unjoined candidates, never a name join.
+- `search_grant_awards(...)`: three sources with different identity strength, labeled per result. NSF: exact by UEI, fields projected to a safe list (no person fields). NIH: name query then UEI verification. Grants.gov: opportunities only, filtered by eligibility, no institution identity. Guard gains a POST method restricted to these search endpoints.
+- `get_state_funding(state, ...)`: SHEEO report and sector data, state level, citation in every response.
+- `get_enrollment_projection(state, ...)`: WICHE, state level, license-dependent.
+
+Decisions needed from owner:
+1. WICHE license (CC BY-NC-SA 4.0): include with attribution and a warning, or skip `get_enrollment_projection`?
+2. Add an IPEDS-finance snapshot tool for publics (raw reported figures, no composite)?
+3. NIH matching by name plus UEI verification: acceptable?
