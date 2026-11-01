@@ -386,6 +386,69 @@ async def get_financial_snapshot(unitid: UnitId, years: Annotated[int, Field(ge=
     return envelope([entry], data, nulls, warnings)
 
 
+@mcp.tool(title="Compare institutions side by side", annotations={"title": "Compare institutions side by side", "readOnlyHint": True})
+async def compare_institutions(unitids: Annotated[list[UnitId], Field(min_length=2, max_length=5)],
+                               enrollment_years: Annotated[int, Field(ge=1, le=10)] = 5) -> dict:
+    """Side-by-side facts for 2 to 5 named institutions (by UNITID): control, state, Carnegie basic class, fall enrollment for the
+    latest `enrollment_years` years, the latest IPEDS finance year (revenues, expenses, state appropriations, net tuition and fees),
+    and College Scorecard cost and outcome fields. Institutions are compared as given; no peer matching, ranking or scoring is done.
+    Years and accounting bases can differ between institutions, and the response says where they do. An institution that cannot be
+    found is reported as a null and left out of the table."""
+    if len(set(unitids)) != len(unitids):
+        raise ToolError("Give each UNITID once.")
+    _index, _c, latest = await _directory()
+    start = latest - enrollment_years + 1
+    out, nulls, warnings, sources = [], [], [], []
+
+    def take(env: dict, unitid: str) -> None:
+        for src in env["sources"]:
+            if not any(x["source"] == src["source"] and x["source_url"] == src["source_url"] for x in sources):
+                sources.append(src)
+        nulls.extend({**n, "field": f"{unitid}.{n['field']}", "kind": n["kind"]} for n in env["nulls"])
+        warnings.extend(w for w in env["warnings"] if w not in warnings)
+
+    for uid in unitids:
+        try:
+            prof = await get_institution_profile(uid)
+        except ToolError:
+            nulls.append({"field": uid, "kind": "not_found", "reason": "UNITID not found in the IPEDS directory; left out of the comparison."})
+            continue
+        except UpstreamError as e:
+            nulls.append({"field": uid, "kind": "source_unavailable", "reason": f"{e} Left out of the comparison."})
+            continue
+        take(prof, uid)
+        d = prof["data"]
+        row = {"unitid": uid, "name": d["name"], "city": d["city"], "state": d["state"], "control": d["control"],
+               "carnegie_basic_2025": d["carnegie"]["basic_2025"], "enrollment": None, "finance": None, "scorecard": d["scorecard"]}
+        try:
+            trend = await get_enrollment_trend(uid, start_year=start, end_year=latest)
+            take(trend, uid)
+            row["enrollment"] = {"columns": trend["data"]["columns"], "rows": trend["data"]["rows"]}
+        except (ToolError, UpstreamError) as e:
+            nulls.append({"field": f"{uid}.enrollment", "kind": "source_unavailable", "reason": str(e)})
+        try:
+            fin = await get_financial_snapshot(uid, years=1)
+            take(fin, uid)
+            f = fin["data"]["figures"]
+            if f is not None:
+                row["finance"] = {"year": fin["data"]["year"], "basis": fin["data"]["reported_basis"], "total_revenues": f["rev_total_current"],
+                                  "total_expenses": f["exp_total_current"], "state_appropriations": f["rev_appropriations_state"],
+                                  "net_tuition_and_fees": f["rev_tuition_fees_net"], "est_fte": f["est_fte"]}
+        except (ToolError, UpstreamError) as e:
+            nulls.append({"field": f"{uid}.finance", "kind": "source_unavailable", "reason": str(e)})
+        out.append(row)
+    if len(out) < 2:
+        raise ToolError("Fewer than two of these UNITIDs could be compared: " + "; ".join(f"{n['field']}: {n['reason']}" for n in nulls))
+    if len({r["control"] for r in out}) > 1:
+        warnings.append("These institutions have different control (public or private); they report finances on different bases and face different rules.")
+    fins = [r["finance"] for r in out if r["finance"]]
+    if len({f["basis"] for f in fins}) > 1:
+        warnings.append("Finance figures use different accounting bases (GASB-style and FASB-style) and are not directly comparable.")
+    if len({f["year"] for f in fins}) > 1:
+        warnings.append("Finance figures are from different years for different institutions.")
+    return envelope(sources, {"institutions": out, "enrollment_window": [start, latest]}, nulls, warnings)
+
+
 def main() -> None:
     mcp.run()
 

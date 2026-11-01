@@ -10,6 +10,7 @@ MCP server (read-only) to resolve U.S. higher-ed institutions across identifiers
 | `get_financial_snapshot(unitid, years=1)` | Headline revenues, expenses, assets, liabilities, net position/assets, endowment and more from the latest IPEDS finance survey, in dollars, as reported. Works for public institutions. Never scored or estimated. `years` up to 10 adds a year-by-year history (use it: one year is not a trend); revenue components are returned as reported and capital appropriations are not netted out. |
 | `get_institution_profile` | Identifiers, system, same-OPEID campuses, Carnegie codes, latest enrollment, Scorecard. |
 | `get_enrollment_trend` | Fall headcount by year (table). |
+| `compare_institutions(unitids)` | 2 to 5 named institutions side by side: control, enrollment years, latest finance year, Scorecard cost and outcomes. No ranking or matching. |
 | `compare_peers` | Closest peers (same control and Carnegie class, nearest enrollment) with trends (long table). |
 
 Every response: `source`, `source_url`, `as_of`, `retrieved_at`, `sources[]`, `data`, `nulls[]` (field + reason), `warnings[]`.

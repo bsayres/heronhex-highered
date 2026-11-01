@@ -139,3 +139,32 @@ async def test_compare_peers_same_system_needs_a_system_and_bad_scope_is_rejecte
         await s.compare_peers("177065", scope="same_system")  # Columbia College (MO) has no system in the directory
     with pytest.raises(Exception):  # noqa: B017
         await s.mcp.call_tool("compare_peers", {"unitid": "999001", "scope": "regional"})
+
+
+async def test_compare_institutions_side_by_side_and_flags_differences(upstream):
+    r = await s.compare_institutions(["999001", "166027"], enrollment_years=3)
+    rows = {x["unitid"]: x for x in r["data"]["institutions"]}
+    assert rows["999001"]["name"] == "Test Community College A" and rows["166027"]["control"] != rows["999001"]["control"]
+    assert rows["999001"]["finance"]["year"] == 2023 and rows["999001"]["finance"]["total_revenues"] is not None
+    assert r["data"]["enrollment_window"] == [2022, 2024]
+    assert [x[0] for x in rows["166027"]["enrollment"]["rows"]] == [2022, 2023, 2024]
+    assert any("different control" in w for w in r["warnings"]) and any("different accounting bases" in w for w in r["warnings"])
+    assert not any("rank" in str(k).lower() for k in rows["999001"])  # no ranking or scoring is done
+    assert r["sources"] and r["retrieved_at"]
+
+
+async def test_compare_institutions_leaves_out_unknown_ids_with_a_null_and_needs_two(upstream):
+    r = await s.compare_institutions(["999001", "166027", "999999"])
+    assert [x["unitid"] for x in r["data"]["institutions"]] == ["999001", "166027"]
+    assert any(n["field"] == "999999" and n["kind"] == "not_found" for n in r["nulls"])
+    with pytest.raises(ToolError, match="Fewer than two"):
+        await s.compare_institutions(["999001", "999999"])
+    with pytest.raises(ToolError, match="once"):
+        await s.compare_institutions(["999001", "999001"])
+
+
+async def test_compare_institutions_rejects_bad_input_without_a_request(upstream):
+    for ids in (["999001"], ["999001"] * 6, ["999001", "12345"], ["999001", "166027x"], "999001,166027", []):
+        with pytest.raises(ToolError):
+            await s.mcp.call_tool("compare_institutions", {"unitids": ids})
+    assert not upstream.requests
