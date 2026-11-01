@@ -15,6 +15,9 @@ MCP server (read-only) to resolve U.S. higher-ed institutions across identifiers
 
 Every response: `source`, `source_url`, `as_of`, `retrieved_at`, `sources[]`, `data`, `nulls[]` (field + reason), `warnings[]`.
 
+## Prompt
+`institution_brief(institution, format)` is an MCP prompt (shown as a prompt or slash command in clients that list prompts). It asks Claude to build a sourced written brief, one-pager or interactive dashboard for one institution by calling the highered tools in a fixed order, with the same rules as the `institution-brief` skill (no verdicts, nulls reported as gaps, sources and citations kept). It needs the other highered servers to be connected for the sections they provide, and says which sections are missing when they are not. The `institution` argument takes a name or id only (letters, digits and basic punctuation).
+
 ## Install / run
 ```bash
 uvx --from /path/to/highered-mcps/servers/highered-institutions highered-institutions

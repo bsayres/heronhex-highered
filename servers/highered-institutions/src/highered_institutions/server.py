@@ -9,6 +9,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import Field
 
 from . import crosswalk as cw
+from . import prompts
 from .http import Guard, UpstreamError
 from .models import (
     Control,
@@ -36,6 +37,8 @@ mcp = MCPServer(
 _guard: Guard | None = None
 _index_cache: dict[str, cw.Index] = {}
 NameText = Annotated[str, Field(min_length=2, max_length=120, pattern=r"^[\w\s&'.,()\-]+$")]
+# The prompt text is interpolated into instructions, so it takes a name or id only: no newlines, quotes, colons or markup.
+PromptName = Annotated[str, Field(min_length=2, max_length=120, pattern=r"^[A-Za-z0-9 &'.,()-]+$")]
 QueryText = Annotated[str, Field(min_length=2, max_length=200, pattern=r"^[\w\s&'.,()\-:/]+$")]
 
 
@@ -447,6 +450,12 @@ async def compare_institutions(unitids: Annotated[list[UnitId], Field(min_length
     if len({f["year"] for f in fins}) > 1:
         warnings.append("Finance figures are from different years for different institutions.")
     return envelope(sources, {"institutions": out, "enrollment_window": [start, latest]}, nulls, warnings)
+
+
+@mcp.prompt(name="institution_brief", title="Institution brief",
+            description="Prepare a sourced brief, one-pager or interactive dashboard for one U.S. college from all the highered tools.")
+def institution_brief(institution: PromptName, format: prompts.BriefFormat = "written brief") -> str:
+    return prompts.brief_text(institution, format)
 
 
 def main() -> None:
