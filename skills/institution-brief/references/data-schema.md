@@ -25,7 +25,7 @@ Replace only the JSON inside `<script id="brief-data" type="application/json">`.
   "programs": [{"program": "", "cip4": "", "credential": "", "awards": 0,
                 "earnings_institution": null, "earnings_national": null}],
   "gaps": [{"field": "risk.composite", "reason": "reason string from the tool's null"}],
-  "sources": [{"name": "", "as_of": "", "retrieved_at": ""}]
+  "sources": [{"name": "", "as_of": "", "retrieved_at": "", "citation": null, "license": null}]
 }
 ```
 
@@ -43,7 +43,7 @@ Replace only the JSON inside `<script id="brief-data" type="application/json">`.
 | `accreditation` | `get_accreditation_status`: `accreditors[*]` with `agency_name`→`agency`, `scope`, `program`, `current`, `end_date`, `last_action.action`/`.date` |
 | `programs` | `get_program_outcomes`: `rows` with `program`, `cip4`, `credential`, the latest awards column→`awards`, `earnings_1yr_median_institution`→`earnings_institution`, `earnings_1yr_median_national`→`earnings_national` |
 | `gaps` | every `nulls[]` entry the tools returned: `field`, `reason`. Prefix `field` with the section key (`enrollment`, `finance`, `risk`, `accreditation`, `programs`) so the page shows it under that section |
-| `sources` | every response's `sources[]`: `source`→`name`, `as_of`, `retrieved_at` |
+| `sources` | every response's `sources[]`: `source`→`name`, `as_of`, `retrieved_at`. When the response also has a top-level `citation` or `license` (WICHE, SHEEO, O*NET), copy them verbatim onto that source's entry; never drop them. |
 
 ## What the page computes (and nothing else)
 

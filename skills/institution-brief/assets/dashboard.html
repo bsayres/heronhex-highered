@@ -307,7 +307,9 @@ function buildGaps(body){
 function buildSources(body){
   var s=arr(D.sources);
   if(!s.length){body.appendChild(el("div",{"class":"note",text:"No sources recorded."}));return}
-  body.appendChild(table([{k:"name",h:"Source"},{k:"as_of",h:"As of"},{k:"retrieved_at",h:"Retrieved"}],s,{redraw:function(){}}));
+  var cols=[{k:"name",h:"Source"},{k:"as_of",h:"As of"},{k:"retrieved_at",h:"Retrieved"}];
+  if(s.some(function(x){return x.citation||x.license}))cols.push({k:"citation",h:"Citation and license",fmt:function(v,r){return[v,r.license?"License: "+r.license:null].filter(Boolean).join(" ")||"—"}});
+  body.appendChild(table(cols,s,{redraw:function(){}}));
 }
 
 /* ---------- KPIs ---------- */
