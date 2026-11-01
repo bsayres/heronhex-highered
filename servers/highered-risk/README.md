@@ -1,11 +1,11 @@
 # highered-risk
 
-MCP server (read-only) for Title IV risk signals from FSA public files and Single Audit results from the Federal Audit Clearinghouse. `get_fsa_status` joins on OPEID; `get_audit_findings` on EIN or UEI. Find all three with `highered-institutions`.
+MCP server (read-only) for Title IV risk signals from FSA public files and Single Audit results from the Federal Audit Clearinghouse. `get_title_iv_status` joins on OPEID; `get_audit_findings` on EIN or UEI. Find all three with `highered-institutions`.
 
 ## Tools
 | Tool | Status | Purpose |
 |---|---|---|
-| `get_fsa_status(opeid)` | built | Heightened Cash Monitoring list, financial responsibility composite score, official cohort default rates. |
+| `get_title_iv_status(opeid)` | built | Heightened Cash Monitoring list, financial responsibility composite score, official cohort default rates. |
 | `get_audit_findings(ein \| uei, years=3)` | built | Latest Single Audit submissions from the Federal Audit Clearinghouse: opinion, internal control and compliance flags, the filing timeline against the nine-month rule (2 CFR 200.512(a)), and each finding's structured flags, decoded compliance-requirement labels and federal program (ALN). No finding narratives; each audit links to its FAC report. |
 
 Response envelope: `source`, `source_url`, `as_of`, `retrieved_at`, `sources[]` (one per file, with file SHA-256), `data`, `nulls[]`, `warnings[]`.
@@ -14,7 +14,7 @@ Response envelope: `source`, `source_url`, `as_of`, `retrieved_at`, `sources[]` 
 ```bash
 uvx --from /path/to/highered-mcps/servers/highered-risk highered-risk
 ```
-No API key is needed for `get_fsa_status`. `get_audit_findings` needs `FAC_API_KEY` (free, https://api.data.gov/signup), sent in the `X-Api-Key` header only; without it the tool returns a clear error and makes no request. 1,000 requests/hour/key; one call uses three.
+No API key is needed for `get_title_iv_status`. `get_audit_findings` needs `FAC_API_KEY` (free, https://api.data.gov/signup), sent in the `X-Api-Key` header only; without it the tool returns a clear error and makes no request. 1,000 requests/hour/key; one call uses three.
 
 ## Network allowlist (enforced in `http.py`)
 | Host | Used for |

@@ -64,7 +64,7 @@ def _us_date(s: str | None, field: str) -> str | None:
         raise ToolError(f"{field} is not a valid calendar date.") from None
 
 
-@mcp.tool(annotations={"readOnlyHint": True})
+@mcp.tool(title="Research spending", annotations={"title": "Research spending", "readOnlyHint": True})
 async def get_research_spend(unitid: UnitId, years: Annotated[int, Field(ge=1, le=10)] = 3, state: StateCode | None = None) -> dict:
     """Total R&D expenditures by source of funds for one institution from the NSF HERD Survey, latest `years`
     survey years, in dollars (HERD publishes thousands; converted here). Join is on the exact UNITID.
@@ -114,7 +114,7 @@ async def get_research_spend(unitid: UnitId, years: Annotated[int, Field(ge=1, l
     return envelope(sources, data, nulls, warnings)
 
 
-@mcp.tool(annotations={"readOnlyHint": True})
+@mcp.tool(title="NSF and NIH awards", annotations={"title": "NSF and NIH awards", "readOnlyHint": True})
 async def search_grant_awards(
     ueis: Annotated[list[Uei], Field(min_length=1, max_length=3, description="The institution's UEI(s), e.g. from resolve_institution")],
     sources: list[Literal["nsf", "nih"]] | None = None,
@@ -182,7 +182,7 @@ async def search_grant_awards(
     return envelope(srcs, {"ueis": ueis, **out}, nulls, warnings)
 
 
-@mcp.tool(annotations={"readOnlyHint": True})
+@mcp.tool(title="Open grant opportunities", annotations={"title": "Open grant opportunities", "readOnlyHint": True})
 async def search_funding_opportunities(
     keyword: QueryText | None = None,
     statuses: list[Literal["forecasted", "posted"]] | None = None,
@@ -192,7 +192,7 @@ async def search_funding_opportunities(
 ) -> dict:
     """Open or forecasted federal funding OPPORTUNITIES from Grants.gov (not awards). `eligibility` filters to
     opportunities open to public or private institutions of higher education. Newest first. Opportunities are
-    solicitations, not money received: never describe them as funding an institution has."""
+    solicitations, not money an institution has received."""
     st = statuses or ["forecasted", "posted"]
     try:
         r = await grants.search(guard(), keyword, st, eligibility, agency, rows)
@@ -203,7 +203,7 @@ async def search_funding_opportunities(
     return envelope([source_entry(grants.SOURCE, r["url"], "live query", now())], {"total_matching": r["total"], "opportunities": r["opportunities"]}, nulls, warnings)
 
 
-@mcp.tool(annotations={"readOnlyHint": True})
+@mcp.tool(title="State higher-ed funding", annotations={"title": "State higher-ed funding", "readOnlyHint": True})
 async def get_state_funding(state: StateCode, start_fy: Year | None = None, end_fy: Year | None = None) -> dict:
     """State and local support for public higher education by fiscal year, from SHEEO's State Higher Education
     Finance (SHEF) report: education appropriations, net tuition, total education revenue, student share, net FTE, state
@@ -239,7 +239,7 @@ async def get_state_funding(state: StateCode, start_fy: Year | None = None, end_
     return envelope([_entry(sheeo.SOURCE, L)], data, nulls, warnings, citation=sheeo.CITATION)
 
 
-@mcp.tool(annotations={"readOnlyHint": True})
+@mcp.tool(title="Projected high school graduates (WICHE)", annotations={"title": "Projected high school graduates (WICHE)", "readOnlyHint": True})
 async def get_enrollment_projection(
     state: StateCode,
     sector: Literal["total", "public", "private"] = "total",

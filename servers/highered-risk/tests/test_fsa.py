@@ -22,24 +22,24 @@ def test_discovery_picks_newest_and_rejects_bad_paths():
 
 
 async def test_missing_composite_score_reason_does_not_blame_public_status_alone(upstream):
-    r = await server.get_fsa_status("00100200")
+    r = await server.get_title_iv_status("00100200")
     reason = next(n["reason"] for n in r["nulls"] if n["field"] == "financial_responsibility")
     assert "public institutions are not scored" in reason and "can also be missing" in reason and "does not state" in reason
 
 
 async def test_status_for_listed_scored_and_missing(upstream):
-    d = (await server.get_fsa_status("00100200"))["data"]
+    d = (await server.get_title_iv_status("00100200"))["data"]
     assert d["heightened_cash_monitoring"]["listed"] and d["heightened_cash_monitoring"]["as_of"] == "2026-06-01"
     assert d["financial_responsibility"] is None
     assert d["cohort_default_rates"]["entries"][0]["rates"][0]["rate_percent"] == 0.8
     assert [r["opeid"] for r in d["heightened_cash_monitoring"]["other_campuses_same_opeid6_listed"]] == ["00100201"]
 
-    r = await server.get_fsa_status("00884300")
+    r = await server.get_title_iv_status("00884300")
     assert r["data"]["financial_responsibility"]["composite_score"] == 2.2
     assert r["data"]["financial_responsibility"]["fiscal_year_end"] == "2023-05-31"
     assert r["data"]["heightened_cash_monitoring"]["listed"] is False
 
-    r = await server.get_fsa_status("09990100")
+    r = await server.get_title_iv_status("09990100")
     assert {n["field"] for n in r["nulls"]} == {"financial_responsibility", "cohort_default_rates"}
     assert all(n["reason"] for n in r["nulls"])
     for k in ("source", "source_url", "as_of", "retrieved_at"):
@@ -48,7 +48,7 @@ async def test_status_for_listed_scored_and_missing(upstream):
 
 
 async def test_free_text_is_data_only(upstream):
-    r = await server.get_fsa_status("00100200")
+    r = await server.get_title_iv_status("00100200")
     tools = await server.mcp.list_tools()
     assert all("Ignore previous" not in (t.description or "") for t in tools)
     assert "Ignore previous instructions" in json.dumps(r["data"])  # returned as a data field
@@ -56,28 +56,28 @@ async def test_free_text_is_data_only(upstream):
 
 
 async def test_second_call_uses_cache(upstream):
-    await server.get_fsa_status("00100200")
+    await server.get_title_iv_status("00100200")
     n = len(upstream.requests)
-    await server.get_fsa_status("00884300")
+    await server.get_title_iv_status("00884300")
     assert len(upstream.requests) == n
 
 
 async def test_stale_cache_served_when_refresh_fails(upstream):
-    await server.get_fsa_status("00100200")
+    await server.get_title_iv_status("00100200")
     for name in ("fsa-hcm.json", "fsa-composite.json", "fsa-cdr.json"):
         p = cache.safe_path(name)
         blob = json.loads(p.read_text())
         blob["meta"]["retrieved_at"] = "2020-01-01T00:00:00+00:00"
         p.write_text(json.dumps(blob))
     server.set_guard(Guard(transport=httpx.MockTransport(lambda r: httpx.Response(503)), backoff=0, min_interval={}))
-    r = await server.get_fsa_status("00100200")
+    r = await server.get_title_iv_status("00100200")
     assert all(s["served_stale_cache"] for s in r["sources"]) and r["warnings"]
 
 
 @pytest.mark.parametrize("bad", ["1193000", "0999010a", "099901000", "../../etc", "", "0999010 ", "09990100; DROP", "０１１９３０００"])
 async def test_bad_opeid_rejected_before_network(upstream, bad):
     try:
-        res = await server.mcp.call_tool("get_fsa_status", {"opeid": bad})
+        res = await server.mcp.call_tool("get_title_iv_status", {"opeid": bad})
         failed = bool(getattr(res, "is_error", False))
     except Exception:  # noqa: BLE001
         failed = True
@@ -99,7 +99,7 @@ def test_parsers_reject_garbage_and_bombs():
 async def test_oversized_download_rejected(upstream):
     upstream.files[HCM_PATH] = b"0" * (fsa.MAX_FILE_BYTES + 10)
     with pytest.raises(UpstreamError, match="size limit"):
-        await server.get_fsa_status("00100200")
+        await server.get_title_iv_status("00100200")
 
 
 async def test_disallowed_host_and_redirects():

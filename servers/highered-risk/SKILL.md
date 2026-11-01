@@ -7,7 +7,7 @@ description: Use for questions about an institution's Title IV risk signals (hei
 
 ## Workflow
 1. Resolve the institution first with `resolve_institution` (highered-institutions). Use its 8-digit **OPEID**. If the institution is ambiguous or one OPEID6 covers several campuses, say so and ask.
-2. Call `get_fsa_status(opeid)`. Each section has its own source and as-of date.
+2. Call `get_title_iv_status(opeid)`. Each section has its own source and as-of date.
 3. For audit findings call `get_audit_findings` with the EIN or UEI from `resolve_institution` (exactly one; prefer UEI). Findings come back as flags plus the federal program; the narrative is at each audit's `report_url`.
 
 ## Rules for answers

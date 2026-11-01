@@ -40,8 +40,8 @@ def _entry(label: str, c: fsa.Loaded) -> dict:
     return source_entry(label, m["source_url"], m["as_of"], m["retrieved_at"], file_sha256=m.get("file_sha256"), served_stale_cache=c.stale)
 
 
-@mcp.tool(annotations={"readOnlyHint": True})
-async def get_fsa_status(opeid: Opeid) -> dict:
+@mcp.tool(title="Federal aid status (HCM, composite score, default rate)", annotations={"title": "Federal aid status (HCM, composite score, default rate)", "readOnlyHint": True})
+async def get_title_iv_status(opeid: Opeid) -> dict:
     """Title IV status for one institution by 8-digit OPEID: Heightened Cash Monitoring (HCM) list,
     financial responsibility composite score, and official cohort default rates.
 
@@ -86,7 +86,7 @@ async def get_fsa_status(opeid: Opeid) -> dict:
     return envelope([_entry(fsa.SRC_HCM, h), _entry(fsa.SRC_COMPOSITE, comp), _entry(fsa.SRC_CDR, c)], data, nulls, warnings)
 
 
-@mcp.tool(annotations={"readOnlyHint": True})
+@mcp.tool(title="Single Audit findings", annotations={"title": "Single Audit findings", "readOnlyHint": True})
 async def get_audit_findings(ein: Ein | None = None, uei: Uei | None = None, years: AuditYears = 3) -> dict:
     """Single Audit (Uniform Guidance) submissions and findings for one auditee from the Federal Audit
     Clearinghouse. Give exactly one of `ein` (9 digits) or `uei` (12 characters); resolve_institution in

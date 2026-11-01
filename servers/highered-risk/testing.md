@@ -1,4 +1,4 @@
-# Testing record: highered-risk v0.1.0 (part 1: `get_fsa_status` only)
+# Testing record: highered-risk v0.1.0 (part 1: `get_title_iv_status` only)
 
 ## Automated (fixture-based) — `PYTHONPATH=src uv run --no-sync pytest`
 Result on 2026-10-31: **23 passed, 1 skipped** (opt-in live test).

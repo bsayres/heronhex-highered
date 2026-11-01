@@ -86,7 +86,7 @@ def _soc_union(programs: dict, keys: list[str]) -> dict[str, dict]:
     return out
 
 
-@mcp.tool(annotations={"readOnlyHint": True})
+@mcp.tool(title="Program-to-occupation crosswalk", annotations={"title": "Program-to-occupation crosswalk", "readOnlyHint": True})
 async def map_program_to_occupations(cip: CipAny) -> dict:
     """Occupations (SOC 2018) that NCES and BLS link to a program code (CIP 2020), 6-digit like 51.3801 or 4-digit like 51.38
     (the union of its 6-digit codes). The crosswalk is many-to-many and not based on empirical data: it lists occupations a
@@ -113,7 +113,7 @@ async def map_program_to_occupations(cip: CipAny) -> dict:
     return envelope([_entry(crosswalk.SOURCE, L)], data, nulls, warnings)
 
 
-@mcp.tool(annotations={"readOnlyHint": True})
+@mcp.tool(title="National occupation outlook", annotations={"title": "National occupation outlook", "readOnlyHint": True})
 async def get_occupation_outlook(soc: Soc) -> dict:
     """BLS Employment Projections 2025-35 for one occupation (SOC 2018): employment in 2025 and 2035, average annual openings
     (growth plus replacement), median wage, and typical entry education, experience and training. National figures only.
@@ -138,7 +138,7 @@ async def get_occupation_outlook(soc: Soc) -> dict:
     return envelope([_entry(bls.SOURCE, L)], {"soc": soc, "outlook": out}, nulls, warnings)
 
 
-@mcp.tool(annotations={"readOnlyHint": True})
+@mcp.tool(title="Occupation skills", annotations={"title": "Occupation skills", "readOnlyHint": True})
 async def get_occupation_skills(soc: Soc, top: Top = 10) -> dict:
     """Top-rated skills, core tasks and in-demand technologies for one occupation (SOC 2018) from the O*NET database
     (CC BY 4.0, no key needed). Skill importance and level are O*NET's 1-5 and 0-7 scales. Returns the base O*NET occupation
@@ -172,7 +172,7 @@ async def _programs(unitid: str) -> tuple[dict | None, str]:
         raise _fail(e) from None
 
 
-@mcp.tool(annotations={"readOnlyHint": True})
+@mcp.tool(title="Program earnings and awards", annotations={"title": "Program earnings and awards", "readOnlyHint": True})
 async def get_program_outcomes(unitid: UnitId, cip4: Cip4 | None = None, credential: Credential | None = None,
                                limit: Annotated[int, Field(ge=1, le=100)] = 50) -> dict:
     """An institution's programs from College Scorecard field-of-study data: 4-digit CIP, credential level, IPEDS award counts for
@@ -201,7 +201,7 @@ async def get_program_outcomes(unitid: UnitId, cip4: Cip4 | None = None, credent
     return envelope([source_entry(scorecard.SOURCE, url, "latest field-of-study release", now())], data, nulls, warnings)
 
 
-@mcp.tool(annotations={"readOnlyHint": True})
+@mcp.tool(title="Program-to-job alignment", annotations={"title": "Program-to-job alignment", "readOnlyHint": True})
 async def get_program_alignment(unitid: UnitId, cip4: Cip4, credential: Credential, state: StateCode | None = None, horizon: Horizon = "long") -> dict:
     """Puts one program beside labor-market demand: the institution's awards and earnings for a 4-digit CIP and credential level
     (College Scorecard), the occupations the CIP-SOC crosswalk links to it, and for each occupation BLS national projected
@@ -325,12 +325,12 @@ async def _state_demand(state: str, horizon: str, socs: dict, edu_matched: dict 
     return block, _pc_entry(res), warnings
 
 
-@mcp.tool(annotations={"readOnlyHint": True})
+@mcp.tool(title="State occupation outlook", annotations={"title": "State occupation outlook", "readOnlyHint": True})
 async def get_state_occupation_outlook(state: StateCode, soc: Soc, horizon: Horizon = "long") -> dict:
     """A state's own employment projection for one occupation (SOC 2018) from Projections Central, the State Projections
     Consortium's public service: base and projected employment, change, average annual openings, and the projection years
     (typically 10 years for 'long', 2 years for 'short'). The United States row from the same source and years is returned
-    for a like-for-like comparison. Do not compare it with BLS national 2025-35 numbers: the periods differ.
+    for a like-for-like comparison. It covers a different period from BLS national 2025-35 numbers and is not comparable with them.
 
     State agencies produce these projections and are responsible for them. Some states report an occupation only as a broad
     group (the response says when). An occupation a state has not submitted is a null with a reason. Regional (sub-state)

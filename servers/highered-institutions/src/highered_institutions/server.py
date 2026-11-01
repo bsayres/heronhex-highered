@@ -110,7 +110,7 @@ def _window(end: int, start: int | None, end_year: int | None) -> tuple[int, int
     return s, e
 
 
-@mcp.tool(annotations={"readOnlyHint": True})
+@mcp.tool(title="Find an institution", annotations={"title": "Find an institution", "readOnlyHint": True})
 async def resolve_institution(query: QueryText, kind: Kind = "auto", state: State | None = None) -> dict:
     """Resolve a name, UNITID, OPEID, EIN, UEI, or web domain to ranked institution candidates.
 
@@ -124,7 +124,7 @@ async def resolve_institution(query: QueryText, kind: Kind = "auto", state: Stat
     return envelope([_entry(urban.SOURCE, c)], found, warnings=_stale_warning(c))
 
 
-@mcp.tool(annotations={"readOnlyHint": True})
+@mcp.tool(title="Search institutions", annotations={"title": "Search institutions", "readOnlyHint": True})
 async def search_institutions(
     name_contains: NameText | None = None,
     state: State | None = None,
@@ -158,7 +158,7 @@ async def search_institutions(
     return envelope([_entry(urban.SOURCE, c)], data, warnings=warn)
 
 
-@mcp.tool(annotations={"readOnlyHint": True})
+@mcp.tool(title="Institution profile", annotations={"title": "Institution profile", "readOnlyHint": True})
 async def get_institution_profile(unitid: UnitId) -> dict:
     """Profile of one institution: identifiers (UNITID, OPEID, EIN, UEI, domain), system and
     same-OPEID campuses, Carnegie codes, latest fall enrollment, College Scorecard outcomes.
@@ -217,7 +217,7 @@ async def get_institution_profile(unitid: UnitId) -> dict:
     return envelope(sources, data, nulls, warnings)
 
 
-@mcp.tool(annotations={"readOnlyHint": True})
+@mcp.tool(title="Enrollment trend", annotations={"title": "Enrollment trend", "readOnlyHint": True})
 async def get_enrollment_trend(unitid: UnitId, start_year: Year | None = None, end_year: Year | None = None) -> dict:
     """Fall headcount enrollment (all students) by year for one institution, as a table.
     Default window is the latest 10 years. Years with no data are null with a reason."""
@@ -236,7 +236,7 @@ async def get_enrollment_trend(unitid: UnitId, start_year: Year | None = None, e
     return envelope(srcs, data, nulls, _stale_warning(*metas))
 
 
-@mcp.tool(annotations={"readOnlyHint": True})
+@mcp.tool(title="Compare with peer institutions", annotations={"title": "Compare with peer institutions", "readOnlyHint": True})
 async def compare_peers(unitid: UnitId, n_peers: Annotated[int, Field(ge=1, le=10)] = 5, start_year: Year | None = None, end_year: Year | None = None,
                         scope: PeerScope = "national") -> dict:
     """Closest peers and their enrollment trends in one long table.
@@ -332,11 +332,11 @@ def _finance_figures(row: dict) -> tuple[str | None, str | None, dict]:
     return basis, net_field, figures
 
 
-@mcp.tool(annotations={"readOnlyHint": True})
+@mcp.tool(title="Financial snapshot", annotations={"title": "Financial snapshot", "readOnlyHint": True})
 async def get_financial_snapshot(unitid: UnitId, years: Annotated[int, Field(ge=1, le=10)] = 1) -> dict:
     """Headline finances for one institution from IPEDS finance surveys, as reported, in dollars. Covers public institutions
     too (unlike FSA composite scores). Values are never scored or estimated. `years` > 1 adds a year-by-year history ending at
-    the latest published year: use it, because one year's surplus or deficit is not a trend.
+    the latest published year. One year's surplus or deficit is not a trend, so the history is the basis for any comparison over time.
 
     Institutions report on GASB-style (net position) or FASB-style (net assets) statements, whichever they use (public
     institutions may use either); the two are not directly comparable and the response names which one was reported.

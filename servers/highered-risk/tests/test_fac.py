@@ -134,7 +134,7 @@ async def test_fac_error_does_not_leak_key_or_url(upstream):
 
 async def test_read_only_tools_now_two():
     tools = await server.mcp.list_tools()
-    assert {t.name for t in tools} == {"get_fsa_status", "get_audit_findings"}
+    assert {t.name for t in tools} == {"get_title_iv_status", "get_audit_findings"}
     assert all(t.annotations.read_only_hint for t in tools)
 
 

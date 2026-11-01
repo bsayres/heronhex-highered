@@ -9,10 +9,10 @@ pytestmark = pytest.mark.live
 async def test_live_fsa(tmp_path, monkeypatch):
     monkeypatch.setenv("HIGHERED_MCPS_CACHE", str(tmp_path))
     s.set_guard(None)
-    r = await s.get_fsa_status("00100200")  # Alabama A&M: on the HCM list when this was written
+    r = await s.get_title_iv_status("00100200")  # Alabama A&M: on the HCM list when this was written
     assert r["data"]["heightened_cash_monitoring"]["as_of"]
     assert r["data"]["cohort_default_rates"]["entries"]
-    r = await s.get_fsa_status("09990100")  # Test College A: public, not scored
+    r = await s.get_title_iv_status("09990100")  # Test College A: public, not scored
     assert r["data"]["financial_responsibility"] is None and r["nulls"]
 
 

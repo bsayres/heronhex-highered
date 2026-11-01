@@ -60,7 +60,7 @@ def _stale(c: dapip.Loaded) -> list[str]:
     return ["A refresh of the DAPIP file failed; served a cached copy past its 30-day refresh interval."] if c.stale else []
 
 
-@mcp.tool(annotations={"readOnlyHint": True})
+@mcp.tool(title="Accreditation status", annotations={"title": "Accreditation status", "readOnlyHint": True})
 async def get_accreditation_status(unitid: Unitid, scope: Scope = "all") -> dict:
     """Every accreditation record DAPIP holds for one institution by 6-digit IPEDS UNITID: the institutional accreditor,
     programmatic accreditors (for example nursing or radiologic technology) and the state agencies DAPIP carries
@@ -109,7 +109,7 @@ async def get_accreditation_status(unitid: Unitid, scope: Scope = "all") -> dict
     return envelope([_entry(c)], data, nulls, warnings)
 
 
-@mcp.tool(annotations={"readOnlyHint": True})
+@mcp.tool(title="Accreditation actions history", annotations={"title": "Accreditation actions history", "readOnlyHint": True})
 async def get_accreditation_actions(unitid: Unitid, scope: Scope = "all", since_year: SinceYear | None = None, limit: Limit = 50) -> dict:
     """Dated accreditation actions DAPIP holds for one institution by 6-digit IPEDS UNITID, newest first: the agency's own
     wording for each action (renewal, probation, show cause, heightened monitoring, loss of accreditation, program

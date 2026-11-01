@@ -52,7 +52,7 @@ Deferred: Carnegie ACE file download (codes come from Urban; labels null until d
 Done check: "Show the enrollment trend for [institution] and its closest peers."
 
 ### M2 highered-risk
-Blocked until FSA file URLs are found (see sources.md section 5) and a FAC key exists. Tools `get_fsa_status`, `get_audit_findings`. Hosts: `studentaid.gov` (and possibly `fsapartners.ed.gov`), `api.fac.gov`. Bulk download with checksum and as-of surfaced. Deferred: accreditor actions, EMMA.
+Blocked until FSA file URLs are found (see sources.md section 5) and a FAC key exists. Tools `get_title_iv_status`, `get_audit_findings`. Hosts: `studentaid.gov` (and possibly `fsapartners.ed.gov`), `api.fac.gov`. Bulk download with checksum and as-of surfaced. Deferred: accreditor actions, EMMA.
 
 ### M3 highered-funding
 Blocked on HERD codebook check, SHEEO/WICHE file URLs. Tools `get_research_spend`, `search_grant_awards`, `get_state_funding`, `get_enrollment_projection`. Hosts: `ncses.nsf.gov`, `api.nsf.gov`, `api.reporter.nih.gov`, `api.grants.gov`, `shef.sheeo.org`, `www.wiche.edu`. `get_state_funding` returns state/sector (and institution-level only for 2008-2022 via SHEF Expansion if confirmed). `get_enrollment_projection` is state-level and says so in every response.
@@ -102,7 +102,7 @@ Deferred: NCES/IPEDS fallback source (only stale-cache fallback exists), Carnegi
 Reported upstream behavior: Urban `Disallow: /api/`; Urban HTTP 500 for unpublished years; Urban ignores name filters.
 
 ## Milestone 2 note (2026-10-31): complete
-Built: `servers/highered-risk` with `get_fsa_status(opeid)` (HCM, composite scores, cohort default rates), 23 tests, live run, uvx session, docs.
+Built: `servers/highered-risk` with `get_title_iv_status(opeid)` (HCM, composite scores, cohort default rates), 23 tests, live run, uvx session, docs.
 New dependencies: `openpyxl` (FSA .xlsx files, read-only mode) and `xlrd` (composite scores exist only as legacy .xls). Dev-only: `xlwt` (builds the .xls test fixture).
 Design choice: the tool takes an 8-digit OPEID (resolve it with highered-institutions) instead of a UNITID, so the servers stay independent.
 Part 2 (after FAC key): `get_audit_findings(ein|uei, years)` over `general`, `findings`, `federal_awards`; explicit field list excludes contact PII; no narratives. Deferred as planned: accreditor actions, EMMA.

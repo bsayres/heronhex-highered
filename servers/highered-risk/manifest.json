@@ -8,7 +8,7 @@
   "license": "MIT",
   "server": { "type": "uv", "entry_point": "src/main.py" },
   "tools": [
-    { "name": "get_fsa_status", "description": "HCM list, composite score, and cohort default rates by OPEID." },
+    { "name": "get_title_iv_status", "description": "HCM list, composite score, and cohort default rates by OPEID." },
     { "name": "get_audit_findings", "description": "Single Audit submissions and findings by EIN or UEI (Federal Audit Clearinghouse)." }
   ]
 }
