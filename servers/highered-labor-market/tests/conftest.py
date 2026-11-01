@@ -101,6 +101,8 @@ class Upstream:
         self.pc_extra = []
         self.pc_pages = 1
         self.pc_status = 200
+        self.offer_schools: list[dict] = []
+        self.offer_total: int | None = None
 
     def __call__(self, req: httpx.Request) -> httpx.Response:
         self.requests.append(req)
@@ -129,6 +131,11 @@ class Upstream:
             if not rows:
                 return httpx.Response(404, text="No results found.")
             return httpx.Response(200, json={"rows": rows, "pager": {"current_page": 0, "total_items": len(rows), "total_pages": self.pc_pages, "items_per_page": 1000}})
+        if host == "api.data.gov" and "latest.programs.cip_4_digit.code" in req.url.params:
+            q = req.url.params
+            rows = [r for r in self.offer_schools if not q.get("school.state") or r["school.state"] == q["school.state"]]
+            page, size = int(q.get("_page", "0")), int(q.get("_per_page", "20"))
+            return httpx.Response(200, json={"results": rows[page * size:(page + 1) * size], "metadata": {"total": self.offer_total if self.offer_total is not None else len(rows)}})
         if host == "api.data.gov":
             return httpx.Response(200, json=self.scorecard if req.url.params.get("id") == "999001" else {"results": [], "metadata": {"total": 0}})
         return httpx.Response(404)
@@ -152,3 +159,10 @@ def pytest_collection_modifyitems(config, items):
                 item.add_marker(pytest.mark.skip(reason="live test: set HIGHERED_LIVE=1"))
 
 
+
+
+def offer_school(uid: int, name: str, state: str, a1, a2, earn=None, code="5138", level=2) -> dict:
+    P = "latest.programs.cip_4_digit"
+    return {"id": uid, "school.name": name, "school.city": "Town", "school.state": state,
+            P: [{"code": code, "credential": {"level": level, "title": "x"}, "counts": {"ipeds_awards1": a1, "ipeds_awards2": a2},
+                 "earnings": {"1_yr": {"overall_median_earnings": earn, "overall_median_earnings_national": 75149}}}]}

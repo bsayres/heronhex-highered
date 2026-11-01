@@ -220,6 +220,54 @@ async def get_program_outcomes(unitid: UnitId, cip4: Cip4 | None = None, credent
     return envelope([source_entry(scorecard.SOURCE, url, "latest field-of-study release", now())], data, nulls, warnings)
 
 
+@mcp.tool(title="Who else offers a program", annotations={"title": "Who else offers a program", "readOnlyHint": True})
+async def find_program_offerings(cip4: Cip4, credential: Credential, state: StateCode | None = None, unitid: UnitId | None = None,
+                                 limit: Annotated[int, Field(ge=1, le=50)] = 15) -> dict:
+    """Institutions that report awards in one program (4-digit CIP) at one credential level in College Scorecard field-of-study
+    data, optionally within one state, ranked by awards (two consecutive award years added together; ties share a rank). Pass `unitid`
+    to see where one institution sits in that list. Award counts include second majors and are not enrollments. Institution
+    earnings are often suppressed for privacy; those are nulls with a reason. A program an institution offers but did not award
+    in is not listed. When more than 1,500 institutions match, only part of the list can be read, so it is marked incomplete and no ranks are given."""
+    try:
+        rows, total, complete, url = await scorecard.offerings(guard(), cip4, credential, state)
+    except UpstreamError as e:
+        raise ToolError(f"{e} {scorecard.DEMO_NOTE}" if scorecard.using_demo_key() else str(e)) from None
+    nulls, warnings = [], [scorecard.DEMO_NOTE] if scorecard.using_demo_key() else []
+    for r in rows:
+        r["awards_total"] = None if r["awards_period_1"] is None and r["awards_period_2"] is None else (r["awards_period_1"] or 0) + (r["awards_period_2"] or 0)
+    rows.sort(key=lambda r: (r["awards_total"] is None, -(r["awards_total"] or 0), r["name"] or ""))
+    prev_total, prev_rank = object(), 0
+    for i, r in enumerate(rows, 1):
+        if r["awards_total"] is None or not complete:
+            r["rank"] = None
+            continue
+        r["rank"] = prev_rank if r["awards_total"] == prev_total else i
+        prev_total, prev_rank = r["awards_total"], r["rank"]
+    if not rows:
+        nulls.append({"field": "institutions", "kind": "not_found", "reason": "No institution in Scorecard reports awards for this program and credential level" + (f" in {state}." if state else ".")})
+    target = None
+    if unitid is not None:
+        target = next((r for r in rows if r["unitid"] == unitid), None)
+        if target is None:
+            nulls.append({"field": "target", "kind": "not_found" if complete else "not_covered",
+                          "reason": "This institution is not among the institutions Scorecard lists for this program and level" + ("." if complete else " in the part of the list that was read.")})
+    if not complete:
+        warnings.append(f"{total} institutions match but only the first {len(rows)} were read, so the list is incomplete and no ranks are given. Add a state to narrow it.")
+    if complete and any(r["rank"] is None for r in rows):
+        warnings.append("Institutions with no award count are listed last and are not ranked.")
+    warnings.append("Award counts cover two consecutive award years as reported to IPEDS and include second majors; Scorecard does not say here which period is newer.")
+    shown = rows[:limit]
+    if target is not None and target not in shown:
+        shown = shown[: max(limit - 1, 0)] + [target]
+    cols = ["rank", "unitid", "name", "city", "state", "awards_period_1", "awards_period_2", "awards_total", "earnings_1yr_median_institution"]
+    data = {"cip4": cip4, "credential": {"level": credential, "title": CREDENTIALS[credential]}, "state": state, "institutions_reported": total,
+            "institutions_read": len(rows), "complete": complete, "units": "awards are counts; earnings are US dollars",
+            "national_median_earnings_1yr": next((r["earnings_1yr_median_national"] for r in rows if r["earnings_1yr_median_national"] is not None), None),
+            "columns": cols, "rows": [[r[c] for c in cols] for r in shown],
+            "target": None if target is None else {"unitid": target["unitid"], "rank": target["rank"], "of": len(rows) if complete else None}}
+    return envelope([source_entry(scorecard.SOURCE, url, "latest field-of-study release", now())], data, nulls, warnings)
+
+
 @mcp.tool(title="Program-to-job alignment", annotations={"title": "Program-to-job alignment", "readOnlyHint": True})
 async def get_program_alignment(unitid: UnitId, cip4: Cip4, credential: Credential, state: StateCode | None = None, horizon: Horizon = "long") -> dict:
     """Puts one program beside labor-market demand: the institution's awards and earnings for a 4-digit CIP and credential level

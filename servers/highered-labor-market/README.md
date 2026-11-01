@@ -11,6 +11,7 @@ MCP server (read-only) that helps institutions look at how programs line up with
 | `get_state_occupation_outlook(state, soc, horizon='long')` | A state's own projection for an occupation, beside the United States row from the same source | state (and national, same source and years) | Projections Central (State Projections Consortium) |
 | `get_occupation_skills(soc, top)` | Top skills, core tasks, in-demand technologies | national | O*NET database (CC BY 4.0) |
 | `get_program_outcomes(unitid, cip4?, credential?)` | An institution's programs: awards and 1-year earnings | institution | College Scorecard field of study |
+| `find_program_offerings(cip4, credential, state?, unitid?, limit?)` | Who else offers this program, and where does one institution rank by awards? | institutions nationally or in a state | College Scorecard field of study |
 | `get_program_alignment(unitid, cip4, credential, state?, horizon?)` | One program beside demand for its mapped occupations; with `state`, also that state's projections for each occupation | institution + national (+ state) | all of the above |
 
 `get_program_alignment` returns a table and ranges, **never a score or ratio**: the institution's awards, then every mapped occupation with BLS openings, typical entry education and wage, and openings totaled two ways (all mapped occupations, and those whose typical entry education corresponds to the credential, by a rule returned in the response).

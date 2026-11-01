@@ -169,3 +169,48 @@ async def test_search_programs_includes_codes_with_no_occupation_match_and_nulls
     assert r["data"]["rows"] == [["01.0508", "01.05", "Taxidermy", 0]]
     r = await server.search_programs("astrophysics")
     assert r["data"]["rows"] == [] and r["nulls"][0]["kind"] == "not_found"
+
+
+async def test_find_program_offerings_ranks_with_ties_and_locates_the_target(upstream):
+    from .conftest import offer_school
+    upstream.offer_schools = [offer_school(100001, "Alpha CC", "MA", 10, 10, 50000), offer_school(999001, "Test Community College A", "MA", 4, 4),
+                              offer_school(100003, "Beta CC", "MA", 10, 10), offer_school(100004, "Gamma CC", "MA", 30, 20, 60000),
+                              offer_school(100005, "No Counts CC", "MA", None, None), offer_school(100006, "Other State", "NM", 99, 99)]
+    r = await server.find_program_offerings("51.38", 2, state="MA", unitid="999001", limit=2)
+    d = r["data"]
+    reqs = [q for q in upstream.requests if "latest.programs.cip_4_digit.code" in q.url.params]
+    assert reqs[0].url.params["latest.programs.cip_4_digit.code"] == "5138" and reqs[0].url.params["school.state"] == "MA"
+    assert reqs[0].headers["x-api-key"] == SC_KEY and SC_KEY not in str(reqs[0].url)
+    assert d["complete"] and d["institutions_reported"] == 5 and d["institutions_read"] == 5
+    assert d["rows"][0][:3] == [1, "100004", "Gamma CC"]  # 50 total
+    assert d["target"] == {"unitid": "999001", "rank": 4, "of": 5}  # Alpha and Beta tie at 20 (rank 2), Test College A 8 is 4th
+    assert any(x[1] == "999001" for x in d["rows"])  # the target is shown even beyond `limit`
+    r2 = await server.find_program_offerings("51.38", 2, state="MA", limit=10)
+    got = {x[2]: x[0] for x in r2["data"]["rows"]}
+    assert got == {"Gamma CC": 1, "Alpha CC": 2, "Beta CC": 2, "Test Community College A": 4, "No Counts CC": None}
+    assert r2["data"]["national_median_earnings_1yr"] == 75149
+
+
+async def test_find_program_offerings_pages_and_marks_incomplete_lists(upstream):
+    from .conftest import offer_school
+    upstream.offer_schools = [offer_school(200000 + i, f"School {i:03d}", "TX", i, i) for i in range(1, 251)]
+    r = await server.find_program_offerings("51.38", 2, state="TX", unitid="200250")
+    pages = [q.url.params["_page"] for q in upstream.requests if "latest.programs.cip_4_digit.code" in q.url.params]
+    assert pages == ["0", "1", "2"] and r["data"]["complete"] and r["data"]["target"]["rank"] == 1 and r["data"]["target"]["of"] == 250
+    upstream.requests.clear()
+    upstream.offer_total = 5000  # the API claims more than it will give: do not call the list whole
+    r = await server.find_program_offerings("51.38", 2, state="TX", unitid="200001")
+    assert not r["data"]["complete"] and len([q for q in upstream.requests if "latest.programs.cip_4_digit.code" in q.url.params]) == 4
+    upstream.requests.clear()
+    upstream.offer_total = None
+    upstream.offer_schools = [offer_school(300000 + i, f"S{i}", "TX", i, i) for i in range(1, 1601)]  # more than 15 pages of 100
+    r = await server.find_program_offerings("51.38", 2, state="TX", unitid="300001")
+    assert not r["data"]["complete"] and len([q for q in upstream.requests if "latest.programs.cip_4_digit.code" in q.url.params]) == 15
+    assert r["data"]["institutions_reported"] == 1600 and r["data"]["institutions_read"] == 1500
+    assert all(x[0] is None for x in r["data"]["rows"]) and r["data"]["target"]["rank"] is None and r["data"]["target"]["of"] is None
+    assert any("incomplete" in w and "no ranks" in w for w in r["warnings"])
+
+
+async def test_find_program_offerings_empty_result_is_a_null_not_zero(upstream):
+    r = await server.find_program_offerings("01.01", 2, state="MA")
+    assert r["data"]["rows"] == [] and r["nulls"][0]["kind"] == "not_found" and r["data"]["institutions_reported"] == 0

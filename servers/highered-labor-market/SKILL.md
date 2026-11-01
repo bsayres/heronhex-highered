@@ -10,6 +10,7 @@ description: Use for questions about whether an institution's programs line up w
 2. `get_program_outcomes` lists the institution's programs, with awards and earnings. Pick a program from it.
 3. `get_program_alignment` for that program: awards beside demand for each mapped occupation.
 3a. If the user names a field in plain words (for example "nursing" or "welding") and gives no code, use `search_programs(keyword)` to find the CIP code, show the candidates, and ask which one when more than one fits. Its `cip4` is the code the Scorecard program tools take.
+3b. For "who else offers this program" or "where do we rank", use `find_program_offerings(cip4, credential, state?, unitid?)`. Ranks are by award counts (two years added), ties share a rank, and when `complete` is false there are no ranks: say so and suggest adding a state. Counts are awards, not enrollment.
 4. For one occupation use `get_occupation_outlook` (demand) and `get_occupation_skills` (what the work requires). `map_program_to_occupations` shows the program-to-occupation links on their own.
 5. For a state's own projections use `get_state_occupation_outlook`, or pass `state` to `get_program_alignment`. Pair with the 1102tools BLS OEWS server for regional wages.
 

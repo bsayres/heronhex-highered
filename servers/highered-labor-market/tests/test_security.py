@@ -126,7 +126,7 @@ def test_cache_tamper_detected(tmp_path, monkeypatch):
 
 async def test_tools_are_read_only_static_and_secret_free(upstream):
     tools = await server.mcp.list_tools()
-    assert {t.name for t in tools} == {"search_programs", "map_program_to_occupations", "get_occupation_outlook", "get_state_occupation_outlook", "get_occupation_skills", "get_program_outcomes", "get_program_alignment"}
+    assert {t.name for t in tools} == {"find_program_offerings", "search_programs", "map_program_to_occupations", "get_occupation_outlook", "get_state_occupation_outlook", "get_occupation_skills", "get_program_outcomes", "get_program_alignment"}
     assert all(t.annotations and t.annotations.read_only_hint for t in tools)
     blob = json.dumps([t.description for t in tools])
     assert CONTACT not in blob and SC_KEY not in blob and "Ignore previous" not in blob
@@ -141,3 +141,13 @@ async def test_upstream_text_is_labeled_untrusted(upstream):
 async def test_search_programs_rejects_bad_keywords(upstream, keyword):
     with pytest.raises(ToolError):
         await server.mcp.call_tool("search_programs", {"keyword": keyword})
+
+
+@pytest.mark.parametrize("args", [{"cip4": "51.380", "credential": 2}, {"cip4": "5138", "credential": 2}, {"cip4": "51.38", "credential": 0},
+                                  {"cip4": "51.38", "credential": 9}, {"cip4": "51.38", "credential": 2, "state": "ZZ"},
+                                  {"cip4": "51.38", "credential": 2, "unitid": "12345"}, {"cip4": "51.38", "credential": 2, "limit": 51},
+                                  {"cip4": "51.38&x=1", "credential": 2}])
+async def test_find_program_offerings_rejects_bad_input_without_a_request(upstream, args):
+    with pytest.raises(ToolError):
+        await server.mcp.call_tool("find_program_offerings", args)
+    assert not upstream.requests

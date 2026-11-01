@@ -50,3 +50,43 @@ async def fetch(guard: Guard, unitid: str) -> tuple[dict | None, str]:
     r = results[0]
     progs = [x for p in (r.get(P) or []) if (x := _program(p))]
     return {"name": r.get("school.name"), "programs": progs}, url
+
+
+PAGE_SIZE = 100
+MAX_PAGES = 15
+F = "latest.programs.cip_4_digit"
+OFFER_FIELDS = ["id", "school.name", "school.city", "school.state", f"{F}.code", f"{F}.credential.level", f"{F}.counts.ipeds_awards1",
+                f"{F}.counts.ipeds_awards2", f"{F}.earnings.1_yr.overall_median_earnings", f"{F}.earnings.1_yr.overall_median_earnings_national"]
+
+
+async def offerings(guard: Guard, cip4: str, credential: int, state: str | None) -> tuple[list[dict], int, bool, str]:
+    """Institutions that report awards in one 4-digit CIP at one credential level (optionally in one state).
+    Returns (rows, total reported by the API, complete, url). `complete` is False when MAX_PAGES was reached first."""
+    rows: list[dict] = []
+    total, url = 0, URL
+    for page in range(MAX_PAGES):
+        params = {f"{F}.code": cip4.replace(".", ""), f"{F}.credential.level": str(credential), "_per_page": str(PAGE_SIZE),
+                  "_page": str(page), "_fields": ",".join(OFFER_FIELDS)}
+        if state:
+            params["school.state"] = state
+        data, url = await guard.get_json(URL, params=params, headers={"X-Api-Key": api_key()}, max_bytes=10_000_000)
+        results = data.get("results") if isinstance(data, dict) else None
+        meta = data.get("metadata") if isinstance(data, dict) else None
+        if not isinstance(results, list) or not isinstance(meta, dict) or not isinstance(meta.get("total"), int):
+            raise UpstreamError("api.data.gov returned an unexpected response.")
+        total = meta["total"]
+        for r in results:
+            prog = next((x for x in (r.get(F) or []) if _program(x) and _program(x)["cip4"] == cip4 and _program(x)["credential_level"] == credential), None)
+            uid = str(r.get("id") or "")
+            if prog is None or not (uid.isdigit() and len(uid) == 6):
+                continue
+            p = _program(prog)
+            rows.append({"unitid": uid, "name": r.get("school.name"), "city": r.get("school.city"), "state": r.get("school.state"),
+                         "awards_period_1": p["awards_period_1"], "awards_period_2": p["awards_period_2"],
+                         "earnings_1yr_median_institution": p["earnings_1yr_median_institution"],
+                         "earnings_1yr_median_national": p["earnings_1yr_median_national"]})
+        if (page + 1) * PAGE_SIZE >= total:
+            return rows, total, True, url
+        if not results:  # the API said there were more, but gave none: do not claim the list is whole
+            return rows, total, False, url
+    return rows, total, False, url
