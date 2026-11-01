@@ -126,7 +126,7 @@ def test_cache_tamper_detected(tmp_path, monkeypatch):
 
 async def test_tools_are_read_only_static_and_secret_free(upstream):
     tools = await server.mcp.list_tools()
-    assert {t.name for t in tools} == {"map_program_to_occupations", "get_occupation_outlook", "get_state_occupation_outlook", "get_occupation_skills", "get_program_outcomes", "get_program_alignment"}
+    assert {t.name for t in tools} == {"search_programs", "map_program_to_occupations", "get_occupation_outlook", "get_state_occupation_outlook", "get_occupation_skills", "get_program_outcomes", "get_program_alignment"}
     assert all(t.annotations and t.annotations.read_only_hint for t in tools)
     blob = json.dumps([t.description for t in tools])
     assert CONTACT not in blob and SC_KEY not in blob and "Ignore previous" not in blob
@@ -135,3 +135,9 @@ async def test_tools_are_read_only_static_and_secret_free(upstream):
 async def test_upstream_text_is_labeled_untrusted(upstream):
     r = await server.get_occupation_skills("29-1141")
     assert "Ignore previous instructions" in json.dumps(r["data"]) and "untrusted" in r["notice"]
+
+
+@pytest.mark.parametrize("keyword", ["", "a", "x" * 61, "nursing; DROP TABLE", "nursing\x00", "nursing<script>", "５１"])
+async def test_search_programs_rejects_bad_keywords(upstream, keyword):
+    with pytest.raises(ToolError):
+        await server.mcp.call_tool("search_programs", {"keyword": keyword})

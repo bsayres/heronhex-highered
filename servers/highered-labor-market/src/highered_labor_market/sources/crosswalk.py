@@ -44,3 +44,21 @@ async def get(guard: Guard) -> Loaded:
         return parse(raw), "CIP 2020 / SOC 2018", url, {"file_sha256": sha256(raw)}
 
     return await load("crosswalk.json", 365, fetch)
+
+
+def search(data: dict, keyword: str, limit: int) -> tuple[list[dict], int]:
+    """CIP 2020 programs whose title contains every word of `keyword` (case-insensitive substring). Returns (rows, total matches)."""
+    words = [w for w in re.split(r"[^a-z0-9]+", keyword.lower()) if w]
+    if not words:
+        return [], 0
+    phrase = " ".join(words)
+    entries = [(cip, rec["title"], len(rec["socs"])) for cip, rec in data["programs"].items()]
+    entries += [(cip, title, 0) for cip, title in data["unmatched"].items() if cip not in data["programs"]]
+    hits = []
+    for cip, title, n in entries:
+        t = " ".join(re.split(r"[^a-z0-9]+", title.lower())).strip()
+        if all(w in t for w in words):
+            rank = (0 if phrase in t else 1, 0 if t.startswith(words[0]) else 1, cip)
+            hits.append((rank, {"cip6": cip, "cip4": cip[:5], "title": title.rstrip("."), "occupations_mapped": n}))
+    hits.sort(key=lambda h: h[0])
+    return [h[1] for h in hits[:limit]], len(hits)

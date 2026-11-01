@@ -15,6 +15,7 @@ from .models import (
     CipAny,
     Credential,
     Horizon,
+    Keyword,
     Soc,
     StateCode,
     Top,
@@ -84,6 +85,26 @@ def _soc_union(programs: dict, keys: list[str]) -> dict[str, dict]:
         for soc, title in programs[k]["socs"]:
             out.setdefault(soc, {"title": title, "from_cip6": []})["from_cip6"].append(k)
     return out
+
+
+@mcp.tool(title="Search programs by keyword", annotations={"title": "Search programs by keyword", "readOnlyHint": True})
+async def search_programs(keyword: Keyword, limit: Annotated[int, Field(ge=1, le=50)] = 20) -> dict:
+    """Find CIP 2020 program codes whose official title contains every word of the keyword (for example nursing, welding, or
+    computer science). Returns each 6-digit code, the 4-digit code that College Scorecard program tools use (cip4), the title,
+    and how many occupations the NCES crosswalk links to it (0 means NCES lists no match). Titles only are searched, not
+    program definitions, so a field may sit under a different name than the one searched."""
+    try:
+        L = await crosswalk.get(guard())
+    except UpstreamError as e:
+        raise _fail(e) from None
+    rows, total = crosswalk.search(L.data, keyword, limit)
+    nulls = [] if rows else [{"field": "programs", "kind": "not_found", "reason": "No CIP 2020 program title contains all of these words. Try fewer or broader words."}]
+    warnings = ["Only titles are searched. CIP groups related fields under different names (for example nursing sits under Health Professions), so also try a broader word."]
+    if total > len(rows):
+        warnings.append(f"{total} programs match; {len(rows)} shown. Use more specific words or raise `limit` (max 50).")
+    data = {"keyword": keyword, "columns": ["cip6", "cip4", "title", "occupations_mapped"],
+            "rows": [[r["cip6"], r["cip4"], r["title"], r["occupations_mapped"]] for r in rows], "total_matches": total}
+    return envelope([_entry(crosswalk.SOURCE, L)], data, nulls, warnings)
 
 
 @mcp.tool(title="Program-to-occupation crosswalk", annotations={"title": "Program-to-occupation crosswalk", "readOnlyHint": True})

@@ -149,3 +149,23 @@ async def test_second_call_uses_cache_and_stale_served_on_failure(upstream):
     r = await server.get_occupation_outlook("29-1141")
     assert r["sources"][0]["served_stale_cache"] is True
     assert CONTACT not in json.dumps(r)
+
+
+async def test_search_programs_by_keyword(upstream):
+    r = await server.search_programs("nursing")
+    cols = r["data"]["columns"]
+    rows = [dict(zip(cols, x)) for x in r["data"]["rows"]]
+    assert [x["cip6"] for x in rows] == ["51.3899", "51.3801", "51.3901"]  # titles that start with the word first, then code order
+    assert rows[1]["cip4"] == "51.38" and rows[1]["title"] == "Registered Nursing" and rows[1]["occupations_mapped"] == 2
+    assert r["data"]["total_matches"] == 3 and not r["nulls"]
+    r = await server.search_programs("practical nursing")
+    assert [x[0] for x in r["data"]["rows"]] == ["51.3901"]  # every word must appear
+    r = await server.search_programs("NURSING", limit=1)
+    assert len(r["data"]["rows"]) == 1 and any("3 programs match" in w for w in r["warnings"])
+
+
+async def test_search_programs_includes_codes_with_no_occupation_match_and_nulls_when_empty(upstream):
+    r = await server.search_programs("taxidermy")
+    assert r["data"]["rows"] == [["01.0508", "01.05", "Taxidermy", 0]]
+    r = await server.search_programs("astrophysics")
+    assert r["data"]["rows"] == [] and r["nulls"][0]["kind"] == "not_found"

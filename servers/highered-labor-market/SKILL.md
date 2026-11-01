@@ -9,6 +9,7 @@ description: Use for questions about whether an institution's programs line up w
 1. Resolve the institution with `resolve_institution` (highered-institutions) to get its UNITID. Programs use **4-digit CIP** codes (for example 51.38) and a **credential level** (1 certificate, 2 associate, 3 bachelor, 4 post-bacc certificate, 5 master, 6 doctoral, 7 first professional, 8 graduate certificate).
 2. `get_program_outcomes` lists the institution's programs, with awards and earnings. Pick a program from it.
 3. `get_program_alignment` for that program: awards beside demand for each mapped occupation.
+3a. If the user names a field in plain words (for example "nursing" or "welding") and gives no code, use `search_programs(keyword)` to find the CIP code, show the candidates, and ask which one when more than one fits. Its `cip4` is the code the Scorecard program tools take.
 4. For one occupation use `get_occupation_outlook` (demand) and `get_occupation_skills` (what the work requires). `map_program_to_occupations` shows the program-to-occupation links on their own.
 5. For a state's own projections use `get_state_occupation_outlook`, or pass `state` to `get_program_alignment`. Pair with the 1102tools BLS OEWS server for regional wages.
 

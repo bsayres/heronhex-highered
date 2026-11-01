@@ -5,6 +5,7 @@ MCP server (read-only) that helps institutions look at how programs line up with
 ## Tools
 | Tool | Answers | Level | Source |
 |---|---|---|---|
+| `search_programs(keyword, limit?)` | Which CIP program code is this field? (title keyword search) | national reference | NCES/BLS CIP 2020 to SOC 2018 crosswalk |
 | `map_program_to_occupations(cip)` | Which occupations is a program linked to? | national reference | NCES/BLS CIP 2020 to SOC 2018 crosswalk |
 | `get_occupation_outlook(soc)` | Employment, annual openings, wage, typical entry education 2025-35 | national | BLS Employment Projections |
 | `get_state_occupation_outlook(state, soc, horizon='long')` | A state's own projection for an occupation, beside the United States row from the same source | state (and national, same source and years) | Projections Central (State Projections Consortium) |
