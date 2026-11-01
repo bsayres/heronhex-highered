@@ -200,19 +200,19 @@ async def get_institution_profile(unitid: UnitId) -> dict:
     sources += [_entry("IPEDS fall enrollment via Urban Institute", m) for m in metas]
 
     # Scorecard (exact join on UNITID)
-    if not scorecard.has_key():
+    demo = scorecard.using_demo_key()
+    if demo:
+        warnings.append(scorecard.DEMO_NOTE)
+    try:
+        sc, url = await scorecard.fetch(guard(), unitid)
+        data["scorecard"] = sc
+        sources.append(source_entry(scorecard.SOURCE, url, "College Scorecard latest release", now()))
+        if sc is None:
+            nulls.append({"field": "scorecard", "kind": "not_found", "reason": "UNITID not present in College Scorecard."})
+    except UpstreamError as e:
         data["scorecard"] = None
-        nulls.append({"field": "scorecard", "kind": "not_configured", "reason": f"{scorecard.KEY_VAR} is not set. Get a free key at https://api.data.gov/signup."})
-    else:
-        try:
-            sc, url = await scorecard.fetch(guard(), unitid)
-            data["scorecard"] = sc
-            sources.append(source_entry(scorecard.SOURCE, url, "College Scorecard latest release", now()))
-            if sc is None:
-                nulls.append({"field": "scorecard", "kind": "not_found", "reason": "UNITID not present in College Scorecard."})
-        except UpstreamError as e:
-            data["scorecard"] = None
-            nulls.append({"field": "scorecard", "kind": "source_unavailable", "reason": str(e)})
+        nulls.append({"field": "scorecard", "kind": "not_configured" if demo else "source_unavailable",
+                      "reason": f"{e} {scorecard.DEMO_NOTE}" if demo else str(e)})
 
     return envelope(sources, data, nulls, warnings)
 

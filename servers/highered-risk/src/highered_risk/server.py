@@ -100,13 +100,11 @@ async def get_audit_findings(ein: Ein | None = None, uei: Uei | None = None, yea
     under a different identifier, so an empty result does not mean there was no audit."""
     if (ein is None) == (uei is None):
         raise ToolError("Provide exactly one of ein or uei.")
-    if not fac.has_key():
-        raise ToolError(f"{fac.KEY_VAR} is not set. Get a free key at https://api.data.gov/signup and set it in the server environment.")
     try:
         r = await fac.fetch(guard(), ein=ein, uei=uei, years=years)
     except UpstreamError as e:
-        raise ToolError(str(e)) from None
-    nulls, warnings = [], []
+        raise ToolError(f"{e} {fac.DEMO_NOTE}" if fac.using_demo_key() else str(e)) from None
+    nulls, warnings = [], [fac.DEMO_NOTE] if fac.using_demo_key() else []
     if not r["audits"]:
         nulls.append({"field": "audits", "kind": "not_found", "reason": f"No Single Audit submissions found for this {'UEI' if uei else 'EIN'} in the FAC. "
                       "The auditee may fall below the audit threshold, be audited under a state or system-wide audit, or file under another identifier."})

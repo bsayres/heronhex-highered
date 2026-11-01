@@ -55,11 +55,12 @@ async def test_unknown_identifier_returns_null_with_reason(upstream):
     assert r["data"]["audits"] == [] and r["nulls"][0]["field"] == "audits" and "No Single Audit" in r["nulls"][0]["reason"]
 
 
-async def test_missing_key_is_a_clear_error_without_network(upstream, monkeypatch):
+async def test_missing_key_falls_back_to_demo_key_in_header_and_warns(upstream, monkeypatch):
     monkeypatch.delenv("FAC_API_KEY")
-    with pytest.raises(ToolError, match="FAC_API_KEY is not set"):
-        await server.get_audit_findings(ein="999000001")
-    assert not upstream.requests
+    r = await server.get_audit_findings(ein="999000001")
+    fac_reqs = [q for q in upstream.requests if q.url.host == "api.fac.gov"]
+    assert fac_reqs and all(q.headers["x-api-key"] == "DEMO_KEY" and "DEMO_KEY" not in str(q.url) for q in fac_reqs)
+    assert any("DEMO_KEY" in w and "FAC_API_KEY" in w for w in r["warnings"])
 
 
 @pytest.mark.parametrize("args", [

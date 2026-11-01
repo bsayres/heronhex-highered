@@ -23,7 +23,7 @@ uvx --from /path/to/highered-mcps/servers/highered-labor-market highered-labor-m
 | Variable | Needed for | Notes |
 |---|---|---|
 | `HIGHERED_MCPS_CONTACT` | BLS projections (`get_occupation_outlook`, and the demand part of `get_program_alignment`) | **Your email address.** BLS blocks clients without a contact in the User-Agent. It is sent only to `www.bls.gov`, never anywhere else, never logged, and never returned. Without it those tools say so, and the rest of the alignment tool still works. |
-| `COLLEGE_SCORECARD_API_KEY` | `get_program_outcomes`, `get_program_alignment` | Free: https://api.data.gov/signup. Sent in the `X-Api-Key` header only. |
+| `COLLEGE_SCORECARD_API_KEY` | `get_program_outcomes`, `get_program_alignment` | Free: https://api.data.gov/signup. Sent in the `X-Api-Key` header only. Optional: without it, calls use the shared `DEMO_KEY` (about 10 requests) and say so in `warnings`. |
 `get_state_occupation_outlook` and the `state` part of the alignment tool need no key and no contact email.
 No O*NET key is needed: the O*NET database is read from its public CC BY 4.0 bulk files.
 

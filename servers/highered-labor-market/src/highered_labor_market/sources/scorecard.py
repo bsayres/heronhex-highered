@@ -11,8 +11,17 @@ FIELDS = ["id", "school.name", f"{P}.code", f"{P}.title", f"{P}.credential.level
           f"{P}.counts.ipeds_awards2", f"{P}.earnings.1_yr.overall_median_earnings", f"{P}.earnings.1_yr.overall_median_earnings_national"]
 
 
-def has_key() -> bool:
-    return bool(os.environ.get(KEY_VAR))
+DEMO_KEY = "DEMO_KEY"  # api.data.gov's public shared key; heavily rate limited, so only a fallback for first runs
+DEMO_NOTE = (f"{KEY_VAR} is not set, so this call used api.data.gov's shared DEMO_KEY, which allows only about 10 requests before it is blocked. "
+             "Get a free key at https://api.data.gov/signup and set it in the server environment for normal use.")
+
+
+def api_key() -> str:
+    return os.environ.get(KEY_VAR) or DEMO_KEY
+
+
+def using_demo_key() -> bool:
+    return not os.environ.get(KEY_VAR)
 
 
 def _int(v) -> int | None:
@@ -32,10 +41,7 @@ def _program(p: dict) -> dict | None:
 
 
 async def fetch(guard: Guard, unitid: str) -> tuple[dict | None, str]:
-    key = os.environ.get(KEY_VAR)
-    if not key:
-        raise KeyError(KEY_VAR)
-    data, url = await guard.get_json(URL, params={"id": unitid, "fields": ",".join(FIELDS)}, headers={"X-Api-Key": key}, max_bytes=10_000_000)
+    data, url = await guard.get_json(URL, params={"id": unitid, "fields": ",".join(FIELDS)}, headers={"X-Api-Key": api_key()}, max_bytes=10_000_000)
     results = data.get("results") if isinstance(data, dict) else None
     if not isinstance(results, list):
         raise UpstreamError("api.data.gov returned an unexpected response.")

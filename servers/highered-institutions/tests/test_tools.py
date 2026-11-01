@@ -33,12 +33,13 @@ async def test_one_to_many_opeid8(upstream):
     assert all("One-to-many OPEID mapping." in c["notes"] for c in d["candidates"])
 
 
-async def test_profile_degrades_without_key_and_explains_nulls(upstream):
+async def test_profile_without_key_uses_demo_key_in_header_and_says_so(upstream):
     r = await s.get_institution_profile("999001")
     d = r["data"]
-    assert d["scorecard"] is None
-    reasons = {n["field"]: n["reason"] for n in r["nulls"]}
-    assert "COLLEGE_SCORECARD_API_KEY" in reasons["scorecard"]
+    assert d["scorecard"] is not None
+    sc = next(q for q in upstream.requests if q.url.host == "api.data.gov")
+    assert sc.headers["x-api-key"] == "DEMO_KEY" and "DEMO_KEY" not in str(sc.url)
+    assert any("DEMO_KEY" in w and "COLLEGE_SCORECARD_API_KEY" in w for w in r["warnings"])
     assert d["identifiers"]["ein"] == "999000001"
     assert d["latest_fall_enrollment"]["year"] == 2024  # 2025 enrollment not published in fixtures
     for k in ("source", "source_url", "as_of", "retrieved_at"):

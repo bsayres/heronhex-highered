@@ -18,7 +18,7 @@ Every response: `source`, `source_url`, `as_of`, `retrieved_at`, `sources[]`, `d
 ```bash
 uvx --from /path/to/highered-mcps/servers/highered-institutions highered-institutions
 ```
-Environment: `COLLEGE_SCORECARD_API_KEY` (free, https://api.data.gov/signup; optional, profile degrades to a null without it), `HIGHERED_MCPS_CACHE` (cache dir, default `~/.cache/highered-mcps`).
+Environment: `COLLEGE_SCORECARD_API_KEY` (free, https://api.data.gov/signup; optional: without it the Scorecard call uses api.data.gov's shared `DEMO_KEY`, which allows only about 10 requests, and every response says so), `HIGHERED_MCPS_CACHE` (cache dir, default `~/.cache/highered-mcps`).
 
 ## Network allowlist (enforced in code, `http.py`)
 | Host | Used for | Auth |

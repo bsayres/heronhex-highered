@@ -96,8 +96,17 @@ def filing_timeline(g: dict) -> dict:
     }
 
 
-def has_key() -> bool:
-    return bool(os.environ.get(KEY_VAR))
+DEMO_KEY = "DEMO_KEY"  # api.data.gov's public shared key; heavily rate limited, so only a fallback for first runs
+DEMO_NOTE = (f"{KEY_VAR} is not set, so this call used api.data.gov's shared DEMO_KEY, which allows only about 10 requests before it is blocked. "
+             "Get a free key at https://api.data.gov/signup and set it in the server environment for normal use.")
+
+
+def api_key() -> str:
+    return os.environ.get(KEY_VAR) or DEMO_KEY
+
+
+def using_demo_key() -> bool:
+    return not os.environ.get(KEY_VAR)
 
 
 def _flag(v) -> bool | None:
@@ -105,10 +114,7 @@ def _flag(v) -> bool | None:
 
 
 async def _get(guard: Guard, table: str, params: dict) -> tuple[list[dict], str]:
-    key = os.environ.get(KEY_VAR)
-    if not key:
-        raise KeyError(KEY_VAR)
-    data, url = await guard.get_json(f"{BASE}/{table}", params=params, headers={"X-Api-Key": key})
+    data, url = await guard.get_json(f"{BASE}/{table}", params=params, headers={"X-Api-Key": api_key()})
     if not isinstance(data, list):
         raise UpstreamError("api.fac.gov returned an unexpected response shape.")
     return data, url

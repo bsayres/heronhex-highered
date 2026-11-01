@@ -164,12 +164,10 @@ async def get_occupation_skills(soc: Soc, top: Top = 10) -> dict:
 
 
 async def _programs(unitid: str) -> tuple[dict | None, str]:
-    if not scorecard.has_key():
-        raise ToolError(f"{scorecard.KEY_VAR} is not set. Get a free key at https://api.data.gov/signup.")
     try:
         return await scorecard.fetch(guard(), unitid)
     except UpstreamError as e:
-        raise _fail(e) from None
+        raise ToolError(f"{e} {scorecard.DEMO_NOTE}" if scorecard.using_demo_key() else str(e)) from None
 
 
 @mcp.tool(title="Program earnings and awards", annotations={"title": "Program earnings and awards", "readOnlyHint": True})
@@ -188,7 +186,7 @@ async def get_program_outcomes(unitid: UnitId, cip4: Cip4 | None = None, credent
     cols = ["cip4", "program", "credential_level", "credential", "awards_period_1", "awards_period_2", "earnings_1yr_median_institution", "earnings_1yr_median_national"]
     rows = [[p["cip4"], p["title"], p["credential_level"], CREDENTIALS[p["credential_level"]], p["awards_period_1"], p["awards_period_2"],
              p["earnings_1yr_median_institution"], p["earnings_1yr_median_national"]] for p in shown]
-    nulls, warnings = [], []
+    nulls, warnings = [], [scorecard.DEMO_NOTE] if scorecard.using_demo_key() else []
     if not progs:
         nulls.append({"field": "programs", "kind": "not_found", "reason": "No Scorecard field-of-study programs match these filters for this institution."})
     sup = sum(1 for p in shown if p["earnings_1yr_median_institution"] is None)
@@ -218,7 +216,7 @@ async def get_program_alignment(unitid: UnitId, cip4: Cip4, credential: Credenti
         CW = await crosswalk.get(guard())
     except UpstreamError as e:
         raise _fail(e) from None
-    nulls, warnings, sources = [], list(CAVEATS), [source_entry(scorecard.SOURCE, sc_url, "latest field-of-study release", now()), _entry(crosswalk.SOURCE, CW)]
+    nulls, warnings, sources = [], list(CAVEATS) + ([scorecard.DEMO_NOTE] if scorecard.using_demo_key() else []), [source_entry(scorecard.SOURCE, sc_url, "latest field-of-study release", now()), _entry(crosswalk.SOURCE, CW)]
     if prog is None:
         nulls.append({"field": "program", "kind": "not_found", "reason": f"This institution has no Scorecard field-of-study record for CIP {cip4} at credential level {credential} ({CREDENTIALS[credential]})."})
     socs = _soc_union(CW.data["programs"], _cips(CW.data["programs"], cip4))

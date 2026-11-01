@@ -95,8 +95,10 @@ async def test_scorecard_key_only_in_header_and_missing_key_fails_cleanly(upstre
     reqs = [q for q in upstream.requests if q.url.host == "api.data.gov"]
     assert reqs and all(q.headers["x-api-key"] == SC_KEY and SC_KEY not in str(q.url) for q in reqs) and SC_KEY not in json.dumps(r)
     monkeypatch.delenv("COLLEGE_SCORECARD_API_KEY")
-    with pytest.raises(ToolError, match="not set"):
-        await server.get_program_outcomes("999001")
+    upstream.requests.clear()
+    r = await server.get_program_outcomes("999001")
+    assert all(q.headers["x-api-key"] == "DEMO_KEY" and "DEMO_KEY" not in str(q.url) for q in upstream.requests if q.url.host == "api.data.gov")
+    assert any("DEMO_KEY" in w for w in r["warnings"])
     with pytest.raises(ToolError, match="not found"):
         monkeypatch.setenv("COLLEGE_SCORECARD_API_KEY", SC_KEY)
         await server.get_program_outcomes("999999")
