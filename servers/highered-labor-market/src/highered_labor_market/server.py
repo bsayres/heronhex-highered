@@ -102,7 +102,7 @@ async def map_program_to_occupations(cip: CipAny) -> dict:
     if not keys:
         reason = ("NCES lists this CIP code with no matching occupation (NO MATCH)." if unmatched
                   else "This code is not in the CIP 2020 to SOC 2018 crosswalk.")
-        nulls.append({"field": "occupations", "reason": reason})
+        nulls.append({"field": "occupations", "kind": "not_found", "reason": reason})
     socs = _soc_union(programs, keys)
     if unmatched and keys:
         warnings.append(f"{len(unmatched)} 6-digit code(s) under {cip} have no occupation match in the crosswalk.")
@@ -126,7 +126,7 @@ async def get_occupation_outlook(soc: Soc) -> dict:
     rec, code, how = bls.lookup(L.data["occupations"], soc)
     nulls, warnings = [], ["National projections; not regional demand. Projections lag current conditions."]
     if rec is None:
-        nulls.append({"field": "outlook", "reason": "BLS does not report this occupation or its broad group in the projections table."})
+        nulls.append({"field": "outlook", "kind": "not_found", "reason": "BLS does not report this occupation or its broad group in the projections table."})
         out = None
     else:
         if how == "broad_group":
@@ -150,7 +150,7 @@ async def get_occupation_skills(soc: Soc, top: Top = 10) -> dict:
     codes = L.data["by_soc"].get(soc, [])
     cite = f"O*NET {L.data['version']} Database by the U.S. Department of Labor, Employment and Training Administration (USDOL/ETA), CC BY 4.0 ({onet.LICENSE_URL}). Summarized to top-rated items; values unchanged."
     if not codes:
-        return envelope([_entry(onet.SOURCE, L)], {"soc": soc, "onet_occupation": None}, [{"field": "onet_occupation", "reason": "O*NET has no occupation under this SOC code."}],
+        return envelope([_entry(onet.SOURCE, L)], {"soc": soc, "onet_occupation": None}, [{"field": "onet_occupation", "kind": "not_found", "reason": "O*NET has no occupation under this SOC code."}],
                         ["O*NET data are for occupations as O*NET defines them."], citation=cite, license=onet.LICENSE_URL)
     chosen = next((c for c in codes if c.endswith(".00")), codes[0])
     o = L.data["occupations"][chosen]
@@ -158,7 +158,7 @@ async def get_occupation_skills(soc: Soc, top: Top = 10) -> dict:
             "essential_skills": {"columns": ["skill", "importance", "level"], "rows": (o.get("essential_skills") or [])[:top]},
             "transferable_skills": {"columns": ["skill", "importance", "level"], "rows": (o.get("transferable_skills") or [])[:top]},
             "core_tasks": (o.get("core_tasks") or [])[:top], "hot_technologies": {"columns": ["example", "category"], "rows": (o.get("hot_technologies") or [])[:top]}}
-    nulls = [{"field": k, "reason": "O*NET has no rated data of this kind for this occupation."} for k in ("essential_skills", "transferable_skills", "core_tasks", "hot_technologies")
+    nulls = [{"field": k, "kind": "not_reported", "reason": "O*NET has no rated data of this kind for this occupation."} for k in ("essential_skills", "transferable_skills", "core_tasks", "hot_technologies")
              if not o.get(k)]
     return envelope([_entry(onet.SOURCE, L)], data, nulls, ["O*NET ratings come from worker and analyst surveys and are not employer postings."], citation=cite, license=onet.LICENSE_URL)
 
@@ -190,10 +190,10 @@ async def get_program_outcomes(unitid: UnitId, cip4: Cip4 | None = None, credent
              p["earnings_1yr_median_institution"], p["earnings_1yr_median_national"]] for p in shown]
     nulls, warnings = [], []
     if not progs:
-        nulls.append({"field": "programs", "reason": "No Scorecard field-of-study programs match these filters for this institution."})
+        nulls.append({"field": "programs", "kind": "not_found", "reason": "No Scorecard field-of-study programs match these filters for this institution."})
     sup = sum(1 for p in shown if p["earnings_1yr_median_institution"] is None)
     if sup:
-        nulls.append({"field": "earnings_1yr_median_institution", "reason": f"Missing for {sup} of {len(shown)} programs shown: suppressed for privacy (Scorecard marks these 'PS') or not reported. National medians are in earnings_1yr_median_national."})
+        nulls.append({"field": "earnings_1yr_median_institution", "kind": "suppressed", "reason": f"Missing for {sup} of {len(shown)} programs shown: suppressed for privacy (Scorecard marks these 'PS') or not reported. National medians are in earnings_1yr_median_national."})
     if len(progs) > len(shown):
         warnings.append(f"{len(progs)} programs match; {len(shown)} shown. Filter by cip4 or credential, or raise `limit` (max 100).")
     warnings.append("Award counts cover two consecutive award years as reported to IPEDS and include second majors; Scorecard does not say here which period is newer.")
@@ -220,16 +220,16 @@ async def get_program_alignment(unitid: UnitId, cip4: Cip4, credential: Credenti
         raise _fail(e) from None
     nulls, warnings, sources = [], list(CAVEATS), [source_entry(scorecard.SOURCE, sc_url, "latest field-of-study release", now()), _entry(crosswalk.SOURCE, CW)]
     if prog is None:
-        nulls.append({"field": "program", "reason": f"This institution has no Scorecard field-of-study record for CIP {cip4} at credential level {credential} ({CREDENTIALS[credential]})."})
+        nulls.append({"field": "program", "kind": "not_found", "reason": f"This institution has no Scorecard field-of-study record for CIP {cip4} at credential level {credential} ({CREDENTIALS[credential]})."})
     socs = _soc_union(CW.data["programs"], _cips(CW.data["programs"], cip4))
     if not socs:
-        nulls.append({"field": "occupations", "reason": "The crosswalk has no occupation match for this CIP code."})
+        nulls.append({"field": "occupations", "kind": "not_found", "reason": "The crosswalk has no occupation match for this CIP code."})
     L = None
     try:
         L = await bls.get(guard())
         sources.append(_entry(bls.SOURCE, L))
     except UpstreamError as e:
-        nulls.append({"field": "bls_projections", "reason": str(e)})
+        nulls.append({"field": "bls_projections", "kind": "source_unavailable", "reason": str(e)})
     wanted = EDU_MATCH[credential]
     rows, counted = [], {}
     for soc, v in sorted(socs.items()):
@@ -258,7 +258,7 @@ async def get_program_alignment(unitid: UnitId, cip4: Cip4, credential: Credenti
             sources.append(pc_src)
             warnings.extend(pc_warnings)
         except UpstreamError as e:
-            nulls.append({"field": "state_projections", "reason": str(e)})
+            nulls.append({"field": "state_projections", "kind": "source_unavailable", "reason": str(e)})
     data = {
         "unitid": unitid, "institution": school["name"], "cip4": cip4, "credential": {"level": credential, "title": CREDENTIALS[credential]},
         "institution_program": prog and {"title": prog["title"], "awards_period_1": prog["awards_period_1"], "awards_period_2": prog["awards_period_2"],
@@ -270,7 +270,7 @@ async def get_program_alignment(unitid: UnitId, cip4: Cip4, credential: Credenti
         "state_demand": state_block,
     }
     if prog and prog["earnings_1yr_median_institution"] is None:
-        nulls.append({"field": "earnings_1yr_median_institution", "reason": "Suppressed for privacy (Scorecard 'PS') or not reported for this program; the national median is shown separately."})
+        nulls.append({"field": "earnings_1yr_median_institution", "kind": "suppressed", "reason": "Suppressed for privacy (Scorecard 'PS') or not reported for this program; the national median is shown separately."})
     return envelope(sources, data, nulls, warnings)
 
 
@@ -344,12 +344,12 @@ async def get_state_occupation_outlook(state: StateCode, soc: Soc, horizon: Hori
     us, us_how = projections.pick(res.entries, projections.US, soc)
     nulls, warnings = [], [projections.DISCLAIMER]
     if st is None:
-        nulls.append({"field": "state_outlook", "reason": "This state has not submitted a projection for this occupation (or its broad group) to Projections Central, "
+        nulls.append({"field": "state_outlook", "kind": "not_found", "reason": "This state has not submitted a projection for this occupation (or its broad group) to Projections Central, "
                                                           "or the occupation is not projected there. Short-term projections are published by far fewer states than long-term ones."})
     elif how == "broad_group":
         warnings.append(f"This state reports the occupation only within broad group {projections.broad(soc)} ({st['title']}); the figures cover the whole group.")
     if us is None:
-        nulls.append({"field": "united_states_same_source", "reason": "Projections Central has no United States row for this occupation (or its broad group)."})
+        nulls.append({"field": "united_states_same_source", "kind": "not_found", "reason": "Projections Central has no United States row for this occupation (or its broad group)."})
     elif us_how == "broad_group":
         warnings.append(f"The United States row is for broad group {projections.broad(soc)} ({us['title']}).")
     if st and us and (st["base_year"], st["projection_year"]) != (us["base_year"], us["projection_year"]):

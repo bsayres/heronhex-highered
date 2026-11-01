@@ -84,14 +84,14 @@ async def get_research_spend(unitid: UnitId, years: Annotated[int, Field(ge=1, l
         try:
             L = await herd.year(guard(), y)
         except UpstreamError as e:
-            nulls.append({"field": f"FY{y}", "reason": str(e)})
+            nulls.append({"field": f"FY{y}", "kind": "source_unavailable", "reason": str(e)})
             continue
         sources.append(_entry(herd.SOURCE, L))
         rec = L.data["institutions"].get(unitid)
         if y == latest:
             unmatched = L.data["unmatched"]
         if rec is None:
-            nulls.append({"field": f"FY{y}", "reason": f"No HERD record for this UNITID in FY{y}. HERD covers institutions with at least $150,000 in R&D expenditures."})
+            nulls.append({"field": f"FY{y}", "kind": "not_applicable", "reason": f"No HERD record for this UNITID in FY{y}. HERD covers institutions with at least $150,000 in R&D expenditures."})
             continue
         name = name or rec["name"]
         u = rec["usd"]
@@ -153,11 +153,11 @@ async def search_grant_awards(
             warnings.append("NSF records are not guaranteed to be ordered; do not read the first rows as the largest or newest.")
         except UpstreamError as e:
             out["nsf"] = None
-            nulls.append({"field": "nsf", "reason": str(e)})
+            nulls.append({"field": "nsf", "kind": "source_unavailable", "reason": str(e)})
     if "nih" in want:
         if not institution_name:
             out["nih"] = None
-            nulls.append({"field": "nih", "reason": "NIH RePORTER cannot search by UEI; pass institution_name to query it."})
+            nulls.append({"field": "nih", "kind": "not_configured", "reason": "NIH RePORTER cannot search by UEI; pass institution_name to query it."})
         else:
             today = datetime.now(UTC)
             fy = fiscal_year or (today.year if today.month >= 10 else today.year - 1)  # last completed federal fiscal year
@@ -170,13 +170,13 @@ async def search_grant_awards(
                     warnings.append(f"NIH name search matched {r['name_matches_total']} organizations' projects but only the top "
                                     f"{r['name_matches_examined']} by award amount were examined, so this list may be incomplete. Use a more specific institution_name.")
                 if r["verified_found"] == 0:
-                    nulls.append({"field": "nih", "reason": f"No NIH projects for FY{fy} had a UEI matching yours under that name query. "
+                    nulls.append({"field": "nih", "kind": "not_found", "reason": f"No NIH projects for FY{fy} had a UEI matching yours under that name query. "
                                   "NIH may spell the organization differently, or it had no NIH awards that year."})
                 elif r["verified_found"] > len(r["projects"]):
                     warnings.append(f"{r['verified_found']} NIH projects verified; {len(r['projects'])} returned (largest first).")
             except UpstreamError as e:
                 out["nih"] = None
-                nulls.append({"field": "nih", "reason": str(e)})
+                nulls.append({"field": "nih", "kind": "source_unavailable", "reason": str(e)})
     if not srcs:
         raise ToolError("No award source could be queried: " + "; ".join(n["reason"] for n in nulls))
     return envelope(srcs, {"ueis": ueis, **out}, nulls, warnings)
@@ -198,7 +198,7 @@ async def search_funding_opportunities(
         r = await grants.search(guard(), keyword, st, eligibility, agency, rows)
     except UpstreamError as e:
         raise ToolError(str(e)) from None
-    nulls = [] if r["opportunities"] else [{"field": "opportunities", "reason": "No opportunities matched these filters."}]
+    nulls = [] if r["opportunities"] else [{"field": "opportunities", "kind": "not_found", "reason": "No opportunities matched these filters."}]
     warnings = [f"{r['total']} opportunities match; {len(r['opportunities'])} returned."] if r["total"] > len(r["opportunities"]) else []
     return envelope([source_entry(grants.SOURCE, r["url"], "live query", now())], {"total_matching": r["total"], "opportunities": r["opportunities"]}, nulls, warnings)
 
@@ -227,7 +227,7 @@ async def get_state_funding(state: StateCode, start_fy: Year | None = None, end_
     for fy in range(s, e + 1):
         r = rep.get(str(fy))
         if r is None:
-            nulls.append({"field": f"FY{fy}", "reason": "Fiscal year not in the SHEF dataset for this state."})
+            nulls.append({"field": f"FY{fy}", "kind": "not_found", "reason": "Fiscal year not in the SHEF dataset for this state."})
             continue
         q = sec.get(str(fy)) or {}
         rows.append([fy] + [r.get(c) for c in rcols] + [q.get(c) for c in scols])
@@ -259,11 +259,11 @@ async def get_enrollment_projection(
     series = (((L.data.get(state) or {}).get(sector) or {}).get(race_ethnicity)) or {}
     nulls = []
     if not series:
-        nulls.append({"field": "graduates", "reason": "WICHE has no series for this state, sector and race/ethnicity combination."})
+        nulls.append({"field": "graduates", "kind": "not_found", "reason": "WICHE has no series for this state, sector and race/ethnicity combination."})
     s, e = start_class_year or 0, end_class_year or 9999
     rows = [[int(y), v[0], v[1]] for y, v in sorted(series.items()) if s <= int(y) <= e]
     if series and not rows:
-        nulls.append({"field": "graduates", "reason": "No class years fall in the requested window."})
+        nulls.append({"field": "graduates", "kind": "not_found", "reason": "No class years fall in the requested window."})
     data = {"state": state, "state_name": STATE_NAMES[state], "sector": sector, "race_ethnicity": race_ethnicity,
             "columns": ["class_year", "high_school_graduates", "basis"], "rows": rows}
     warnings = [f"Licensed {wiche.LICENSE}. Cite: {wiche.CITATION}", "State-level projections; they say nothing about any single institution's enrollment."]

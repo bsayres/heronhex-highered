@@ -25,8 +25,32 @@ def source_entry(source: str, source_url: str, as_of: str, retrieved_at: str, **
     return {"source": source, "source_url": source_url, "as_of": as_of, "retrieved_at": retrieved_at, **extra}
 
 
+NULL_KINDS = frozenset({
+    "suppressed",          # the source withheld the value (privacy or small counts)
+    "not_reported",        # the record exists but the value is blank or missing
+    "not_applicable",      # does not apply to this institution, type or size
+    "not_found",           # no record for this identifier, filter or period in the source
+    "not_configured",      # a key, contact address or required input was not supplied
+    "source_unavailable",  # the source could not be fetched or read now
+    "not_covered",         # outside what this data covers
+})
+
+
+def _nulls(nulls: list[dict] | None) -> list[dict]:
+    """Every null carries a machine-readable kind; anything unclassified says so rather than guessing."""
+    return [{**n, "kind": n.get("kind") if n.get("kind") in NULL_KINDS else "unclassified"} for n in (nulls or [])]
+
+
+def _null_counts(nulls: list[dict]) -> dict[str, int]:
+    out: dict[str, int] = {}
+    for n in nulls:
+        out[n["kind"]] = out.get(n["kind"], 0) + 1
+    return out
+
+
 def envelope(sources: list[dict], data: object, nulls: list[dict] | None = None, warnings: list[str] | None = None) -> dict:
     primary = sources[0]
+    checked = _nulls(nulls)
     return {
         "source": primary["source"],
         "source_url": primary["source_url"],
@@ -34,7 +58,8 @@ def envelope(sources: list[dict], data: object, nulls: list[dict] | None = None,
         "retrieved_at": min(s["retrieved_at"] for s in sources),
         "sources": sources,
         "data": data,
-        "nulls": nulls or [],
+        "nulls": checked,
+        "null_counts": _null_counts(checked),
         "warnings": warnings or [],
         "notice": DISCLAIMER,
     }

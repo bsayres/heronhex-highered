@@ -124,7 +124,7 @@ function usd(v){if(v===null||v===undefined)return"—";var a=Math.abs(v);var s=a
 function pct(v){return v===null||v===undefined?"—":(v*100).toFixed(1)+"%"}
 function arr(x){return Array.isArray(x)?x:[]}
 function gapFor(prefix){return arr(D.gaps).filter(function(g){return String(g.field||"").indexOf(prefix)===0})}
-function gapNote(prefix){var g=gapFor(prefix);return g.length?el("div",null,g.map(function(x){return el("div",{"class":"gap",text:(x.field?x.field+": ":"")+(x.reason||"No reason given.")})})):null}
+function gapNote(prefix){var g=gapFor(prefix);return g.length?el("div",null,g.map(function(x){return el("div",{"class":"gap",text:(x.field?x.field+" ["+(x.kind||"unclassified").replace(/_/g," ")+"]: ":"")+(x.reason||"No reason given.")})})):null}
 function nodata(prefix,what){return el("div",null,[el("div",{"class":"note",text:"No "+what+" returned."}),gapNote(prefix)])}
 
 /* ---------- charts ---------- */
@@ -301,7 +301,7 @@ function buildPrograms(body){
 function buildGaps(body){
   var g=arr(D.gaps);
   if(!g.length){body.appendChild(el("div",{"class":"note",text:"No gaps were reported by the tools for the sections shown."}));return}
-  g.forEach(function(x){body.appendChild(el("div",{"class":"gap",text:(x.field?x.field+": ":"")+(x.reason||"No reason given.")}))});
+  g.forEach(function(x){body.appendChild(el("div",{"class":"gap",text:(x.field?x.field+" ["+(x.kind||"unclassified").replace(/_/g," ")+"]: ":"")+(x.reason||"No reason given.")}))});
   body.appendChild(el("div",{"class":"note",text:"A gap is missing data, not a good or bad result. Not covered by these tools: internal student-level data, campus safety, dual enrollment counts."}));
 }
 function buildSources(body){

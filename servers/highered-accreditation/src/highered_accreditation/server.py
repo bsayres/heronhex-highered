@@ -51,7 +51,7 @@ def _entry(c: dapip.Loaded) -> dict:
 
 def _not_found(c: dapip.Loaded, unitid: str) -> dict:
     n = c.data["counts"]
-    return {"field": "institution", "reason": (
+    return {"field": "institution", "kind": "not_found", "reason": (
         f"UNITID {unitid} is not matched to an institution in DAPIP. DAPIP lists {n['institutions_without_unitid']} institutions with no IPEDS id, "
         "so this does not show the institution is unaccredited. Check the institution's own accreditation page or the accreditor's directory.")}
 
@@ -83,7 +83,7 @@ async def get_accreditation_status(unitid: Unitid, scope: Scope = "all") -> dict
     recs = dapip.accreditors(d, unitid, scope, dapip.now_date())
     nulls, warnings = [], _stale(c)
     if not recs:
-        nulls.append({"field": "accreditors", "reason": f"DAPIP has no accreditation records for this institution under scope '{scope}'."})
+        nulls.append({"field": "accreditors", "kind": "not_found", "reason": f"DAPIP has no accreditation records for this institution under scope '{scope}'."})
     stale_status = [r for r in recs if r["status_note"] and r["end_date"] and not r["current"]]
     if stale_status:
         warnings.append(f"{len(stale_status)} record(s) still show the status 'Accredited' in DAPIP but have an end date that has passed; they are reported as not current.")
@@ -133,7 +133,7 @@ async def get_accreditation_actions(unitid: Unitid, scope: Scope = "all", since_
     nulls, warnings = [], _stale(c)
     if not rows:
         what = f"scope '{scope}'" + (f" since {since_year}" if since_year else "")
-        nulls.append({"field": "actions", "reason": f"DAPIP has no accreditation actions for this institution under {what}."})
+        nulls.append({"field": "actions", "kind": "not_found", "reason": f"DAPIP has no accreditation actions for this institution under {what}."})
     if len(rows) > limit:
         warnings.append(f"{len(rows)} actions matched; showing the newest {limit}. Raise `limit` (up to 200) or set `since_year` to see more.")
     data = {

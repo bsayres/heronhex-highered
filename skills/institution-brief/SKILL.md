@@ -30,7 +30,7 @@ One section per step group, in this order: Identity, Size and trend, Finance, Pe
 ## Rules
 
 1. **No composite verdict.** Do not say an institution is healthy, struggling, at risk, "in trouble" or "clean", and do not rank or score it. Report each indicator with its year and let the reader judge. You may list which indicators the data flags (for example "on heightened cash monitoring since [date]") if a tool returned it.
-2. **Nulls are gaps, not good news.** Every null carries a `reason`. Put each one in the Gaps section with its reason. A missing composite score, an absent audit, no research spend or a state with no board in DAPIP does not mean zero or fine.
+2. **Nulls are gaps, not good news.** Every null carries a `kind` (suppressed, not reported, not applicable, not found, not configured, source unavailable, not covered) and a `reason`; each response also has `null_counts`. Say which kind each gap is: a suppressed value and a missing record are different things. Put each one in the Gaps section with its reason. A missing composite score, an absent audit, no research spend or a state with no board in DAPIP does not mean zero or fine.
 3. **Never fill a gap.** Do not estimate, interpolate or use remembered figures for anything a tool did not return. If the user needs it, name the source they would have to check.
 4. **Respect the units and years.** Different sources cover different years. Never put two sources' figures in one calculation or one sentence implying they cover the same period unless the tool already combined them.
 5. **Public vs private vs two-year.** Say what does not apply (for example, state appropriations apply to public institutions; research spend is reported only above a size cutoff, so many small colleges have none).

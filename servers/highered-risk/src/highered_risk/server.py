@@ -63,7 +63,7 @@ async def get_title_iv_status(opeid: Opeid) -> dict:
         comp_out = {**crow[0], "period": comp.data["period"], "data_source_as_of": comp.data["data_source_as_of"]}
     else:
         comp_out = None
-        nulls.append({"field": "financial_responsibility", "reason": (
+        nulls.append({"field": "financial_responsibility", "kind": "not_found", "reason": (
             f"OPEID not in the composite score file for fiscal years {comp.data['period']}. The file covers private nonprofit and proprietary "
             "institutions only (public institutions are not scored), and scores publish with a lag. A private institution can also be missing from a "
             "year's file for reasons the file does not state; do not read the absence as good or bad, and check the institution's audited financial statements.")})
@@ -76,7 +76,7 @@ async def get_title_iv_status(opeid: Opeid) -> dict:
                    "join_level": "opeid6 (all campuses sharing this 6-digit OPEID)", "entries": drows}
     else:
         cdr_out = None
-        nulls.append({"field": "cohort_default_rates", "reason": f"OPEID6 {o6} is not in the FY{c.data['latest_cohort_fy']} official default rate file."})
+        nulls.append({"field": "cohort_default_rates", "kind": "not_found", "reason": f"OPEID6 {o6} is not in the FY{c.data['latest_cohort_fy']} official default rate file."})
 
     data = {"opeid": opeid, "opeid6": o6, "heightened_cash_monitoring": hcm_out,
             "financial_responsibility": comp_out, "cohort_default_rates": cdr_out}
@@ -108,7 +108,7 @@ async def get_audit_findings(ein: Ein | None = None, uei: Uei | None = None, yea
         raise ToolError(str(e)) from None
     nulls, warnings = [], []
     if not r["audits"]:
-        nulls.append({"field": "audits", "reason": f"No Single Audit submissions found for this {'UEI' if uei else 'EIN'} in the FAC. "
+        nulls.append({"field": "audits", "kind": "not_found", "reason": f"No Single Audit submissions found for this {'UEI' if uei else 'EIN'} in the FAC. "
                       "The auditee may fall below the audit threshold, be audited under a state or system-wide audit, or file under another identifier."})
     if r["truncated"]:
         warnings.append(f"More than {fac.MAX_FINDINGS} findings matched; the list is truncated. Lower `years` to see all findings for fewer reports.")

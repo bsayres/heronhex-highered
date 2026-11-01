@@ -98,7 +98,7 @@ def _series(unitid: str, tables: dict, errors: dict) -> tuple[list[dict], list[d
         rows.append({"unitid": unitid, "year": y, "enrollment_fall": v})
         if v is None:
             reason = errors.get(y) or "Institution not reported in this year's IPEDS fall enrollment (or reported a missing-data code)."
-            nulls.append({"field": f"enrollment_fall[{unitid},{y}]", "reason": reason})
+            nulls.append({"field": f"enrollment_fall[{unitid},{y}]", "kind": "source_unavailable" if errors.get(y) else "not_reported", "reason": reason})
     return rows, nulls
 
 
@@ -202,17 +202,17 @@ async def get_institution_profile(unitid: UnitId) -> dict:
     # Scorecard (exact join on UNITID)
     if not scorecard.has_key():
         data["scorecard"] = None
-        nulls.append({"field": "scorecard", "reason": f"{scorecard.KEY_VAR} is not set. Get a free key at https://api.data.gov/signup."})
+        nulls.append({"field": "scorecard", "kind": "not_configured", "reason": f"{scorecard.KEY_VAR} is not set. Get a free key at https://api.data.gov/signup."})
     else:
         try:
             sc, url = await scorecard.fetch(guard(), unitid)
             data["scorecard"] = sc
             sources.append(source_entry(scorecard.SOURCE, url, "College Scorecard latest release", now()))
             if sc is None:
-                nulls.append({"field": "scorecard", "reason": "UNITID not present in College Scorecard."})
+                nulls.append({"field": "scorecard", "kind": "not_found", "reason": "UNITID not present in College Scorecard."})
         except UpstreamError as e:
             data["scorecard"] = None
-            nulls.append({"field": "scorecard", "reason": str(e)})
+            nulls.append({"field": "scorecard", "kind": "source_unavailable", "reason": str(e)})
 
     return envelope(sources, data, nulls, warnings)
 
@@ -354,7 +354,7 @@ async def get_financial_snapshot(unitid: UnitId, years: Annotated[int, Field(ge=
         row, url = await urban.finance(guard(), unitid, year)
         first_url = first_url or url
         if row is None:
-            nulls.append({"field": f"FY{year}", "reason": f"No IPEDS finance record for this UNITID in {year}. Some institutions report through a parent, or did not file."})
+            nulls.append({"field": f"FY{year}", "kind": "not_found", "reason": f"No IPEDS finance record for this UNITID in {year}. Some institutions report through a parent, or did not file."})
             continue
         basis, net_field, figures = _finance_figures(row)
         if year == latest:
@@ -362,7 +362,7 @@ async def get_financial_snapshot(unitid: UnitId, years: Annotated[int, Field(ge=
                          "reporting_form_code": row["reporting_form"], "figures": figures})
             for k, v in figures.items():
                 if v is None:
-                    nulls.append({"field": k, "reason": "Not reported on this institution's finance form."})
+                    nulls.append({"field": k, "kind": "not_reported", "reason": "Not reported on this institution's finance form."})
         history.append([year, basis, figures["rev_total_current"], figures["exp_total_current"], figures["revenues_minus_expenses"],
                         figures["net_position_or_net_assets_end"], figures["rev_appropriations_state"], figures["rev_tuition_fees_net"],
                         figures["rev_capital_approps"], figures["est_fte"]])
@@ -381,7 +381,7 @@ async def get_financial_snapshot(unitid: UnitId, years: Annotated[int, Field(ge=
         warnings.append("Capital appropriations (capital_appropriations / rev_capital_approps) may or may not be inside total revenues depending on the filer and year; "
                         "they are returned as reported, not netted out.")
     if not history:
-        nulls.append({"field": "figures", "reason": "No IPEDS finance data could be retrieved for this institution."})
+        nulls.append({"field": "figures", "kind": "source_unavailable", "reason": "No IPEDS finance data could be retrieved for this institution."})
     entry = source_entry(urban.SOURCE, first_url or urban.BASE, f"IPEDS finance surveys {latest - years + 1}-{latest}" if years > 1 else f"IPEDS finance survey {latest}", now())
     return envelope([entry], data, nulls, warnings)
 
