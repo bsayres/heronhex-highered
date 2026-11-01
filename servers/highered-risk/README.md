@@ -40,3 +40,5 @@ Institution names, program names and HCM "reason" text come from upstream. They 
 - Composite scores: latest published file covers fiscal 2022-23 (data as of Dec 2024); only private nonprofit and proprietary institutions are scored. The `.xls` format needs `xlrd`.
 - HCM list is a quarterly snapshot; "Reimbursement" and "Stop Pay" lists are parsed if present (empty at the last check).
 - OPEID6-level default rates cannot distinguish campuses.
+
+<!-- mcp-name: io.github.bsayres/highered-risk -->

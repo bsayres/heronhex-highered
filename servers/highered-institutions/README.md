@@ -41,3 +41,5 @@ Institution names, cities, and other upstream strings are untrusted. They are re
 
 ## Limitations
 Carnegie labels not yet included (codes only). Latest enrollment lags the directory by about a year. UEI is missing for roughly 9% of institutions. See [testing.md](testing.md).
+
+<!-- mcp-name: io.github.bsayres/highered-institutions -->

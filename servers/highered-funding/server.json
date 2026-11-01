@@ -1,0 +1,32 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.bsayres/highered-funding",
+  "title": "Higher Ed: Funding",
+  "description": "Research spend, NSF/NIH awards, open grants, state funding and graduate projections. Read-only.",
+  "repository": {
+    "url": "https://github.com/bsayres/highered-mcps",
+    "source": "github",
+    "subfolder": "servers/highered-funding"
+  },
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "highered-funding",
+      "version": "0.1.0",
+      "runtimeHint": "uvx",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "HIGHERED_MCPS_CACHE",
+          "description": "Directory for the local cache of downloaded public data (default ~/.cache/highered-mcps).",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        }
+      ]
+    }
+  ]
+}

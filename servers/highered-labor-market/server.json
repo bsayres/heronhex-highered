@@ -1,0 +1,46 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.bsayres/highered-labor-market",
+  "title": "Higher Ed: Labor Market",
+  "description": "Align college programs with labor-market demand (CIP-SOC, BLS, O*NET, Scorecard). Read-only.",
+  "repository": {
+    "url": "https://github.com/bsayres/highered-mcps",
+    "source": "github",
+    "subfolder": "servers/highered-labor-market"
+  },
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "highered-labor-market",
+      "version": "0.1.0",
+      "runtimeHint": "uvx",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "COLLEGE_SCORECARD_API_KEY",
+          "description": "Free api.data.gov key (https://api.data.gov/signup). Optional: without it the shared DEMO_KEY is used, which allows only about 10 requests.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": true
+        },
+        {
+          "name": "HIGHERED_MCPS_CONTACT",
+          "description": "Your email address, required by BLS in the User-Agent for its Employment Projections download. Sent only to www.bls.gov; never logged or returned.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": true
+        },
+        {
+          "name": "HIGHERED_MCPS_CACHE",
+          "description": "Directory for the local cache of downloaded public data (default ~/.cache/highered-mcps).",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        }
+      ]
+    }
+  ]
+}

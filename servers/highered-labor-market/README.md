@@ -59,3 +59,5 @@ Program titles, occupation names, tasks and technology names come from upstream.
 - **State projections** come from each state's own agency through Projections Central, which says those agencies are responsible for them and that they should not be the sole basis for a choice of career. Their years (2024-2034 now) differ from BLS national 2025-35, so a state is compared only with the United States row from the same source. Short-term (2-year) projections exist for far fewer states. Sub-state (regional) projections are not available here; each response links the state agency's own page.
 - A state may report an occupation only as a broad group (the response says so, and the group is counted once in totals) or not submit it at all (a null with a reason).
 - Census PSEO earnings are not included yet.
+
+<!-- mcp-name: io.github.bsayres/highered-labor-market -->

@@ -1,0 +1,39 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.bsayres/highered-risk",
+  "title": "Higher Ed: Risk",
+  "description": "Title IV risk signals (HCM, composite scores, default rates) and Single Audit findings. Read-only.",
+  "repository": {
+    "url": "https://github.com/bsayres/highered-mcps",
+    "source": "github",
+    "subfolder": "servers/highered-risk"
+  },
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "highered-risk",
+      "version": "0.1.0",
+      "runtimeHint": "uvx",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "FAC_API_KEY",
+          "description": "Free api.data.gov key (https://api.data.gov/signup) for the Federal Audit Clearinghouse. Optional: without it the shared DEMO_KEY is used, which allows only about 10 requests.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": true
+        },
+        {
+          "name": "HIGHERED_MCPS_CACHE",
+          "description": "Directory for the local cache of downloaded public data (default ~/.cache/highered-mcps).",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        }
+      ]
+    }
+  ]
+}

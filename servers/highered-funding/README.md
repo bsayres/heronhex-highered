@@ -52,3 +52,5 @@ Award titles, program names, opportunity titles and institution names come from 
 - NSF results are not ordered and the API returns at most 3,000 results per query.
 - SHEEO and WICHE are state-level; neither says anything about a single institution.
 - The Grants.gov tool searches current and forecasted opportunities only.
+
+<!-- mcp-name: io.github.bsayres/highered-funding -->
