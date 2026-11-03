@@ -1,4 +1,5 @@
 """Grants.gov opportunity search (open or forecasted funding opportunities, not awards)."""
+import html
 import re
 
 from ..http import Guard, UpstreamError
@@ -9,11 +10,16 @@ ELIGIBILITY = {"public_ihe": "06", "private_ihe": "20", "any": ""}
 ID_RE = re.compile(r"^[0-9]{1,12}\Z")
 
 
+def _text(v):
+    """Grants.gov sends titles with HTML entities (&rsquo;, &ndash;). Decoded to plain text; still untrusted and never put in markup."""
+    return html.unescape(v) if isinstance(v, str) else v
+
+
 def _hit(h: dict) -> dict | None:
     if not ID_RE.match(str(h.get("id", ""))):
         return None
     return {
-        "opportunity_number": h.get("number"), "title": h.get("title"), "agency": h.get("agency"), "agency_code": h.get("agencyCode"),
+        "opportunity_number": h.get("number"), "title": _text(h.get("title")), "agency": _text(h.get("agency")), "agency_code": h.get("agencyCode"),
         "status": h.get("oppStatus"), "open_date": h.get("openDate"), "close_date": h.get("closeDate"),
         "aln": h.get("cfdaList") or [], "url": f"https://www.grants.gov/search-results-detail/{h['id']}",
     }

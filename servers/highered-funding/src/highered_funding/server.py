@@ -1,7 +1,7 @@
 """highered-funding MCP server (read-only): research spending, federal awards and opportunities, state funding, projections."""
 import logging
 import sys
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import Annotated, Literal
 
 from mcp.server.mcpserver import MCPServer
@@ -136,19 +136,24 @@ async def search_grant_awards(
     nulls, warnings, srcs, out = [], [], [], {}
     t = now()
     if "nsf" in want:
-        awards, total, url = [], 0, None
+        awards, total, url, dropped = [], 0, None, 0
         try:
             for u in ueis:
                 r = await nsf.fetch(guard(), u, limit, af, at)
                 awards += r["awards"]
                 total += r["total"]
+                dropped += r["dropped"]
                 url = url or r["url"]
-                if r["dropped"]:
-                    warnings.append("Some NSF rows were dropped because their award id had an unexpected format.")
+            if dropped:
+                warnings.append(f"{dropped} NSF row(s) were dropped because their award id had an unexpected format.")
             awards = awards[:limit]
             out["nsf"] = {"matched_by": "exact UEI", "total_matching": total, "returned": len(awards), "awards": awards}
-            if total > len(awards):
-                warnings.append(f"NSF has {total} matching awards; {len(awards)} returned. Narrow the dates or raise `limit` (max 50).")
+            if total > len(awards) and len(awards) >= limit:
+                warnings.append(f"NSF has {total} matching awards; {len(awards)} returned because of `limit`. Raise `limit` (max 50) or narrow the dates.")
+            elif total > len(awards):
+                warnings.append(f"NSF reports {total} matching awards but only {len(awards)} came back although `limit` was not reached"
+                                + (f" ({dropped} dropped as unusable)" if dropped else "")
+                                + ". Raising `limit` will not recover them; treat this list as incomplete and do not state a total from it.")
             srcs.append(source_entry(nsf.SOURCE, url, "live query", t))
             warnings.append("NSF records are not guaranteed to be ordered; do not read the first rows as the largest or newest.")
         except UpstreamError as e:
@@ -182,6 +187,14 @@ async def search_grant_awards(
     return envelope(srcs, {"ueis": ueis, **out}, nulls, warnings)
 
 
+def _years_away(mmddyyyy: str | None) -> float:
+    try:
+        m, d, y = (int(x) for x in str(mmddyyyy).split("/"))
+        return (date(y, m, d) - datetime.now(UTC).date()).days / 365.25
+    except (ValueError, TypeError):
+        return 0.0
+
+
 @mcp.tool(title="Open grant opportunities", annotations={"title": "Open grant opportunities", "readOnlyHint": True})
 async def search_funding_opportunities(
     keyword: QueryText | None = None,
@@ -191,8 +204,11 @@ async def search_funding_opportunities(
     rows: Annotated[int, Field(ge=1, le=25)] = 10,
 ) -> dict:
     """Open or forecasted federal funding OPPORTUNITIES from Grants.gov (not awards). `eligibility` filters to
-    opportunities open to public or private institutions of higher education. Newest first. Opportunities are
-    solicitations, not money an institution has received."""
+    opportunities that Grants.gov codes as open to public or private institutions of higher education; a listing with
+    no such code (several NSF solicitations, including some written for two-year colleges) is excluded by the filter, so
+    a filtered list can be incomplete and `any` shows more. `keyword` is Grants.gov's own broad text match: a listing
+    returned for a keyword does not necessarily concern it. Newest first. Opportunities are solicitations, not money an
+    institution has received. A close date several years away is usually a continuing solicitation, not a deadline."""
     st = statuses or ["forecasted", "posted"]
     try:
         r = await grants.search(guard(), keyword, st, eligibility, agency, rows)
@@ -200,6 +216,9 @@ async def search_funding_opportunities(
         raise ToolError(str(e)) from None
     nulls = [] if r["opportunities"] else [{"field": "opportunities", "kind": "not_found", "reason": "No opportunities matched these filters."}]
     warnings = [f"{r['total']} opportunities match; {len(r['opportunities'])} returned."] if r["total"] > len(r["opportunities"]) else []
+    far = [o for o in r["opportunities"] if _years_away(o.get("close_date")) > 3]
+    if far:
+        warnings.append(f"{len(far)} listing(s) show a close date more than three years away; these are usually continuing solicitations with no fixed deadline, not deadlines.")
     return envelope([source_entry(grants.SOURCE, r["url"], "live query", now())], {"total_matching": r["total"], "opportunities": r["opportunities"]}, nulls, warnings)
 
 

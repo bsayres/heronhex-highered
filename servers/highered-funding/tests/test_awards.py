@@ -106,3 +106,43 @@ async def test_nsf_first_page_skips_nothing(upstream):
     assert nsf["total_matching"] == 1 and nsf["returned"] == 1
     offsets = [q.url.params["offset"] for q in upstream.requests if q.url.host == "api.nsf.gov"]
     assert offsets[0] == "0"
+
+
+async def test_opportunity_titles_are_decoded_to_plain_text_and_far_close_dates_are_noted(upstream):
+    hit = dict(upstream.grants_hits[0], id="358960", title="George M. O&rsquo;Brien &ndash; Centers &lt;b&gt;", closeDate="10/27/2076")
+    upstream.grants_hits = [hit]
+    r = await server.search_funding_opportunities()
+    t = r["data"]["opportunities"][0]["title"]
+    assert t == "George M. O’Brien – Centers <b>"  # decoded text; the notice still says it is untrusted
+    assert "untrusted" in r["notice"]
+    assert any("more than three years away" in w for w in r["warnings"])
+
+
+async def test_near_close_dates_get_no_far_date_note(upstream):
+    upstream.grants_hits = [dict(upstream.grants_hits[0], closeDate="01/13/2027")]
+    r = await server.search_funding_opportunities()
+    assert not any("more than three years away" in w for w in r["warnings"])
+
+
+async def test_tool_descriptions_state_the_filter_and_keyword_limits(upstream):
+    d = next(t for t in await server.mcp.list_tools() if t.name == "search_funding_opportunities").description
+    assert "no such code" in d and "incomplete" in d and "broad text match" in d
+
+
+async def test_nsf_warning_says_limit_when_limit_is_the_cause_and_not_otherwise(upstream):
+    upstream.nsf_total = 30
+    r = await server.search_grant_awards([PSU_UEI], sources=["nsf"], limit=10)
+    assert any("because of `limit`" in w for w in r["warnings"])
+    full = await server.search_grant_awards([PSU_UEI], sources=["nsf"], limit=50)
+    assert not any("matching awards" in w for w in full["warnings"])
+    upstream.nsf_total, upstream.nsf_bad_id = 30, True  # one row per page has an unusable id, so fewer come back than the total
+    odd = await server.search_grant_awards([PSU_UEI], sources=["nsf"], limit=50)
+    assert any("Raising `limit` will not recover them" in w for w in odd["warnings"]) and any("dropped" in w for w in odd["warnings"])
+
+
+async def test_nsf_total_matching_equals_returned_at_maximum_limit(upstream):
+    """A permanent gap between the two means rows are being lost (the first-record bug was exactly that)."""
+    for total in (1, 24, 25, 26, 49, 50):
+        upstream.nsf_total = total
+        n = (await server.search_grant_awards([PSU_UEI], sources=["nsf"], limit=50))["data"]["nsf"]
+        assert n["total_matching"] == total == n["returned"] == len({a["id"] for a in n["awards"]})
