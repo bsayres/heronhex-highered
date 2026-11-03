@@ -125,3 +125,27 @@ async def test_timeouts_small_queries_are_short_and_bulk_downloads_are_longer(up
     g._fetch = spy
     await urban.directory(g, 2024)
     assert seen and all(t == http.BULK_TIMEOUT for t in seen)
+
+
+async def test_the_year_probes_and_the_download_share_one_deadline(upstream, monkeypatch):
+    """Found live: the download was bounded but the probes before it were not, so a slow first call took 79 s."""
+    monkeypatch.setattr(bounded, "DEADLINE", 0.15)
+    real = urban.latest_year
+
+    async def slow(g):
+        await asyncio.sleep(0.4)
+        return await real(g)
+
+    monkeypatch.setattr(urban, "latest_year", slow)
+    with pytest.raises(ToolError, match="downloaded for the first time"):
+        await s.resolve_institution("Test Community College A")
+    await asyncio.sleep(0.8)
+    monkeypatch.setattr(bounded, "DEADLINE", 45.0)
+    monkeypatch.setattr(urban, "latest_year", real)
+    assert (await s.resolve_institution("Test Community College A"))["data"]["candidates"][0]["unitid"] == "999001"
+
+
+async def test_the_directory_request_asks_only_for_the_fields_it_keeps(upstream):
+    await s.resolve_institution("Test Community College A")
+    q = next(r for r in upstream.requests if "/directory/" in r.url.path and "fields" in r.url.params)
+    assert set(q.url.params["fields"].split(",")) == set(urban.DIRECTORY_FIELDS) and "cbsa" in q.url.params["fields"]

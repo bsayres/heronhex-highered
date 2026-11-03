@@ -12,7 +12,7 @@ description: Use for questions about whether an institution's programs line up w
 3a. If the user names a field in plain words (for example "nursing" or "welding") and gives no code, use `search_programs(keyword)` to find the CIP code, show the candidates, and ask which one when more than one fits. Its `cip4` is the code the Scorecard program tools take.
 3b. For "who else offers this program" or "where do we rank", use `find_program_offerings(cip4, credential, state?, unitid?)`. Ranks are by award counts (two years added), ties share a rank, and when `complete` is false there are no ranks: say so and suggest adding a state. Counts are awards, not enrollment.
 4. For one occupation use `get_occupation_outlook` (demand) and `get_occupation_skills` (what the work requires). `map_program_to_occupations` shows the program-to-occupation links on their own.
-5. For a state's own projections use `get_state_occupation_outlook`, or pass `state` to `get_program_alignment`. This server returns only the BLS national median wage (from the Employment Projections file); state and metro wages are not here. If another BLS OEWS source is connected and you use it, say so, give its release year and keep it apart from this server's figures.
+5. For a state's own projections use `get_state_occupation_outlook`, or pass `state` to `get_program_alignment`. For what workers in an occupation earn in a state or near an institution, use `get_wages(soc, state)` or `get_wages(soc, area_code)` (the `cbsa` from `resolve_institution`; if it is null the institution is outside any metropolitan area, so use `search_metros` for its state's nonmetropolitan area). `get_occupation_outlook` carries only the national median wage.
 
 ## Rules for answers
 1. **Never reduce alignment to a score, ratio or "gap".** Show the awards, the occupation table and the two openings totals, and say what each does and does not mean.
@@ -33,7 +33,7 @@ description: Use for questions about whether an institution's programs line up w
 16. A null state value means the state did not submit that occupation (short-term projections are published by far fewer states), not that demand is zero.
 17. A Scorecard earnings figure (median one year after completion, recent completers) and a BLS wage (all employed workers, one survey year) are different measures. If you set them side by side, name both years and populations and give no reason for the gap, such as early-career pay.
 18. Lead with the figures and what they cover. Projected openings and growth are projections of jobs, not demand for one institution's graduates; do not open with "the data points to demand".
-
+19. **`get_wages` figures are OEWS estimates for all workers in the occupation** (May 2025 in this release), not for graduates, and employment excludes the self-employed. Say the area, the occupation, the release year and the relative standard error when the employment estimate is small. A wage marked `top_coded` is a floor ("at least"). A null is BLS withholding a value, not zero. Do not call a metro "typical" for an institution's graduates, and do not compare an OEWS wage with a Scorecard earnings figure as if they measured the same people (rule 17).
 
 ## Rules that apply to every answer
 - **Open with what the figures are, not a conclusion.** The first sentence says what was found and carries the main caveat (the years covered, what is missing). Do not open with a verdict in either direction ("fine", "not a concern", "never lost", "cleaner", "points to demand", "not high-crime").

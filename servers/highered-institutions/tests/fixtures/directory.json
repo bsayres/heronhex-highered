@@ -27,7 +27,9 @@
    "cc_basic_2021": 22,
    "cc_research_act_desig_2025": -2,
    "cc_instit_size_2025": 2,
-   "cc_size_setting_2021": 6
+   "cc_size_setting_2021": 6,
+   "cbsa": -2,
+   "county_fips": -2
   },
   {
    "unitid": 112561,
@@ -55,7 +57,9 @@
    "cc_basic_2021": 1,
    "cc_research_act_desig_2025": -2,
    "cc_instit_size_2025": 2,
-   "cc_size_setting_2021": 2
+   "cc_size_setting_2021": 2,
+   "cbsa": -2,
+   "county_fips": -2
   },
   {
    "unitid": 139579,
@@ -83,7 +87,9 @@
    "cc_basic_2021": 18,
    "cc_research_act_desig_2025": -2,
    "cc_instit_size_2025": 2,
-   "cc_size_setting_2021": 6
+   "cc_size_setting_2021": 6,
+   "cbsa": -2,
+   "county_fips": -2
   },
   {
    "unitid": 999004,
@@ -111,7 +117,9 @@
    "cc_basic_2021": 1,
    "cc_research_act_desig_2025": -2,
    "cc_instit_size_2025": 3,
-   "cc_size_setting_2021": 4
+   "cc_size_setting_2021": 4,
+   "cbsa": -2,
+   "county_fips": -2
   },
   {
    "unitid": 166027,
@@ -139,7 +147,9 @@
    "cc_basic_2021": 15,
    "cc_research_act_desig_2025": 1,
    "cc_instit_size_2025": 4,
-   "cc_size_setting_2021": 17
+   "cc_size_setting_2021": 17,
+   "cbsa": -2,
+   "county_fips": -2
   },
   {
    "unitid": 999001,
@@ -167,7 +177,9 @@
    "cc_basic_2021": 1,
    "cc_research_act_desig_2025": -2,
    "cc_instit_size_2025": 2,
-   "cc_size_setting_2021": 2
+   "cc_size_setting_2021": 2,
+   "cbsa": 14460,
+   "county_fips": 25025
   },
   {
    "unitid": 172307,
@@ -195,7 +207,9 @@
    "cc_basic_2021": 4,
    "cc_research_act_desig_2025": -2,
    "cc_instit_size_2025": 2,
-   "cc_size_setting_2021": 2
+   "cc_size_setting_2021": 2,
+   "cbsa": -2,
+   "county_fips": -2
   },
   {
    "unitid": 177065,
@@ -223,7 +237,9 @@
    "cc_basic_2021": 18,
    "cc_research_act_desig_2025": -2,
    "cc_instit_size_2025": 3,
-   "cc_size_setting_2021": 12
+   "cc_size_setting_2021": 12,
+   "cbsa": -2,
+   "county_fips": -2
   },
   {
    "unitid": 187666,
@@ -251,7 +267,9 @@
    "cc_basic_2021": 8,
    "cc_research_act_desig_2025": -2,
    "cc_instit_size_2025": 2,
-   "cc_size_setting_2021": 2
+   "cc_size_setting_2021": 2,
+   "cbsa": -2,
+   "county_fips": -2
   },
   {
    "unitid": 206446,
@@ -279,7 +297,9 @@
    "cc_basic_2021": 9,
    "cc_research_act_desig_2025": -2,
    "cc_instit_size_2025": 2,
-   "cc_size_setting_2021": 2
+   "cc_size_setting_2021": 2,
+   "cbsa": -2,
+   "county_fips": -2
   },
   {
    "unitid": 217934,
@@ -307,7 +327,9 @@
    "cc_basic_2021": 20,
    "cc_research_act_desig_2025": -2,
    "cc_instit_size_2025": 2,
-   "cc_size_setting_2021": 7
+   "cc_size_setting_2021": 7,
+   "cbsa": -2,
+   "county_fips": -2
   },
   {
    "unitid": 233903,
@@ -335,7 +357,9 @@
    "cc_basic_2021": 5,
    "cc_research_act_desig_2025": -2,
    "cc_instit_size_2025": 2,
-   "cc_size_setting_2021": 2
+   "cc_size_setting_2021": 2,
+   "cbsa": -2,
+   "county_fips": -2
   },
   {
    "unitid": 455983,
@@ -363,7 +387,9 @@
    "cc_basic_2021": 2,
    "cc_research_act_desig_2025": -2,
    "cc_instit_size_2025": 1,
-   "cc_size_setting_2021": 1
+   "cc_size_setting_2021": 1,
+   "cbsa": -2,
+   "county_fips": -2
   },
   {
    "unitid": 475121,
@@ -391,7 +417,9 @@
    "cc_basic_2021": 17,
    "cc_research_act_desig_2025": -2,
    "cc_instit_size_2025": 3,
-   "cc_size_setting_2021": 12
+   "cc_size_setting_2021": 12,
+   "cbsa": -2,
+   "county_fips": -2
   }
  ]
 }

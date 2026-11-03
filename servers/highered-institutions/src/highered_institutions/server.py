@@ -63,17 +63,22 @@ def _stale_warning(*cs: urban.Cached) -> list[str]:
     return ["Urban API refresh failed; served a cached copy older than 90 days."] if any(c.stale for c in cs) else []
 
 
-async def _directory() -> tuple[cw.Index, urban.Cached, int]:
-    """Returns (index, cache entry, latest ENROLLMENT year); directory year may be newer."""
+async def _directory_parts() -> tuple[int, urban.Cached, int]:
     dyear = await urban.latest_year(guard())
-    res, errs, late = await bounded.run({"directory": (f"urban-directory-{dyear}.json", lambda: urban.directory(guard(), dyear))})
+    c = await urban.directory(guard(), dyear)
+    return dyear, c, await urban.latest_enrollment_year(guard(), dyear)
+
+
+async def _directory() -> tuple[cw.Index, urban.Cached, int]:
+    """Returns (index, cache entry, latest ENROLLMENT year); directory year may be newer. The whole sequence (year probes and the
+    national download) runs under one deadline, so a slow first call says so instead of passing the client's time limit."""
+    res, errs, late = await bounded.run({"directory": ("urban-directory-bundle", _directory_parts)})
     if late:
         raise ToolError("The national IPEDS directory is being downloaded for the first time, which can take a minute or two. "
                         "It keeps downloading in the background and is cached afterward, so ask again shortly.")
     if errs:
         raise errs["directory"]
-    c = res["directory"]
-    year = await urban.latest_enrollment_year(guard(), dyear)
+    _dyear, c, year = res["directory"]
     key = c.meta["sha256"]
     if key not in _index_cache:
         _index_cache.clear()
@@ -137,7 +142,8 @@ def _window(end: int, start: int | None, end_year: int | None) -> tuple[int, int
 async def resolve_institution(query: QueryText, kind: Kind = "auto", state: State | None = None) -> dict:
     """Resolve a name, UNITID, OPEID, EIN, UEI, or web domain to ranked institution candidates.
 
-    Returns each candidate with the basis for the match. If more than one institution matches,
+    Returns each candidate with the basis for the match, including its metropolitan area code (`cbsa`, null outside any metropolitan
+    area), which highered-labor-market get_wages takes for wages near the institution. If more than one institution matches,
     `resolved` is false and nothing is chosen. 6-digit numbers are checked as UNITID and OPEID6."""
     index, c, _ = await _directory()
     try:
@@ -185,7 +191,7 @@ async def search_institutions(
 async def get_institution_profile(unitid: UnitId) -> dict:
     """Profile of one institution: identifiers (UNITID, OPEID, EIN, UEI, domain), system and
     same-OPEID campuses, Carnegie codes, latest fall enrollment, College Scorecard outcomes.
-    Missing data is null with a reason."""
+    Missing data is null with a reason. `identifiers.cbsa` is the 5-digit metropolitan area code that highered-labor-market get_wages takes."""
     index, c, year = await _directory()
     r = index.by_unitid.get(unitid)
     if r is None:
@@ -196,7 +202,7 @@ async def get_institution_profile(unitid: UnitId) -> dict:
     siblings = index.same_opeid6(r)
     ident = cw.candidate_view(r, "exact_unitid", 1.0)
     data: dict = {
-        "identifiers": {k: ident[k] for k in ("unitid", "opeid", "ein", "ueis", "domain")},
+        "identifiers": {k: ident[k] for k in ("unitid", "opeid", "ein", "ueis", "domain", "cbsa")},
         "name": r["inst_name"], "city": r.get("city"), "state": r.get("state_abbr"),
         "control": cw.CONTROL.get(r.get("inst_control")), "active": cw.is_active(r),
         "carnegie": {
@@ -212,6 +218,10 @@ async def get_institution_profile(unitid: UnitId) -> dict:
         },
         "same_opeid6_campuses": [{"unitid": str(x["unitid"]), "name": x["inst_name"], "opeid": cw.clean(x.get("opeid"))} for x in siblings],
     }
+    if ident["cbsa"] is None:
+        nulls.append({"field": "identifiers.cbsa", "kind": "not_applicable", "reason": (
+            "The IPEDS directory gives no metropolitan area (CBSA) for this institution: its county is outside any metropolitan area, or the directory leaves it blank. "
+            "Wages for its area are then available only for the nonmetropolitan area of its state (search_metros in highered-labor-market).")})
     if siblings:
         warnings.append("OPEID6 is shared with other UNITIDs (multi-campus). FSA data keyed by OPEID may cover several campuses.")
 

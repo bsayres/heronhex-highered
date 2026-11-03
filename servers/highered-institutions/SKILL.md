@@ -9,7 +9,7 @@ description: Use for questions about a specific U.S. college or university, its 
 - **Start with `resolve_institution`** whenever the user names an institution or gives any identifier. Do not proceed if `resolved` is false: show the candidates (name, city, state, match basis) and ask which one.
 - `search_institutions`: lists institutions by state, control, Carnegie class code, or name text. Use for "which community colleges in MA".
 - `get_financial_snapshot`: IPEDS finance as reported (revenues, expenses, assets, liabilities, net position or net assets, endowment). Use it when a public institution has no FSA composite score. It is not a score; say which year it covers and which accounting basis (GASB-style or FASB-style) it reports, and do not compare across bases.
-- `get_institution_profile`: identifiers, system and same-OPEID campuses, Carnegie codes, latest enrollment, and Scorecard outcomes.
+- `get_institution_profile`: identifiers (including `cbsa`, the metropolitan area code highered-labor-market `get_wages` takes; null outside any metropolitan area), system and same-OPEID campuses, Carnegie codes, latest enrollment, and Scorecard outcomes.
 - `get_enrollment_trend`: fall headcount by year.
 - `compare_institutions(unitids)`: when the user names the institutions to compare (for example "us versus Test College D"). Resolve each name first. Report the warnings about different control, accounting basis or finance year; do not rank or declare a winner.
 - `compare_peers`: peers and their trends in one table. State the peer rule (it is in the response).

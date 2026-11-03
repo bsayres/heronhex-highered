@@ -44,6 +44,7 @@
 | A new host with a different request style (path-based filters joined with '+') | Host allowlisted, GET only; state is a fixed enum mapped to FIPS in code and SOC codes are validated `[0-9]{2}-[0-9]{4}`, so a caller cannot inject path segments, `+` lists or 'all'; at most 100 codes per request |
 | Upstream returns rows for other areas or occupations | Every row is validated and kept only if its area and occupation were requested; dropped rows are counted and reported; nothing relies on the API's own filtering (tested by mutation) |
 | Upstream links (agency URLs) are untrusted | Only https URLs without whitespace and under 300 characters are passed through, as data; the server never fetches them |
+| A page link or archive member steers the OEWS download elsewhere | The wage file URL is rebuilt from a two-digit year found in a link on `www.bls.gov` only (links to other hosts are ignored); the archive is read in memory, only the exact workbook member name is read, entry count and total uncompressed size are capped, the download is size-capped, and the workbook is opened read-only; each is mutation-tested |
 | The BLS contact address leaking to a second host | The address is attached only to `www.bls.gov` per hop; a test checks it is absent from every Projections Central request |
 | Misleading comparison of state and national numbers from different years | Each row carries its own years; the same-source United States row is returned for comparison; warnings and the SKILL forbid mixing with BLS 2025-35 |
 

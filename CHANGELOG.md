@@ -5,6 +5,7 @@ Format follows Keep a Changelog. Versions are not yet released to PyPI; every se
 ## [Unreleased]
 
 ### Added
+- `get_wages` and `search_metros` (labor-market): BLS OEWS wages and employment for an occupation in a state or metropolitan area (May 2025), with suppressed cells as nulls and top-coded wages flagged as floors; `cbsa` on `resolve_institution` and `get_institution_profile` so an institution joins to its metro.
 - `get_finding_text` (risk): opt-in FAC finding narratives and the auditee's corrective action plan for one report; exact report id, capped and cleaned text, untrusted-text notice, names warning.
 - `highered-accreditation` server (DAPIP status and actions, programmatic and state-board records, `last_action` per record).
 - `search_programs` (labor-market): find a CIP code from plain words, from the cached NCES crosswalk.

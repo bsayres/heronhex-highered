@@ -56,6 +56,15 @@ def is_active(r: dict) -> bool:
     return r.get("currently_active_ipeds") == 1
 
 
+def metro_code(v) -> str | None:
+    """5-digit metropolitan (CBSA) code from the directory, or None: the directory uses -1 and -2 for missing and not applicable."""
+    try:
+        n = int(v)
+    except (TypeError, ValueError):
+        return None
+    return f"{n:05d}" if 10000 <= n <= 99999 else None
+
+
 def candidate_view(r: dict, basis: str, score: float | None = None, notes: list[str] | None = None) -> dict:
     return {
         "unitid": str(r["unitid"]),
@@ -66,6 +75,7 @@ def candidate_view(r: dict, basis: str, score: float | None = None, notes: list[
         "ein": norm_ein(r.get("ein")),
         "ueis": split_ueis(r.get("ueis")),
         "domain": norm_domain(r.get("url_school")),
+        "cbsa": metro_code(r.get("cbsa")),
         "active": is_active(r),
         "match_basis": basis,
         "score": score,

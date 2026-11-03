@@ -10,7 +10,7 @@ STEPS = """\
 4. Federal risk: get_title_iv_status(opeid) and get_audit_findings(uei=...) (the UEI, or the EIN only if there is no UEI; never both; an EIN shared with a state or system can return another entity's audit, so check auditee_name).
 5. Accreditation: get_accreditation_status(unitid); add get_accreditation_actions(unitid, since_year) for anything that ended or was acted on in the last 5 years.
 6. Funding: get_research_spend(unitid) and get_state_funding(state).
-7. Programs and jobs: get_program_outcomes(unitid) to list programs; for the one to three programs that matter, get_program_alignment(unitid, cip4, credential, state). If the user names a field in plain words, find its code with search_programs(keyword). To see who else offers a program, use find_program_offerings(cip4, credential, state, unitid).
+7. Programs and jobs: get_program_outcomes(unitid) to list programs; for the one to three programs that matter, get_program_alignment(unitid, cip4, credential, state). If the user names a field in plain words, find its code with search_programs(keyword). To see who else offers a program, use find_program_offerings(cip4, credential, state, unitid). If the user asks what workers in an occupation earn nearby, use get_wages(soc, area_code=<cbsa from the profile>), and say it covers all workers in the occupation, not graduates.
 Run independent calls in parallel. If a server is not connected, say which section is missing and continue with the rest."""
 
 RULES = """\

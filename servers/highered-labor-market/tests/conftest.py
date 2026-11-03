@@ -1,5 +1,6 @@
 import io
 import os
+import zipfile
 
 import httpx
 import openpyxl
@@ -90,6 +91,60 @@ def scorecard_json() -> dict:
     return {"results": [{"id": 999001, "school.name": "Test Community College A", P: progs}], "metadata": {"total": 1}}
 
 
+OEWS_COLS = ["AREA", "AREA_TITLE", "AREA_TYPE", "PRIM_STATE", "NAICS", "NAICS_TITLE", "I_GROUP", "OWN_CODE", "OCC_CODE", "OCC_TITLE", "O_GROUP", "TOT_EMP", "EMP_PRSE",
+             "JOBS_1000", "LOC_QUOTIENT", "PCT_TOTAL", "PCT_RPT", "H_MEAN", "A_MEAN", "MEAN_PRSE", "H_PCT10", "H_PCT25", "H_MEDIAN", "H_PCT75", "H_PCT90",
+             "A_PCT10", "A_PCT25", "A_MEDIAN", "A_PCT75", "A_PCT90", "ANNUAL", "HOURLY"]
+
+
+def oews_row(area, title, atype, state, soc, occ, group="detailed", **v):
+    d = {"TOT_EMP": 100, "EMP_PRSE": 2.0, "JOBS_1000": 5.0, "LOC_QUOTIENT": 1.0, "H_MEAN": 40.0, "A_MEAN": 83000, "MEAN_PRSE": 1.0, "H_PCT10": 30.0, "H_PCT25": 35.0,
+         "H_MEDIAN": 39.0, "H_PCT75": 45.0, "H_PCT90": 55.0, "A_PCT10": 62000, "A_PCT25": 72000, "A_MEDIAN": 81000, "A_PCT75": 93000, "A_PCT90": 110000, **v}
+    base = {"AREA": area, "AREA_TITLE": title, "AREA_TYPE": atype, "PRIM_STATE": state, "NAICS": "000000", "NAICS_TITLE": "Cross-industry", "I_GROUP": "cross-industry",
+            "OWN_CODE": "1235", "OCC_CODE": soc, "OCC_TITLE": occ, "O_GROUP": group, **d}
+    return [base.get(c) for c in OEWS_COLS]
+
+
+def oews_zip(kind: str, rows: list[list], yy="25", member=None, decoys=()) -> bytes:
+    data_sheet = f"state_M20{yy}_dl" if kind == "st" else f"MSA_M20{yy}_dl"
+    notes = [["May 2025 OEWS Estimates"], ["Notes:"], ["*  = indicates that a wage estimate is not available"], ["**  = indicates that an employment estimate is not available"],
+             ["#  = indicates a wage equal to or greater than $115.00 per hour or $239,200 per year "]]
+    book = xlsx({data_sheet: [OEWS_COLS, *rows], "Field Descriptions": notes})
+    name = member or (f"oesm{yy}st/state_M20{yy}_dl.xlsx" if kind == "st" else f"oesm{yy}ma/MSA_M20{yy}_dl.xlsx")
+    out = io.BytesIO()
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
+        for d in decoys:
+            z.writestr(d, b"decoy")
+        z.writestr(name, book)
+    return out.getvalue()
+
+
+def oews_state_rows():
+    rn, lpn, ceo = "Registered Nurses", "Licensed Practical and Licensed Vocational Nurses", "Chief Executives"
+    return [
+        oews_row("35", "New Mexico", "2", "NM", "29-1141", rn, TOT_EMP=17980, EMP_PRSE=1.8, A_MEAN=95290, MEAN_PRSE=0.4, A_PCT10=74300, A_PCT25=80960, A_MEDIAN=94340, A_PCT75=102750,
+                 A_PCT90=123540, H_MEAN=45.81, H_MEDIAN=45.36),
+        oews_row("25", "Massachusetts", "2", "MA", "29-1141", rn, TOT_EMP=79000, A_MEAN=118000, A_MEDIAN=115000),
+        oews_row("1", "Alabama", "2", "AL", "29-1141", rn, TOT_EMP=50000, A_MEDIAN=70000),
+        oews_row("35", "New Mexico", "2", "NM", "29-2061", lpn, TOT_EMP=1990, A_MEAN="*", A_PCT10="*", A_MEDIAN="*", A_PCT90="*", MEAN_PRSE="*", H_MEDIAN="*"),
+        oews_row("35", "New Mexico", "2", "NM", "11-1011", ceo, TOT_EMP="**", EMP_PRSE="**", JOBS_1000="**", LOC_QUOTIENT="**", A_MEAN="#", A_PCT75="#", A_PCT90="#", H_MEDIAN="#", H_MEAN="#"),
+        oews_row("35", "New Mexico", "2", "NM", "29-0000", "Healthcare Practitioners and Technical Occupations", group="major"),
+        oews_row("35", "New Mexico", "2", "NM", "BAD-CODE", "Not a SOC code"),
+    ]
+
+
+def oews_metro_rows():
+    rn = "Registered Nurses"
+    return [
+        oews_row("22140", "Farmington, NM", "4", "NM", "29-1141", rn, TOT_EMP=840, EMP_PRSE=3.6, A_MEAN=88150, MEAN_PRSE=0.5, A_PCT10=65640, A_PCT25=76300, A_MEDIAN=83070, A_PCT75=99570,
+                 A_PCT90=115840, H_MEAN=42.38, H_MEDIAN=39.94),
+        oews_row("14460", "Boston-Cambridge-Newton, MA-NH", "4", "MA", "29-1141", rn, TOT_EMP=64240, A_MEDIAN=106180),
+        oews_row("14460", "Boston-Cambridge-Newton, MA-NH", "4", "MA", "29-2061", "Licensed Practical and Licensed Vocational Nurses", TOT_EMP=3000, A_MEDIAN=62000),
+        oews_row("3500001", "Southwestern New Mexico nonmetropolitan area", "6", "NM", "29-1141", rn, TOT_EMP=300, A_MEDIAN=78000),
+        oews_row("0100001", "North Alabama nonmetropolitan area", "6", "AL", "29-1141", rn, TOT_EMP=900, A_MEDIAN=60000),
+        oews_row("10180", "Abilene, TX", "4", "TX", "11-1011", "Chief Executives", TOT_EMP="**", A_MEDIAN="#", A_MEAN="#", A_PCT90="#"),
+    ]
+
+
 class Upstream:
     def __init__(self):
         self.requests: list[httpx.Request] = []
@@ -103,6 +158,9 @@ class Upstream:
         self.pc_status = 200
         self.offer_schools: list[dict] = []
         self.offer_total: int | None = None
+        self.oews = {"st": oews_zip("st", oews_state_rows()), "ma": oews_zip("ma", oews_metro_rows())}
+        self.oews_page = ('<a href="/oes/special-requests/oesm24st.zip">s24</a><a href="/oes/special-requests/oesm25st.zip">s25</a>'
+                          '<a href="/oes/special-requests/oesm25ma.zip">m25</a><a href="/oes/special-requests/oesm24ma.zip">m24</a><a href="https://evil.example/oes/special-requests/oesm26st.zip">x</a>')
 
     def __call__(self, req: httpx.Request) -> httpx.Response:
         self.requests.append(req)
@@ -113,6 +171,10 @@ class Upstream:
             if self.bls_status != 200:
                 return httpx.Response(self.bls_status)
             return httpx.Response(200, content=self.bls)
+        if host == "www.bls.gov" and path == "/oes/tables.htm":
+            return httpx.Response(200, text=self.oews_page)
+        if host == "www.bls.gov" and path in ("/oes/special-requests/oesm25st.zip", "/oes/special-requests/oesm25ma.zip"):
+            return httpx.Response(200, content=self.oews["st" if path.endswith("st.zip") else "ma"])
         if host == "www.onetcenter.org":
             if path == "/database.html":
                 return httpx.Response(200, text='<a href="/dl_files/database/db_30_2_excel.zip">old</a><a href="/dl_files/database/db_31_0_excel.zip">new</a>')

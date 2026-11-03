@@ -170,3 +170,35 @@ async def test_compare_institutions_rejects_bad_input_without_a_request(upstream
         with pytest.raises(ToolError):
             await s.mcp.call_tool("compare_institutions", {"unitids": ids})
     assert not upstream.requests
+
+
+async def test_cbsa_is_returned_by_resolve_and_profile_and_null_outside_a_metro(upstream):
+    r = await s.resolve_institution("Test Community College A")
+    assert r["data"]["candidates"][0]["cbsa"] == "14460"
+    p = await s.get_institution_profile("999001")
+    assert p["data"]["identifiers"]["cbsa"] == "14460" and not [n for n in p["nulls"] if n["field"] == "identifiers.cbsa"]
+    other = next(x for x in upstream.directory["results"] if x["unitid"] != 999001)
+    q = await s.get_institution_profile(str(other["unitid"]))
+    assert q["data"]["identifiers"]["cbsa"] is None
+    n = next(n for n in q["nulls"] if n["field"] == "identifiers.cbsa")
+    assert n["kind"] == "not_applicable" and "nonmetropolitan" in n["reason"]
+
+
+def test_metro_code_only_accepts_real_five_digit_codes():
+    from highered_institutions import crosswalk as cw
+
+    assert [cw.metro_code(v) for v in (14460, "14460", 22140.0, -2, -1, 0, None, "x", 99999, 100000, 5)] == ["14460", "14460", "22140", None, None, None, None, None, "99999", None, None]
+
+
+async def test_a_directory_cache_from_an_older_version_without_cbsa_is_fetched_again(upstream):
+    from highered_institutions import cache
+
+    await s.resolve_institution("Test Community College A")
+    path = cache.safe_path("urban-directory-2025.json")
+    blob = cache.read("urban-directory-2025.json")
+    old_rows = [{k: v for k, v in r.items() if k not in ("cbsa", "county_fips")} for r in blob["data"]]
+    cache.write("urban-directory-2025.json", old_rows, blob["meta"]["as_of"], blob["meta"]["source_url"])
+    s.set_guard(s.guard())  # clear the in-process index
+    before = len(upstream.requests)
+    r = await s.resolve_institution("Test Community College A")
+    assert r["data"]["candidates"][0]["cbsa"] == "14460" and len(upstream.requests) > before and path.exists()

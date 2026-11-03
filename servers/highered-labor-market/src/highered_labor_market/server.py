@@ -7,15 +7,18 @@ from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import Field
 
+from . import bounded
 from .http import Guard, UpstreamError
 from .models import (
     CREDENTIALS,
     STATE_FIPS,
+    AreaCode,
     Cip4,
     CipAny,
     Credential,
     Horizon,
     Keyword,
+    MetroText,
     Soc,
     StateCode,
     Top,
@@ -24,7 +27,7 @@ from .models import (
     now,
     source_entry,
 )
-from .sources import bls, crosswalk, onet, projections, scorecard
+from .sources import bls, crosswalk, oews, onet, projections, scorecard
 
 logging.basicConfig(stream=sys.stderr, level=logging.WARNING, format="%(levelname)s %(message)s")
 
@@ -60,6 +63,16 @@ def guard() -> Guard:
     if _guard is None:
         _guard = Guard()
     return _guard
+
+
+async def _once(name: str, make, what: str):
+    """One bulk download under the shared deadline: on a first call that runs long, say so and let it finish in the background."""
+    res, errs, late = await bounded.run({"x": (name, make)})
+    if late:
+        raise ToolError(f"{what} is being downloaded for the first time, which can take a minute. It keeps downloading in the background and is cached afterward, so ask again shortly.")
+    if errs:
+        raise errs["x"]
+    return res["x"]
 
 
 def _entry(label: str, c) -> dict:
@@ -157,6 +170,61 @@ async def get_occupation_outlook(soc: Soc) -> dict:
                "annual_openings": _people(rec["annual_openings_thousands"]), "median_annual_wage_usd": rec["median_annual_wage_usd"],
                "entry_education": rec["entry_education"], "work_experience": rec["work_experience"], "on_the_job_training": rec["on_the_job_training"]}
     return envelope([_entry(bls.SOURCE, L)], {"soc": soc, "outlook": out}, nulls, warnings)
+
+
+@mcp.tool(title="Occupational wages by state or metro area", annotations={"title": "Occupational wages by state or metro area", "readOnlyHint": True})
+async def get_wages(soc: Soc, state: StateCode | None = None, area_code: AreaCode | None = None) -> dict:
+    """BLS Occupational Employment and Wage Statistics (OEWS) for one occupation (SOC 2018) in one state or one metropolitan area:
+    employment, annual and hourly mean and median, annual 10th, 25th, 75th and 90th percentiles, and each estimate's relative
+    standard error. Give exactly one of `state` (two letters) or `area_code` (the 5-digit CBSA code in an institution's `cbsa`, or
+    a 7-digit nonmetropolitan code from search_metros).
+
+    OEWS covers wage and salary workers in the occupation (not self-employed workers), of every experience level and credential, so it
+    is not what recent graduates earn. Employment is rounded to 10. A cell BLS did not publish is a null with a reason; a wage at or
+    above BLS's top code is returned as the top code with `top_coded` listing it, meaning the true figure is at least that.
+    Needs HIGHERED_MCPS_CONTACT (your email address), which BLS requires in the User-Agent and which is sent only to bls.gov."""
+    if (state is None) == (area_code is None):
+        raise ToolError("Provide exactly one of state or area_code.")
+    kind = "st" if state else "ma"
+    try:
+        L = await _once(f"oews-{kind}", lambda: oews.get(guard(), kind), "The BLS wage file for " + ("states" if state else "metropolitan areas"))
+    except UpstreamError as e:
+        raise _fail(e) from None
+    code = str(int(STATE_FIPS[state])) if state else area_code
+    area = L.data["areas"].get(code)
+    nulls, warnings = [], [oews.NOTICE, "OEWS wages cover all workers in the occupation, not recent graduates, and exclude self-employed workers."]
+    out = None
+    if area is None:
+        nulls.append({"field": "area", "kind": "not_found", "reason": (
+            "OEWS publishes no estimates for this state." if state else
+            "This code is not a metropolitan or nonmetropolitan area in the OEWS file. A college outside any metropolitan area has no CBSA code; use search_metros for the nonmetropolitan area of its state.")})
+    elif soc not in area["rows"]:
+        nulls.append({"field": "wages", "kind": "not_found", "reason": f"OEWS has no detailed estimate for this occupation in {area['title']}; BLS leaves out occupations with too few reports."})
+    else:
+        vals, n2, floors = oews.shape(area["rows"][soc], L.data["columns"], L.data["top_code"])
+        nulls += n2
+        if floors:
+            warnings.append(f"{', '.join(floors)}: at or above BLS's top code ({L.data['top_code']['annual']:,} dollars a year or {L.data['top_code']['hourly']:g} an hour); the true value is at least that.")
+        out = {"area": {"code": code, "title": area["title"], "state": area["state"], "kind": "state" if state else ("metropolitan area" if area["type"] == "4" else "nonmetropolitan area")},
+               "soc": soc, "occupation": L.data["occupations"].get(soc), **vals, "top_coded": floors}
+    return envelope([_entry(oews.SOURCE, L)], {"release": L.data["release"], "wages": out}, nulls, warnings)
+
+
+@mcp.tool(title="Find a metropolitan area code", annotations={"title": "Find a metropolitan area code", "readOnlyHint": True})
+async def search_metros(name_contains: MetroText, state: StateCode | None = None) -> dict:
+    """Metropolitan and nonmetropolitan areas in the BLS wage file whose name contains the text, with the code get_wages takes.
+    Optionally limited to areas whose primary state is `state`. At most 25 are returned, in name order. An institution's own
+    metropolitan code is its `cbsa` from resolve_institution; this tool is for finding a nearby area or a nonmetropolitan code."""
+    try:
+        L = await _once("oews-ma", lambda: oews.get(guard(), "ma"), "The BLS wage file for metropolitan areas")
+    except UpstreamError as e:
+        raise _fail(e) from None
+    q = name_contains.casefold()
+    hits = sorted(((c, a) for c, a in L.data["areas"].items() if q in a["title"].casefold() and (state is None or a["state"] == state)), key=lambda t: t[1]["title"])
+    rows = [{"area_code": c, "title": a["title"], "primary_state": a["state"], "kind": "metropolitan area" if a["type"] == "4" else "nonmetropolitan area"} for c, a in hits[:25]]
+    nulls = [] if rows else [{"field": "areas", "kind": "not_found", "reason": "No metropolitan or nonmetropolitan area in the BLS wage file has this text in its name."}]
+    warnings = [f"{len(hits)} areas match; the first 25 are shown."] if len(hits) > 25 else []
+    return envelope([_entry(oews.SOURCE, L)], {"areas": rows, "matched": len(hits)}, nulls, warnings)
 
 
 @mcp.tool(title="Occupation skills", annotations={"title": "Occupation skills", "readOnlyHint": True})

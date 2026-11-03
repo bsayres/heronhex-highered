@@ -10,6 +10,8 @@ MCP server (read-only) that helps institutions look at how programs line up with
 | `get_occupation_outlook(soc)` | Employment, annual openings, wage, typical entry education 2025-35 | national | BLS Employment Projections |
 | `get_state_occupation_outlook(state, soc, horizon='long')` | A state's own projection for an occupation, beside the United States row from the same source | state (and national, same source and years) | Projections Central (State Projections Consortium) |
 | `get_occupation_skills(soc, top)` | Top skills, core tasks, in-demand technologies | national | O*NET database (CC BY 4.0) |
+| `get_wages(soc, state? \| area_code?)` | What do workers in this occupation earn in a state or metropolitan area? (employment, mean, median and 10th to 90th percentile wages) | state or metropolitan area | BLS OEWS, May 2025 |
+| `search_metros(name_contains, state?)` | Which area code is this metro? (the `cbsa` in an institution's profile is the code `get_wages` takes) | metropolitan areas | BLS OEWS |
 | `get_program_outcomes(unitid, cip4?, credential?)` | An institution's programs: awards and 1-year earnings | institution | College Scorecard field of study |
 | `find_program_offerings(cip4, credential, state?, unitid?, limit?)` | Who else offers this program, and where does one institution rank by awards? | institutions nationally or in a state | College Scorecard field of study |
 | `get_program_alignment(unitid, cip4, credential, state?, horizon?)` | One program beside demand for its mapped occupations; with `state`, also that state's projections for each occupation | institution + national (+ state) | all of the above |
@@ -33,7 +35,7 @@ No O*NET key is needed: the O*NET database is read from its public CC BY 4.0 bul
 | Host | Used for |
 |---|---|
 | `nces.ed.gov` | CIP-SOC crosswalk workbook |
-| `www.bls.gov` | Employment Projections workbook (`/emp/ind-occ-matrix/occupation.xlsx`); the only host that receives your contact address |
+| `www.bls.gov` | Employment Projections workbook (`/emp/ind-occ-matrix/occupation.xlsx`); OEWS wage files (the tables page `/oes/tables.htm` and `/oes/special-requests/oesmYYst.zip` and `oesmYYma.zip`); the only host that receives your contact address |
 | `www.onetcenter.org` | O*NET database page and five CSV files |
 | `api.data.gov` | College Scorecard |
 | `public.projectionscentral.org` | State and national projections (read-only REST, GET only; no key; the contact address is not sent) |
@@ -50,6 +52,7 @@ Program titles, occupation names, tasks and technology names come from upstream.
 - **NCES crosswalk**: NCES states it is not based on empirical data.
 
 ## Known limits (also returned as warnings)
+- **Wages (`get_wages`) are OEWS estimates for all wage and salary workers in an occupation** in a state or metropolitan area: every experience level and credential, not recent graduates, and not self-employed workers. They are not the Scorecard earnings of an institution's completers and the two should not be compared without naming the difference. Employment is rounded to 10. A wage BLS did not publish (`*`) is a null; a wage at or above BLS's top code (`#`, $239,200 a year or $115 an hour in the May 2025 file) is returned as the top code and listed in `top_coded`, meaning the true value is at least that. The New England county-based (NECTA) workbook is not read, and small metropolitan areas have wide error margins (the relative standard error is returned).
 - Demand is **national** BLS projections for 2025-35; it is not regional demand, projections lag, and there are no job-postings data (those sources are paid).
 - The crosswalk is many-to-many (one CIP can map to 180 occupations). Scorecard programs use 4-digit CIP, so the 4-digit view takes the union of the 6-digit codes under it.
 - Awards are Scorecard's counts for two consecutive award years, including second majors; they are not graduates who stay in the region, and this server does not say which period is newer.

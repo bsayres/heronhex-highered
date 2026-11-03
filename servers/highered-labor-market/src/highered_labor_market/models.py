@@ -11,6 +11,8 @@ CipAny = Annotated[str, Field(pattern=r"^[0-9]{2}\.[0-9]{2}(?:[0-9]{2})?$", desc
 Keyword = Annotated[str, Field(min_length=2, max_length=60, pattern=r"^[A-Za-z0-9 ,'&/()-]+$", description="Word(s) from a program title, e.g. nursing or computer science")]
 Soc = Annotated[str, Field(pattern=r"^[0-9]{2}-[0-9]{4}$", description="6-digit SOC 2018 code, e.g. 29-1141")]
 Credential = Annotated[int, Field(ge=1, le=8, description="Scorecard credential level: 1 certificate, 2 associate, 3 bachelor, 4 post-bacc certificate, 5 master, 6 doctoral, 7 first professional, 8 graduate certificate")]
+AreaCode = Annotated[str, Field(pattern=r"^([0-9]{5}|[0-9]{7})$", description="5-digit metropolitan area (CBSA) code, as in an institution's `cbsa`, or the 7-digit BLS code of a nonmetropolitan area from search_metros")]
+MetroText = Annotated[str, Field(min_length=2, max_length=60, pattern=r"^[A-Za-z0-9 .,'&/()-]+$", description="Part of a metropolitan area name, e.g. Farmington or Boston")]
 Top = Annotated[int, Field(ge=1, le=30, description="How many items to return")]
 
 StateCode = Literal[

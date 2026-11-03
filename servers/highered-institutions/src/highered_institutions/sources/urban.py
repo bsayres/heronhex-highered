@@ -8,7 +8,7 @@ BASE = "https://educationdata.urban.org/api/v1/college-university/ipeds"
 SOURCE = "IPEDS via Urban Institute Education Data Portal (ODC-By 1.0)"
 
 # Personal data (e.g. chief administrator name) is deliberately not kept.
-DIRECTORY_FIELDS = ["unitid", "inst_name", "inst_alias", "city", "state_abbr", "opeid", "ein", "ueis", "url_school", "inst_control", "institution_level", "sector", "degree_granting", "currently_active_ipeds", "date_closed", "newid", "inst_system_flag", "inst_system_name", "offering_highest_level", "hbcu", "tribal_college", "cc_basic_2025", "cc_basic_2021", "cc_research_act_desig_2025", "cc_instit_size_2025", "cc_size_setting_2021"]
+DIRECTORY_FIELDS = ["unitid", "inst_name", "inst_alias", "city", "state_abbr", "opeid", "ein", "ueis", "url_school", "inst_control", "institution_level", "sector", "degree_granting", "currently_active_ipeds", "date_closed", "newid", "inst_system_flag", "inst_system_name", "offering_highest_level", "hbcu", "tribal_college", "cc_basic_2025", "cc_basic_2021", "cc_research_act_desig_2025", "cc_instit_size_2025", "cc_size_setting_2021", "cbsa", "county_fips"]
 
 
 class Cached:
@@ -30,16 +30,21 @@ async def _paged(guard: Guard, url: str, params: dict, max_bytes: int) -> tuple[
     raise UpstreamError("Too many pages from Urban API.")
 
 
-async def _cached(guard: Guard, name: str, fetch, ttl_days: int = cache.TTL_DAYS) -> Cached:
+async def _cached(guard: Guard, name: str, fetch, ttl_days: int = cache.TTL_DAYS, valid=None) -> Cached:
     """Cache (quarterly for whole-year tables, a day for single-institution rows). If a refresh fails, serve the stale copy and say so."""
     hit = cache.read(name)
+    if hit and valid is not None and not valid(hit["data"]):
+        stale_copy, hit = hit, None  # a cache written by an older version lacks fields we now need: fetch again
+    else:
+        stale_copy = None
     if hit and cache.is_fresh(hit["meta"], ttl_days):
         return Cached(hit["data"], hit["meta"], False)
     try:
         data, as_of, url = await fetch()
     except UpstreamError:
-        if hit:
-            return Cached(hit["data"], hit["meta"], True)
+        if hit or stale_copy:
+            keep = hit or stale_copy
+            return Cached(keep["data"], keep["meta"], True)
         raise
     return Cached(data, cache.write(name, data, as_of, url), False)
 
@@ -62,11 +67,11 @@ async def latest_year(guard: Guard) -> int:
 
 async def directory(guard: Guard, year: int) -> Cached:
     async def fetch():
-        rows, url = await _paged(guard, f"{BASE}/directory/{year}/", {}, 40_000_000)
+        rows, url = await _paged(guard, f"{BASE}/directory/{year}/", {"fields": ",".join(DIRECTORY_FIELDS)}, 40_000_000)  # fields: 14 MB of columns we never read becomes under 1 MB
         slim = [{k: r.get(k) for k in DIRECTORY_FIELDS} for r in rows]
         return slim, f"IPEDS directory {year}", url
 
-    return await _cached(guard, f"urban-directory-{year}.json", fetch)
+    return await _cached(guard, f"urban-directory-{year}.json", fetch, valid=lambda rows: bool(rows) and "cbsa" in rows[0])
 
 
 async def enrollment_totals(guard: Guard, year: int) -> Cached:
