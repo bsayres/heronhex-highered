@@ -104,17 +104,21 @@ def oews_row(area, title, atype, state, soc, occ, group="detailed", **v):
     return [base.get(c) for c in OEWS_COLS]
 
 
-def oews_zip(kind: str, rows: list[list], yy="25", member=None, decoys=()) -> bytes:
-    data_sheet = f"state_M20{yy}_dl" if kind == "st" else f"MSA_M20{yy}_dl"
+def oews_book(kind: str, rows: list[list], yy="25", sheet=None) -> bytes:
+    data_sheet = sheet or (f"state_M20{yy}_dl" if kind == "st" else f"MSA_M20{yy}_dl")
     notes = [["May 2025 OEWS Estimates"], ["Notes:"], ["*  = indicates that a wage estimate is not available"], ["**  = indicates that an employment estimate is not available"],
              ["#  = indicates a wage equal to or greater than $115.00 per hour or $239,200 per year "]]
-    book = xlsx({data_sheet: [OEWS_COLS, *rows], "Field Descriptions": notes})
-    name = member or (f"oesm{yy}st/state_M20{yy}_dl.xlsx" if kind == "st" else f"oesm{yy}ma/MSA_M20{yy}_dl.xlsx")
+    return xlsx({data_sheet: [OEWS_COLS, *rows], "Field Descriptions": notes})
+
+
+def oews_zip(kind: str, rows: list[list], yy="25", member=None, decoys=(), nonmetro_rows=None, with_bos=True) -> bytes:
     out = io.BytesIO()
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
         for d in decoys:
             z.writestr(d, b"decoy")
-        z.writestr(name, book)
+        z.writestr(member or (f"oesm{yy}st/state_M20{yy}_dl.xlsx" if kind == "st" else f"oesm{yy}ma/MSA_M20{yy}_dl.xlsx"), oews_book(kind, rows, yy))
+        if kind == "ma" and with_bos:  # the nonmetropolitan workbook sits beside the metropolitan one
+            z.writestr(f"oesm{yy}ma/BOS_M20{yy}_dl.xlsx", oews_book("ma", oews_nonmetro_rows() if nonmetro_rows is None else nonmetro_rows, yy, sheet=f"BOS_M20{yy}_dl"))
     return out.getvalue()
 
 
@@ -132,6 +136,14 @@ def oews_state_rows():
     ]
 
 
+def oews_nonmetro_rows():
+    rn = "Registered Nurses"
+    return [
+        oews_row("3500001", "Southwestern New Mexico nonmetropolitan area", "6", "NM", "29-1141", rn, TOT_EMP=300, A_MEDIAN=78000),
+        oews_row("0100001", "North Alabama nonmetropolitan area", "6", "AL", "29-1141", rn, TOT_EMP=900, A_MEDIAN=60000),
+    ]
+
+
 def oews_metro_rows():
     rn = "Registered Nurses"
     return [
@@ -139,8 +151,6 @@ def oews_metro_rows():
                  A_PCT90=115840, H_MEAN=42.38, H_MEDIAN=39.94),
         oews_row("14460", "Boston-Cambridge-Newton, MA-NH", "4", "MA", "29-1141", rn, TOT_EMP=64240, A_MEDIAN=106180),
         oews_row("14460", "Boston-Cambridge-Newton, MA-NH", "4", "MA", "29-2061", "Licensed Practical and Licensed Vocational Nurses", TOT_EMP=3000, A_MEDIAN=62000),
-        oews_row("3500001", "Southwestern New Mexico nonmetropolitan area", "6", "NM", "29-1141", rn, TOT_EMP=300, A_MEDIAN=78000),
-        oews_row("0100001", "North Alabama nonmetropolitan area", "6", "AL", "29-1141", rn, TOT_EMP=900, A_MEDIAN=60000),
         oews_row("10180", "Abilene, TX", "4", "TX", "11-1011", "Chief Executives", TOT_EMP="**", A_MEDIAN="#", A_MEAN="#", A_PCT90="#"),
     ]
 

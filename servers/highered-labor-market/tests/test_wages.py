@@ -11,7 +11,7 @@ from highered_labor_market.http import Guard
 from highered_labor_market.sources import oews
 from highered_labor_market.sources._xlsx import ParseError
 
-from .conftest import CONTACT, oews_row, oews_state_rows, oews_zip
+from .conftest import CONTACT, oews_metro_rows, oews_row, oews_state_rows, oews_zip
 
 
 async def rejected(name, args):
@@ -212,3 +212,24 @@ async def test_a_first_download_past_the_deadline_says_so_and_finishes_later(ups
 async def test_the_tools_have_no_person_or_text_search_inputs(upstream):
     schemas = {t.name: set(t.input_schema["properties"]) for t in await server.mcp.list_tools() if t.name in ("get_wages", "search_metros")}
     assert schemas == {"get_wages": {"soc", "state", "area_code"}, "search_metros": {"name_contains", "state"}}
+
+
+async def test_the_metro_archive_is_read_as_two_workbooks_metropolitan_and_nonmetropolitan(upstream):
+    """Found in the question test rerun: the BOS workbook is the nonmetropolitan areas, not a New England file, and was not being read."""
+    L = await oews.get(server.guard(), "ma")
+    kinds = {a["type"] for a in L.data["areas"].values()}
+    assert kinds == {"4", "6"} and "22140" in L.data["areas"] and "3500001" in L.data["areas"] and "0100001" in L.data["areas"]
+    assert oews.member_names("ma", "25") == ["oesm25ma/MSA_M2025_dl.xlsx", "oesm25ma/BOS_M2025_dl.xlsx"] and oews.member_names("st", "25") == ["oesm25st/state_M2025_dl.xlsx"]
+
+
+async def test_a_metro_archive_without_the_nonmetropolitan_workbook_is_refused(upstream):
+    upstream.oews["ma"] = oews_zip("ma", oews_metro_rows(), with_bos=False)
+    with pytest.raises(ToolError, match="expected workbook"):
+        await server.get_wages("29-1141", area_code="22140")
+
+
+async def test_nonmetropolitan_wages_and_search_come_from_the_second_workbook(upstream):
+    w = (await server.get_wages("29-1141", area_code="3500001"))["data"]["wages"]
+    assert w["area"]["kind"] == "nonmetropolitan area" and w["annual"]["median"] == 78000
+    found = await server.search_metros("nonmetropolitan", state="NM")
+    assert [a["area_code"] for a in found["data"]["areas"]] == ["3500001"]

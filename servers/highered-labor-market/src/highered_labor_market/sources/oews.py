@@ -39,8 +39,11 @@ def newest(page: str, kind: str) -> str:
     return f"{years[-1]:02d}"
 
 
-def member_name(kind: str, yy: str) -> str:
-    return f"oesm{yy}st/state_M20{yy}_dl.xlsx" if kind == "st" else f"oesm{yy}ma/MSA_M20{yy}_dl.xlsx"
+def member_names(kind: str, yy: str) -> list[str]:
+    """The workbooks we read: states are one file; the `ma` archive holds the metropolitan file (MSA) and the nonmetropolitan file (BOS)."""
+    if kind == "st":
+        return [f"oesm{yy}st/state_M20{yy}_dl.xlsx"]
+    return [f"oesm{yy}ma/MSA_M20{yy}_dl.xlsx", f"oesm{yy}ma/BOS_M20{yy}_dl.xlsx"]
 
 
 def read_member(raw: bytes, name: str) -> bytes:
@@ -118,13 +121,24 @@ def parse(xlsx: bytes, kind: str) -> dict:
     return {"release": release, "top_code": top, "columns": [n for n, _ in FIELDS], "occupations": titles, "areas": areas}
 
 
+def merge(parts: list[dict]) -> dict:
+    """One table from the workbooks of an archive (metropolitan and nonmetropolitan area codes do not overlap)."""
+    out = dict(parts[0])
+    out["areas"], out["occupations"] = dict(parts[0]["areas"]), dict(parts[0]["occupations"])
+    for p in parts[1:]:
+        out["areas"].update(p["areas"])
+        for soc, title in p["occupations"].items():
+            out["occupations"].setdefault(soc, title)
+    return out
+
+
 async def get(guard: Guard, kind: str) -> Loaded:
     """kind is `st` (states) or `ma` (metropolitan and nonmetropolitan areas)."""
     async def fetch():
         page, _ = await guard.get_bytes(PAGE, max_bytes=3_000_000)
         yy = newest(page.decode("utf-8", "replace"), kind)
         raw, url = await guard.get_bytes(f"{BASE}oesm{yy}{kind}.zip", max_bytes=MAX_ZIP[kind])
-        parsed = parse(read_member(raw, member_name(kind, yy)), kind)
+        parsed = merge([parse(read_member(raw, name), kind) for name in member_names(kind, yy)])
         return parsed, f"{parsed['release'] or 'OEWS'} estimates (file oesm{yy}{kind})", url, {"file_sha256": sha256(raw)}
 
     return await load("oews-state.json" if kind == "st" else "oews-metro.json", 180, fetch)

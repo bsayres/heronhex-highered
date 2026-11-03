@@ -31,6 +31,7 @@ Format follows Keep a Changelog. Versions are not yet released to PyPI; every se
 - `highered-risk`, `highered-funding`, `highered-accreditation`: the same 45-second deadline as the institutions server. Risk reads its three FSA files at once and returns the sections that arrived (a missing one is a `source_unavailable` null; an oversized file is now a null instead of a failed call); funding reads HERD years at once; first-time downloads that run long say so and finish in the background. Cold first calls: HERD five years 44 s to 15-19 s; accreditation about 24 s and risk about 21 s are unchanged (one file dominates).
 
 ### Fixed
+- `get_wages` and `search_metros` (labor-market) read the nonmetropolitan areas workbook (`BOS_M2025_dl.xlsx`) as well as the metropolitan one. The first version read only the metropolitan file, so the 7-digit nonmetropolitan codes the tool described did not exist in real data.
 - A superseded accreditation record could be read as a loss; each record now carries its last recorded action.
 
 ### Not done
