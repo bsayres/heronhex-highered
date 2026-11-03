@@ -294,3 +294,12 @@ def test_check_url_blocks_everything_but_https_on_the_allowlist(url):
 
 def test_check_url_allows_the_dapip_host():
     assert http.check_url(http.DAPIP_PAGE) == "ope.ed.gov"
+
+
+async def test_both_tools_state_the_window_of_the_action_history(upstream):
+    s = await server.get_accreditation_status("999001")
+    a = await server.get_accreditation_actions("999001", since_year=2024)  # the window ignores since_year
+    for r in (s, a):
+        w = r["data"]["action_history"]
+        assert w["earliest_action_date"] and w["earliest_action_date"] <= w["latest_action_date"] and w["actions_held"] >= len(a["data"]["actions"])
+    assert a["data"]["matched"] < a["data"]["action_history"]["actions_held"]

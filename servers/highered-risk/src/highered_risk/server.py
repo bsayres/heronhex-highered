@@ -40,13 +40,22 @@ def _entry(label: str, c: fsa.Loaded) -> dict:
     return source_entry(label, m["source_url"], m["as_of"], m["retrieved_at"], file_sha256=m.get("file_sha256"), served_stale_cache=c.stale)
 
 
+CDR_RULE = {
+    "citation": "34 CFR 668.206(a)", "url": "https://www.ecfr.gov/current/title-34/section-668.206", "text_checked": "eCFR current to 2026-10-30",
+    "loss_of_direct_loan_eligibility": "the most recent cohort default rate is greater than 40 percent",
+    "loss_of_direct_loan_and_pell_eligibility": "the three most recent cohort default rates are each 30 percent or greater",
+    "note": "This is the text of the rule, not an assessment of this institution. Adjustments and appeals (34 CFR 668.208) can stop a loss of eligibility, and rules change.",
+}
+
+
 @mcp.tool(title="Federal aid status (HCM, composite score, default rate)", annotations={"title": "Federal aid status (HCM, composite score, default rate)", "readOnlyHint": True})
 async def get_title_iv_status(opeid: Opeid) -> dict:
     """Title IV status for one institution by 8-digit OPEID: Heightened Cash Monitoring (HCM) list,
     financial responsibility composite score, and official cohort default rates.
 
     HCM and composite scores join on the exact 8-digit OPEID. Default rates are published by 6-digit
-    OPEID, so they cover every campus sharing that prefix. Each section has its own source and as_of."""
+    OPEID, so they cover every campus sharing that prefix. Each section has its own source and as_of. `reference` quotes the
+    federal default-rate sanction rule with its citation; it is the rule's text, not a finding about the institution."""
     o6 = opeid[:6]
     h, comp, c = await fsa.hcm(guard()), await fsa.composite(guard()), await fsa.cdr(guard())
     nulls, warnings = [], []
@@ -79,7 +88,7 @@ async def get_title_iv_status(opeid: Opeid) -> dict:
         nulls.append({"field": "cohort_default_rates", "kind": "not_found", "reason": f"OPEID6 {o6} is not in the FY{c.data['latest_cohort_fy']} official default rate file."})
 
     data = {"opeid": opeid, "opeid6": o6, "heightened_cash_monitoring": hcm_out,
-            "financial_responsibility": comp_out, "cohort_default_rates": cdr_out}
+            "financial_responsibility": comp_out, "cohort_default_rates": cdr_out, "reference": {"cohort_default_rate_sanction_rule": CDR_RULE}}
     stale = [x for x in (h, comp, c) if x.stale]
     if stale:
         warnings.append("An FSA refresh failed; served a cached copy past its refresh interval.")
@@ -115,6 +124,13 @@ async def get_audit_findings(ein: Ein | None = None, uei: Uei | None = None, yea
         warnings.append("Some upstream rows were dropped because their report id had an unexpected format.")
     if any(a["resubmission_status"] not in (None, "", "most_recent", "original_submission") for a in r["audits"]):
         warnings.append("Some submissions are superseded or resubmitted; check resubmission_status and version before counting audits.")
+    seen = {}
+    for a in r["audits"]:
+        seen.setdefault(((a["auditee_name"] or "").strip().casefold(), a["auditee_ein"]), []).append(a)
+    if len(seen) > 1:
+        who = "; ".join(f"{v[0]['auditee_name']} (EIN {v[0]['auditee_ein']}, report {', '.join(x['report_id'] for x in v)})" for v in seen.values())
+        warnings.append(f"The rows returned for this {'UEI' if uei else 'EIN'} come from more than one auditee name or EIN: {who}. A shared or mistyped "
+                        "identifier in FAC can attach another organization's audit to an institution; check auditee_name before using a row.")
     for a in r["audits"]:
         if (a["internal_control_material_weakness"] or a["material_noncompliance"]) and not a["finding_count"]:
             warnings.append(f"Report {a['report_id']} discloses a material weakness or noncompliance but the findings table has no rows for it; "

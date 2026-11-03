@@ -162,6 +162,7 @@ async def fetch(guard: Guard, *, ein: str | None, uei: str | None, years: int) -
         audits.append({
             "report_id": g["report_id"], "report_url": REPORT_URL.format(g["report_id"]),
             "audit_year": g.get("audit_year"), "auditee_name": g.get("auditee_name"),
+            "auditee_ein": g.get("auditee_ein"), "auditee_uei": g.get("auditee_uei"),
             "fy_start": g.get("fy_start_date"), "fy_end": g.get("fy_end_date"), "fac_accepted": g.get("fac_accepted_date"),
             "filing_timeline": filing_timeline(g),
             "audit_type": g.get("audit_type"), "gaap_opinion": g.get("gaap_results"),

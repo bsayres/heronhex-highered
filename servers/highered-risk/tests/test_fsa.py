@@ -131,3 +131,11 @@ def test_cache_tamper_detected(tmp_path, monkeypatch):
     p = cache.safe_path("a.json")
     p.write_text(p.read_text().replace('"k":1', '"k":2'))
     assert cache.read("a.json") is None
+
+
+async def test_default_rate_rule_is_quoted_with_citation_and_not_about_the_institution(upstream):
+    r = await server.get_title_iv_status("09990100")
+    rule = r["data"]["reference"]["cohort_default_rate_sanction_rule"]
+    assert rule["citation"] == "34 CFR 668.206(a)" and rule["url"].startswith("https://www.ecfr.gov/")
+    assert "greater than 40 percent" in rule["loss_of_direct_loan_eligibility"] and "30 percent or greater" in rule["loss_of_direct_loan_and_pell_eligibility"]
+    assert "not an assessment" in rule["note"]

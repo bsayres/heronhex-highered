@@ -190,3 +190,19 @@ async def test_findings_carry_labels_and_field_notes(upstream):
     notes = r["data"]["field_notes"]
     assert "does not say" in notes["modified_opinion"] and "gaap_opinion" in notes["modified_opinion"]
     assert "fac.gov/api/dictionary" in notes["compliance_requirement_labels"]
+
+
+async def test_warns_when_rows_under_one_identifier_belong_to_different_auditees(upstream):
+    """Test College B's UEI is also on a flood control authority's FAC record; a state college can share the state's EIN."""
+    other = dict(upstream.fac["general"][0], report_id="2022-06-CENSUS-0000227590", auditee_name="SOUTHERN SANDOVAL COUNTY ARROYO FLOOD CONTROL AUTHORITY",
+                 auditee_ein="850386538", audit_year="2022")
+    upstream.fac["general"].append(other)
+    r = await server.get_audit_findings(uei="TESTCOLLEG1A", years=5)
+    msg = [w for w in r["warnings"] if "more than one auditee" in w]
+    assert msg and "ARROYO FLOOD CONTROL" in msg[0] and "850386538" in msg[0] and "Test Community College A" in msg[0].upper()
+    assert {a["auditee_ein"] for a in r["data"]["audits"]} == {"999000001", "850386538"}  # returned, not silently dropped
+
+
+async def test_no_auditee_warning_when_all_rows_match(upstream):
+    r = await server.get_audit_findings(ein="999000001", years=5)
+    assert not [w for w in r["warnings"] if "more than one auditee" in w]

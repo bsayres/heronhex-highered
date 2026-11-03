@@ -214,3 +214,23 @@ def test_member_reads_ask_for_a_bounded_amount():
 
     dapip._rows(FakeZip(), "InstitutionCampus.csv")
     assert asked == [dapip.MAX_MEMBER_BYTES + 1]
+
+
+def test_review_date_note_only_when_current_review_date_is_over_five_years_old_with_no_later_action():
+    d = parsed()
+    neche = lambda today: next(r for r in dapip.accreditors(d, "999001", "all", today) if r["agency_name"].startswith("New England"))
+    assert neche(date(2026, 10, 31))["review_date_note"] is None  # review date 2035 is in the future
+    stale = neche(date(2041, 1, 1))  # review 2035-12-31 is now more than five years past; last action 2025
+    assert stale["current"] and "more than five years past" in stale["review_date_note"] and "2035-12-31" in stale["review_date_note"]
+    ended = next(r for r in dapip.accreditors(d, "999001", "all", date(2041, 1, 1)) if r["program"].startswith("Nursing"))
+    assert not ended["current"] and ended["review_date_note"] is None  # an ended record needs no stale-date note
+
+
+def test_action_window_bounds_what_the_history_can_say():
+    d = parsed()
+    w = dapip.action_window(d, "999001")
+    assert (w["earliest_action_date"], w["latest_action_date"], w["actions_held"]) == ("2015-09-25", "2025-09-25", 8)
+    assert "2015-09-25" in w["note"] and "ever lost or never lost" in w["note"]
+    none = dapip.action_window(d, "111111")
+    assert none["earliest_action_date"] is None and "no dated actions" in none["note"]
+    assert dapip.action_window(d, "000000") is None

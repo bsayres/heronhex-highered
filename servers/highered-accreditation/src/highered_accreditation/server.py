@@ -70,7 +70,8 @@ async def get_accreditation_status(unitid: Unitid, scope: Scope = "all") -> dict
     date, `current`, and `last_action` (the newest dated action DAPIP holds for that record, or null). `current` is computed:
     DAPIP does not update the status text when a record ends, so a record with a passed end date and the status "Accredited"
     is not current. An ended record is not necessarily a loss of accreditation: an agency can be replaced by another, so read
-    `last_action` and the actions list before saying why a record ended. `scope` is all, institutional, programmatic or state
+    `last_action` and the actions list before saying why a record ended. `action_history` gives the earliest and latest dated action DAPIP
+    holds for the institution, which bounds what the data can say about whether an accreditation was ever lost. `scope` is all, institutional, programmatic or state
     (records from state agencies).
 
     The institution's own record only: branch campuses and additional locations are not included. State board approvals
@@ -90,7 +91,7 @@ async def get_accreditation_status(unitid: Unitid, scope: Scope = "all") -> dict
     current = [r for r in recs if r["current"]]
     data = {
         "unitid": unitid, "dapip_id": inst["dapip_id"], "opeid": inst["opeid"], "name_in_dapip": inst["name"],
-        "dapip_institution_record_updated": inst["updated"], "scope": scope, "accreditors": recs,
+        "dapip_institution_record_updated": inst["updated"], "scope": scope, "action_history": dapip.action_window(d, unitid), "accreditors": recs,
         "summary": {
             "records": len(recs), "current": len(current), "not_current": len(recs) - len(current),
             "current_institutional_accreditors": sorted({r["agency_name"] for r in current if r["scope"] == "institutional" and r["agency_name"]}),
@@ -138,7 +139,7 @@ async def get_accreditation_actions(unitid: Unitid, scope: Scope = "all", since_
         warnings.append(f"{len(rows)} actions matched; showing the newest {limit}. Raise `limit` (up to 200) or set `since_year` to see more.")
     data = {
         "unitid": unitid, "dapip_id": inst["dapip_id"], "name_in_dapip": inst["name"], "scope": scope, "since_year": since_year,
-        "matched": len(rows), "returned": min(len(rows), limit), "counts_by_category": counts,
+        "action_history": dapip.action_window(d, unitid), "matched": len(rows), "returned": min(len(rows), limit), "counts_by_category": counts,
         "category_notes": {k: dapip.CATEGORY_NOTES[k] for k in counts}, "actions": rows[:limit],
     }
     return envelope([_entry(c)], data, nulls, warnings)

@@ -286,6 +286,7 @@ def accreditors(data: dict, unitid: str, scope: str, today: date) -> list[dict]:
         return []
     s, out = data["strings"], []
     iso = today.isoformat()
+    stale_before = today.replace(year=today.year - 5, day=min(today.day, 28)).isoformat()
     latest: dict[tuple, tuple] = {}  # (agency, program, sequence) -> newest dated action on that record
     for aid, prog, seq, action, when, *_ in data["actions"].get(inst["dapip_id"], []):
         key = (aid, prog, seq)
@@ -303,13 +304,18 @@ def accreditors(data: dict, unitid: str, scope: str, today: date) -> list[dict]:
             note = "DAPIP still shows this status, but the record has an end date that has passed; the accreditation is not current."
         elif end is not None and not ended:
             note = "The record has a scheduled end date in the future."
+        last = _last(latest.get((aid, prog, seq)))
+        review_note = None
+        if current and review and review <= stale_before and (last is None or last["date"] < review):
+            review_note = (f"The review date on record ({review}) is more than five years past and DAPIP holds no later action for this record, "
+                           "so the date may be out of date. Confirm the current status with the agency.")
         out.append({
             "agency_id": aid, "agency_name": data["agencies"].get(str(aid)),
             "agency_type": "state_agency" if aid in STATE_AGENCY_IDS else "accrediting_agency",
             "scope": _kind(program), "program": program, "sequence": seq,
             "first_accredited": first, "first_accredited_flag": s[flag] if flag is not None else None,
             "status_as_recorded": status_text, "review_date": review, "end_date": end,
-            "current": current, "status_note": note, "last_action": _last(latest.get((aid, prog, seq))),
+            "current": current, "status_note": note, "review_date_note": review_note, "last_action": last,
         })
     out.sort(key=lambda r: (r["scope"] != "institutional", not r["current"], r["program"] or "", r["agency_id"]))
     return out
@@ -336,6 +342,22 @@ def action_list(data: dict, unitid: str, scope: str, since_year: int | None) -> 
         })
     out.sort(key=lambda r: (r["date"] or "", r["agency_id"]), reverse=True)
     return out
+
+
+def action_window(data: dict, unitid: str) -> dict | None:
+    """Earliest and latest dated action DAPIP holds for the institution (all scopes), so 'ever' and 'never' have a stated limit."""
+    inst = institution(data, unitid)
+    if inst is None:
+        return None
+    dates = sorted(row[4] for row in data["actions"].get(inst["dapip_id"], []) if row[4])
+    first = dates[0] if dates else None
+    return {
+        "earliest_action_date": first, "latest_action_date": dates[-1] if dates else None, "actions_held": len(dates),
+        "note": ("DAPIP holds the actions agencies reported to the Department. " + (f"The earliest it holds for this institution is {first}. " if first else
+                 "It holds no dated actions for this institution. ") +
+                 "It cannot show whether anything happened before that date, so an answer about whether an accreditation was ever lost or never lost "
+                 "is limited to this window."),
+    }
 
 
 def now_date() -> date:
