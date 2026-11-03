@@ -148,7 +148,7 @@ class Upstream:
         if host == "api.nsf.gov":
             if q.get("ueiNumber") != PSU_UEI:
                 return httpx.Response(200, json={"response": {"award": [], "metadata": {"offset": 0, "rpp": 25, "totalCount": 0}}})
-            off, rpp = int(q.get("offset", "1")) - 1, int(q.get("rpp", "25"))
+            off, rpp = int(q.get("offset", "0")), int(q.get("rpp", "25"))  # NSF skips `offset` records (0 = first)
             awards = [nsf_award(i) for i in range(off, min(off + rpp, self.nsf_total))]
             if awards and self.nsf_bad_id:
                 awards[-1]["id"] = "../../bad"

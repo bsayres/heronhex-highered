@@ -33,7 +33,7 @@ def _project(a: dict) -> dict | None:
 async def fetch(guard: Guard, uei: str, limit: int, awarded_from: str | None, awarded_to: str | None) -> dict:
     awards, total, first_url, dropped = [], 0, None, 0
     for offset in range(0, limit, PAGE):
-        params = {"ueiNumber": uei, "rpp": str(min(PAGE, limit - offset)), "offset": str(offset + 1)}
+        params = {"ueiNumber": uei, "rpp": str(min(PAGE, limit - offset)), "offset": str(offset)}  # a count of records to skip, not a 1-based position
         if awarded_from:
             params["dateStart"] = awarded_from
         if awarded_to:

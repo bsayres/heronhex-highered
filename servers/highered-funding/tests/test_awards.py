@@ -95,3 +95,14 @@ async def test_bad_award_inputs_rejected_before_network(upstream, name, args):
     except Exception:  # noqa: BLE001
         failed = True
     assert failed and not upstream.requests
+
+
+async def test_nsf_first_page_skips_nothing(upstream):
+    """NSF's `offset` counts records to skip. Sending 1 for the first page drops the first record (found live: a
+    9-award institution returned 8 and a 1-award filter returned none)."""
+    upstream.nsf_total = 1
+    r = await server.search_grant_awards([PSU_UEI], sources=["nsf"], limit=25)
+    nsf = r["data"]["nsf"]
+    assert nsf["total_matching"] == 1 and nsf["returned"] == 1
+    offsets = [q.url.params["offset"] for q in upstream.requests if q.url.host == "api.nsf.gov"]
+    assert offsets[0] == "0"
