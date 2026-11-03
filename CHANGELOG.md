@@ -20,6 +20,7 @@ Format follows Keep a Changelog. Versions are not yet released to PyPI; every se
 - Three-college validation record (`docs/validation-2026-10-31.md`) and a 20-question leader test (`docs/question-test-2026-11-01.md`).
 
 ### Changed
+- Skill descriptions for labor-market, institutions and risk now name the plain questions they answer (wages by state or metro, retention, audit finding text), since the description is what routes a question to a skill.
 - `get_fsa_status` renamed `get_title_iv_status`.
 - Several tool descriptions reworded from directives to plain statements.
 - Composite-score null reason no longer implies only public institutions are missing.

@@ -1,6 +1,6 @@
 ---
 name: highered-labor-market
-description: Use for questions about whether an institution's programs line up with labor-market demand: occupations linked to a program, BLS projected openings and wages, O*NET skills, and an institution's program awards and earnings, with the highered-labor-market MCP server.
+description: Use for questions about what workers in an occupation earn in a state or in the metropolitan area around a college (for example "what do registered nurses make in New Mexico"), job projections for an occupation, whether an institution's programs line up with labor-market demand, occupations linked to a program, O*NET skills, and an institution's program awards and earnings, with the highered-labor-market MCP server (BLS wages and projections, College Scorecard).
 ---
 
 # Using highered-labor-market

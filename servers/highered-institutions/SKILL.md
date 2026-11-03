@@ -1,6 +1,6 @@
 ---
 name: highered-institutions
-description: Use for questions about a specific U.S. college or university, its identifiers (UNITID, OPEID, EIN, UEI, domain), enrollment trends, peers, or basic profile, using the highered-institutions MCP server.
+description: Use for questions about a specific U.S. college or university: finding it by name or identifier (UNITID, OPEID, EIN, UEI, domain), enrollment trends, retention rates (do students come back for a second fall), finances, peers, comparing colleges side by side, or a basic profile, using the highered-institutions MCP server (IPEDS and College Scorecard).
 ---
 
 # Using highered-institutions

@@ -1,6 +1,6 @@
 ---
 name: highered-risk
-description: Use for questions about an institution's Title IV risk signals (heightened cash monitoring, financial responsibility composite score, cohort default rates, audit findings) with the highered-risk MCP server.
+description: Use for questions about an institution's Title IV risk signals (is it on heightened cash monitoring, its financial responsibility composite score, cohort default rates) and its Single Audit findings, including what an audit finding says and what the college planned to do about it, with the highered-risk MCP server (FSA files and the Federal Audit Clearinghouse).
 ---
 
 # Using highered-risk
