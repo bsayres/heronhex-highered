@@ -27,3 +27,14 @@ description: Use for questions about a specific U.S. college or university, its 
 10. **Peers are size-matched across the country by default.** Say that this is not a market or system benchmark. For a local benchmark call `compare_peers` with `scope='same_state'` or `'same_system'`, and say that the Carnegie class was relaxed in those scopes.
 11. Public institutions have no FSA composite score; the finance snapshot is the substitute and it is not a score.
 12. End every brief or comparison with a sources list: for each source give its name, its `as_of`, and the period the figures cover (`sources[]` in each response). Do not drop the dates.
+13. Describe a college's setting (urban, rural, small-town) or its market only from a field a tool returned; none of these tools returns locale, so do not describe it. Peers are matched on size and Carnegie class (or state or system), not on setting, mission or market.
+14. Campus safety and crime data, retention rates and staff names are not carried by these tools. Say so instead of answering from memory or the web.
+
+
+## Rules that apply to every answer
+- **Open with what the figures are, not a conclusion.** The first sentence says what was found and carries the main caveat (the years covered, what is missing). Do not open with a verdict in either direction ("fine", "not a concern", "never lost", "cleaner", "points to demand", "not high-crime").
+- **Anything a tool did not return is not from these tools.** A description of a college's setting or market, a reason for a change, a threshold, a definition or a number from memory is left out, or labeled as outside these tools with its source. Never explain a difference or a trend with a reason the data does not give.
+- **Show your arithmetic.** A figure you calculate (a difference, percent change, share or "of the gain") is labeled as calculated and shown with its inputs and years, for example "$2.742B minus $1.897B = $0.845B", and rounded correctly. Do not state a fraction in words (such as "two-thirds") without calculating it.
+- **Comparing sources.** Name the year and the population on each side. Do not offer a reason for the gap, and do not set figures from two sources side by side as if they covered the same period.
+- **Outside these tools.** They hold public, institution-level data only. For named people or who holds a role, say the tools do not cover it and do not search for or report individuals. If you look something up elsewhere (a web page, a college's own report), say it is not from these tools, name the source and date, and keep it out of the same table or sentence as tool figures.
+- **"Ever", "never" and "should we worry" questions.** Say what period the data covers, answer only for that period, and give no conclusion either way.

@@ -12,7 +12,7 @@ description: Use for questions about whether an institution's programs line up w
 3a. If the user names a field in plain words (for example "nursing" or "welding") and gives no code, use `search_programs(keyword)` to find the CIP code, show the candidates, and ask which one when more than one fits. Its `cip4` is the code the Scorecard program tools take.
 3b. For "who else offers this program" or "where do we rank", use `find_program_offerings(cip4, credential, state?, unitid?)`. Ranks are by award counts (two years added), ties share a rank, and when `complete` is false there are no ranks: say so and suggest adding a state. Counts are awards, not enrollment.
 4. For one occupation use `get_occupation_outlook` (demand) and `get_occupation_skills` (what the work requires). `map_program_to_occupations` shows the program-to-occupation links on their own.
-5. For a state's own projections use `get_state_occupation_outlook`, or pass `state` to `get_program_alignment`. Pair with the 1102tools BLS OEWS server for regional wages.
+5. For a state's own projections use `get_state_occupation_outlook`, or pass `state` to `get_program_alignment`. This server returns only the BLS national median wage (from the Employment Projections file); state and metro wages are not here. If another BLS OEWS source is connected and you use it, say so, give its release year and keep it apart from this server's figures.
 
 ## Rules for answers
 1. **Never reduce alignment to a score, ratio or "gap".** Show the awards, the occupation table and the two openings totals, and say what each does and does not mean.
@@ -31,3 +31,14 @@ description: Use for questions about whether an institution's programs line up w
 14. **State projections.** Say they come from the state's own agency through Projections Central and give their years (for example 2024-2034). Never put them in the same sentence or total as BLS national 2025-35 figures as if comparable; compare a state with the United States row from the same source. Quote the disclaimer's point that projections have errors and should not be the sole basis for a career choice.
 15. State figures are statewide, not the institution's region. Say that sub-state projections are not available here, and point to the `agency_url` the response gives.
 16. A null state value means the state did not submit that occupation (short-term projections are published by far fewer states), not that demand is zero.
+17. A Scorecard earnings figure (median one year after completion, recent completers) and a BLS wage (all employed workers, one survey year) are different measures. If you set them side by side, name both years and populations and give no reason for the gap, such as early-career pay.
+18. Lead with the figures and what they cover. Projected openings and growth are projections of jobs, not demand for one institution's graduates; do not open with "the data points to demand".
+
+
+## Rules that apply to every answer
+- **Open with what the figures are, not a conclusion.** The first sentence says what was found and carries the main caveat (the years covered, what is missing). Do not open with a verdict in either direction ("fine", "not a concern", "never lost", "cleaner", "points to demand", "not high-crime").
+- **Anything a tool did not return is not from these tools.** A description of a college's setting or market, a reason for a change, a threshold, a definition or a number from memory is left out, or labeled as outside these tools with its source. Never explain a difference or a trend with a reason the data does not give.
+- **Show your arithmetic.** A figure you calculate (a difference, percent change, share or "of the gain") is labeled as calculated and shown with its inputs and years, for example "$2.742B minus $1.897B = $0.845B", and rounded correctly. Do not state a fraction in words (such as "two-thirds") without calculating it.
+- **Comparing sources.** Name the year and the population on each side. Do not offer a reason for the gap, and do not set figures from two sources side by side as if they covered the same period.
+- **Outside these tools.** They hold public, institution-level data only. For named people or who holds a role, say the tools do not cover it and do not search for or report individuals. If you look something up elsewhere (a web page, a college's own report), say it is not from these tools, name the source and date, and keep it out of the same table or sentence as tool figures.
+- **"Ever", "never" and "should we worry" questions.** Say what period the data covers, answer only for that period, and give no conclusion either way.

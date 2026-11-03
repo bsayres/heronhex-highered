@@ -20,6 +20,11 @@ Format follows Keep a Changelog. Versions are not yet released to PyPI; every se
 - Several tool descriptions reworded from directives to plain statements.
 - Composite-score null reason no longer implies only public institutions are missing.
 
+### Changed
+- `get_title_iv_status` quotes the cohort default rate sanction rule (34 CFR 668.206(a)) in a `reference` block; `get_audit_findings` returns `auditee_ein` and `auditee_uei` and warns when the rows under one identifier belong to more than one auditee; both accreditation tools return `action_history` and records carry a `review_date_note` when a current record's review date is over five years past.
+- `search_funding_opportunities` and `search_grant_awards`: clearer filter and truncation warnings, a note on close dates years away, and HTML entities in titles decoded to plain text.
+- All five server skills, the `institution-brief` skill and the `institution_brief` prompt: shared answer rules (lead with what the figures are, label anything a tool did not return, show arithmetic, name both years when comparing sources, no lookups of named people, UEI first for audits).
+
 ### Fixed
 - A superseded accreditation record could be read as a loss; each record now carries its last recorded action.
 
