@@ -16,7 +16,7 @@ Servers: `highered-institutions`, `highered-risk`, `highered-accreditation`, `hi
 3. **Enrollment.** `get_enrollment_trend(unitid)`.
 4. **Finance.** `get_financial_snapshot(unitid, years=2)`.
 5. **Peers.** `compare_peers(unitid, n_peers=5)`. Offer `scope="same_state"` if the national peers look unlike the user's idea of peers. `same_system` can be refused when no system is recorded: report that, do not substitute.
-6. **Federal risk.** `get_title_iv_status(opeid)` (heightened cash monitoring, financial responsibility composite score, cohort default rate) and `get_audit_findings(ein=...)` (Single Audits; pass the EIN, or the UEI only if there is no EIN, never both).
+6. **Federal risk.** `get_title_iv_status(opeid)` (heightened cash monitoring, financial responsibility composite score, cohort default rate) and `get_audit_findings(uei=...)` (Single Audits; pass the UEI, or the EIN only if there is no UEI, never both. A public college can report a state or system EIN shared with other agencies, so an EIN lookup may return another entity's audit; check `auditee_name`).
 7. **Accreditation.** `get_accreditation_status(unitid)`; add `get_accreditation_actions(unitid, since_year=...)` for anything that ended or was acted on in the last 5 years.
 8. **Funding.** `get_research_spend(unitid)` and `get_state_funding(state)` for the institution's state. Use `search_grant_awards` only if the user asks about NSF or NIH awards.
 9. **Programs and jobs.** `get_program_outcomes(unitid)` to list programs. For the one to three programs the user cares about, `get_program_alignment(unitid, cip4, credential, state)`. If the user named no programs, ask which, or pick the largest by whatever size field the response gives and say you chose them and how.

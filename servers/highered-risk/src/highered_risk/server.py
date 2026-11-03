@@ -95,7 +95,8 @@ async def get_audit_findings(ein: Ein | None = None, uei: Uei | None = None, yea
     decoded compliance-requirement labels and federal program. A finding's modified_opinion flag is FAC's, and FAC does not
     say which opinion it refers to; the financial statement opinion is gaap_opinion.
 
-    Matches are exact on the identifier; there is no name search. Finding narratives are not returned;
+    Matches are exact on the identifier; there is no name search. A public college can report an EIN shared with
+    a state or system, in which case an EIN lookup returns that parent's audit; a UEI lookup returns the college's own. Finding narratives are not returned;
     open report_url for them. Some public institutions are audited inside a state or system-wide audit
     under a different identifier, so an empty result does not mean there was no audit."""
     if (ein is None) == (uei is None):

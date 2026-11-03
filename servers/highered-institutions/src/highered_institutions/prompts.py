@@ -7,7 +7,7 @@ STEPS = """\
 1. Pin the institution: resolve_institution(query). If several match, list the top matches (name, city, state, control) and ask which. Keep unitid, opeid, ein, uei and state.
 2. Profile and trend: get_institution_profile(unitid), get_enrollment_trend(unitid), get_financial_snapshot(unitid, years=2).
 3. Peers: compare_peers(unitid, n_peers=5). Report the peer rule from the response. If the user names specific institutions to compare, use compare_institutions(unitids) instead.
-4. Federal risk: get_title_iv_status(opeid) and get_audit_findings(ein=...) (the EIN, or the UEI only if there is no EIN; never both).
+4. Federal risk: get_title_iv_status(opeid) and get_audit_findings(uei=...) (the UEI, or the EIN only if there is no UEI; never both; an EIN shared with a state or system can return another entity's audit, so check auditee_name).
 5. Accreditation: get_accreditation_status(unitid); add get_accreditation_actions(unitid, since_year) for anything that ended or was acted on in the last 5 years.
 6. Funding: get_research_spend(unitid) and get_state_funding(state).
 7. Programs and jobs: get_program_outcomes(unitid) to list programs; for the one to three programs that matter, get_program_alignment(unitid, cip4, credential, state). If the user names a field in plain words, find its code with search_programs(keyword). To see who else offers a program, use find_program_offerings(cip4, credential, state, unitid).
