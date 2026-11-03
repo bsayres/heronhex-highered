@@ -5,6 +5,7 @@ Format follows Keep a Changelog. Versions are not yet released to PyPI; every se
 ## [Unreleased]
 
 ### Added
+- `search_occupations` (labor-market): find a SOC code from words in the occupation title (light stemming), so a question in plain words can reach `get_wages`; the `get_wages` description now names the plain questions it answers.
 - `get_retention` (institutions): fall-to-fall retention rates, cohorts, student-to-faculty ratio and IPEDS flags from NCES's complete data files (`EF{year}D.zip`), read in memory by exact member name; adds `nces.ed.gov` to the institutions allowlist. Independent of the Urban API.
 - `get_wages` and `search_metros` (labor-market): BLS OEWS wages and employment for an occupation in a state or metropolitan area (May 2025), with suppressed cells as nulls and top-coded wages flagged as floors; `cbsa` on `resolve_institution` and `get_institution_profile` so an institution joins to its metro.
 - `get_finding_text` (risk): opt-in FAC finding narratives and the auditee's corrective action plan for one report; exact report id, capped and cleaned text, untrusted-text notice, names warning.

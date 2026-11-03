@@ -233,3 +233,41 @@ async def test_nonmetropolitan_wages_and_search_come_from_the_second_workbook(up
     assert w["area"]["kind"] == "nonmetropolitan area" and w["annual"]["median"] == 78000
     found = await server.search_metros("nonmetropolitan", state="NM")
     assert [a["area_code"] for a in found["data"]["areas"]] == ["3500001"]
+
+
+async def test_search_occupations_finds_the_code_from_words(upstream):
+    r = await server.search_occupations("registered nurses")
+    assert r["data"]["columns"] == ["soc", "title"] and r["data"]["rows"][0] == ["29-1141", "Registered Nurses"] and r["data"]["total_matches"] == 1
+    for k in ("source", "source_url", "as_of", "retrieved_at"):
+        assert r[k]
+    stem = await server.search_occupations("nursing")  # a word matches its stem
+    assert ["29-1141", "Registered Nurses"] in stem["data"]["rows"]
+    lpn = await server.search_occupations("Licensed Practical nurse")
+    assert [x[0] for x in lpn["data"]["rows"]] == ["29-2061"]
+
+
+async def test_search_occupations_ranks_the_phrase_first_and_reports_misses_and_totals(upstream):
+    L = await oews.get(server.guard(), "st")
+    rows, total = oews.search_occupations({"29-1141": "Registered Nurses", "29-1171": "Nurse Practitioners", "31-1131": "Nursing Assistants", "11-1011": "Chief Executives"}, "nurse", 2)
+    assert total == 3 and [r[0] for r in rows] == ["29-1171", "29-1141"]  # starts-with first, then by title, cut to the limit
+    none = await server.search_occupations("astronaut")
+    assert none["data"]["rows"] == [] and none["nulls"][0]["kind"] == "not_found"
+    assert "11-1011" in L.data["occupations"]
+    many = await server.search_occupations("es", limit=1)
+    assert len(many["data"]["rows"]) == 1 and any("shown" in w for w in many["warnings"])
+
+
+@pytest.mark.parametrize("args", [{"keyword": "x"}, {"keyword": "x" * 61}, {"keyword": "<script>"}, {"keyword": "nurse\nlist"}, {"keyword": "nurse", "limit": 0}, {"keyword": "nurse", "limit": 51},
+                                   {"keyword": "ｎｕｒｓｅ;"}, {"keyword": "nurse; drop"}])
+async def test_search_occupations_rejects_bad_input_before_any_request(upstream, args):
+    assert await rejected("search_occupations", args) and not upstream.requests
+
+
+async def test_the_wage_tool_description_names_the_questions_it_answers(upstream):
+    d = next(t for t in await server.mcp.list_tools() if t.name == "get_wages").description
+    assert "What workers in an occupation earn" in d and "search_occupations" in d and "around an institution" in d
+
+
+def test_the_stem_is_light_and_predictable():
+    assert [oews._stem(w) for w in ("nursing", "nurse", "nurses", "welding", "welders", "teachers", "dental", "cat", "aides", "chefs")] == \
+           ["nurs", "nurs", "nurs", "weld", "welder", "teacher", "dental", "cat", "aide", "chef"]

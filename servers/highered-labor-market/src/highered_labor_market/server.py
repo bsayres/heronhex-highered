@@ -172,9 +172,28 @@ async def get_occupation_outlook(soc: Soc) -> dict:
     return envelope([_entry(bls.SOURCE, L)], {"soc": soc, "outlook": out}, nulls, warnings)
 
 
+@mcp.tool(title="Find an occupation code", annotations={"title": "Find an occupation code", "readOnlyHint": True})
+async def search_occupations(keyword: Keyword, limit: Annotated[int, Field(ge=1, le=50)] = 20) -> dict:
+    """Find the SOC code of an occupation from words in its title (for example registered nurses, welders, or dental hygienists). Returns
+    each 6-digit SOC code and BLS's title, which is the code get_wages takes. A word matches its stem, so "nursing" finds "Registered Nurses".
+    Only detailed occupation titles in the BLS wage file are searched, not job descriptions, so an occupation can sit under a different name
+    than the one searched (nursing assistants, for example, are "Nursing Assistants" and "Orderlies")."""
+    try:
+        L = await _once("oews-st", lambda: oews.get(guard(), "st"), "The BLS wage file for states")
+    except UpstreamError as e:
+        raise _fail(e) from None
+    rows, total = oews.search_occupations(L.data["occupations"], keyword, limit)
+    nulls = [] if rows else [{"field": "occupations", "kind": "not_found", "reason": "No detailed occupation title in the BLS wage file contains all of these words. Try fewer or broader words."}]
+    warnings = ["Only titles are searched. BLS groups some jobs under broader titles, so also try a broader word."]
+    if total > len(rows):
+        warnings.append(f"{total} occupations match; {len(rows)} shown. Use more specific words or raise `limit` (max 50).")
+    return envelope([_entry(oews.SOURCE, L)], {"keyword": keyword, "columns": ["soc", "title"], "rows": [list(r) for r in rows], "total_matches": total}, nulls, warnings)
+
+
 @mcp.tool(title="Occupational wages by state or metro area", annotations={"title": "Occupational wages by state or metro area", "readOnlyHint": True})
 async def get_wages(soc: Soc, state: StateCode | None = None, area_code: AreaCode | None = None) -> dict:
-    """BLS Occupational Employment and Wage Statistics (OEWS) for one occupation (SOC 2018) in one state or one metropolitan area:
+    """What workers in an occupation earn in a state, or in the metropolitan area around an institution, from BLS Occupational Employment and Wage
+    Statistics (OEWS): for one occupation (SOC 2018 code; if you have only its name, find the code with search_occupations) in one state or one metropolitan area:
     employment, annual and hourly mean and median, annual 10th, 25th, 75th and 90th percentiles, and each estimate's relative
     standard error. Give exactly one of `state` (two letters) or `area_code` (the 5-digit CBSA code in an institution's `cbsa`, or
     a 7-digit nonmetropolitan code from search_metros).

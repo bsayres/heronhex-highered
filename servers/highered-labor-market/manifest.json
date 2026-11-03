@@ -15,6 +15,7 @@
     { "name": "get_occupation_outlook", "description": "BLS 2025-35 employment projections for an occupation." },
     { "name": "get_state_occupation_outlook", "description": "A state's own occupation projection beside the United States, from Projections Central." },
     { "name": "get_wages", "description": "BLS OEWS wages and employment for an occupation in a state or metropolitan area." },
+    { "name": "search_occupations", "description": "Find the SOC occupation code from words in the occupation title." },
     { "name": "search_metros", "description": "Find the BLS area code for a metropolitan or nonmetropolitan area by name." },
     { "name": "get_occupation_skills", "description": "O*NET skills, tasks and technologies for an occupation." },
     { "name": "get_program_outcomes", "description": "An institution's programs: awards and earnings (College Scorecard)." },

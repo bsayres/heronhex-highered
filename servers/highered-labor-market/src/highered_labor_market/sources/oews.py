@@ -174,3 +174,28 @@ def shape(row: list, columns: list[str], top: dict | None) -> tuple[dict, list[d
             else:
                 nulls.append({"field": path, "kind": "not_reported", "reason": "BLS left this cell blank (OEWS does not release every field for every occupation, for example hourly wages for occupations paid by the year)."})
     return out, nulls, floors
+
+
+def _stem(word: str) -> str:
+    """A light, disclosed stem so "nursing", "nurse" and "nurses" all find "Registered Nurses" and "Nursing Assistants": drop a trailing
+    "ing", then "s", then "e", while at least four letters remain."""
+    for ending in ("ing", "s", "e"):
+        if word.endswith(ending) and len(word) - len(ending) >= 4:
+            word = word[: -len(ending)]
+    return word
+
+
+def search_occupations(occupations: dict[str, str], keyword: str, limit: int) -> tuple[list[tuple[str, str]], int]:
+    """Detailed occupations whose title contains every word of `keyword` (case-insensitive, light stemming). Returns (rows, total matches)."""
+    words = [w for w in re.split(r"[^a-z0-9]+", keyword.lower()) if w]
+    if not words:
+        return [], 0
+    stems = [_stem(w) for w in words]
+    phrase = " ".join(words)
+    hits = []
+    for soc, title in occupations.items():
+        t = " ".join(re.split(r"[^a-z0-9]+", title.lower())).strip()
+        if all(st in t for st in stems):
+            hits.append(((0 if phrase in t else 1, 0 if t.startswith(stems[0]) else 1, title.lower(), soc), (soc, title)))
+    hits.sort(key=lambda h: h[0])
+    return [h[1] for h in hits[:limit]], len(hits)
