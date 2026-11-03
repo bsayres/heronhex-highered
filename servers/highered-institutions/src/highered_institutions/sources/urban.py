@@ -2,7 +2,7 @@
 from datetime import UTC, datetime
 
 from .. import cache
-from ..http import Guard, NotFound, UpstreamError
+from ..http import BULK_TIMEOUT, Guard, NotFound, UpstreamError
 
 BASE = "https://educationdata.urban.org/api/v1/college-university/ipeds"
 SOURCE = "IPEDS via Urban Institute Education Data Portal (ODC-By 1.0)"
@@ -20,7 +20,7 @@ async def _paged(guard: Guard, url: str, params: dict, max_bytes: int) -> tuple[
     rows: list = []
     first_url = None
     for _page in range(10):
-        data, public = await guard.get_json(url, params=params, max_bytes=max_bytes)
+        data, public = await guard.get_json(url, params=params, max_bytes=max_bytes, timeout=BULK_TIMEOUT)
         first_url = first_url or public
         rows.extend(data.get("results", []))
         nxt = data.get("next")
@@ -30,10 +30,10 @@ async def _paged(guard: Guard, url: str, params: dict, max_bytes: int) -> tuple[
     raise UpstreamError("Too many pages from Urban API.")
 
 
-async def _cached(guard: Guard, name: str, fetch) -> Cached:
-    """Quarterly cache. If a refresh fails, serve the stale copy and say so."""
+async def _cached(guard: Guard, name: str, fetch, ttl_days: int = cache.TTL_DAYS) -> Cached:
+    """Cache (quarterly for whole-year tables, a day for single-institution rows). If a refresh fails, serve the stale copy and say so."""
     hit = cache.read(name)
-    if hit and cache.is_fresh(hit["meta"]):
+    if hit and cache.is_fresh(hit["meta"], ttl_days):
         return Cached(hit["data"], hit["meta"], False)
     try:
         data, as_of, url = await fetch()
@@ -119,9 +119,27 @@ async def latest_finance_year(guard: Guard, directory_year: int) -> int:
 
 
 async def finance(guard: Guard, unitid: str, year: int) -> tuple[dict | None, str]:
-    """One institution's finance row for one year (small request, not cached)."""
-    data, url = await guard.get_json(f"{BASE}/finance/{year}/", {"unitid": unitid})
-    rows = data.get("results") or []
-    if not rows:
-        return None, url
-    return {k: rows[0].get(k) for k in FINANCE_FIELDS}, url
+    """One institution's finance row for one year (small request, cached for a day)."""
+    async def fetch():
+        data, url = await guard.get_json(f"{BASE}/finance/{year}/", {"unitid": unitid})
+        rows = data.get("results") or []
+        return ({k: rows[0].get(k) for k in FINANCE_FIELDS} if rows else None), f"IPEDS finance {year}", url
+
+    c = await _cached(guard, f"urban-finance-{unitid}-{year}.json", fetch, ttl_days=1)
+    return c.data, c.meta["source_url"]
+
+
+async def enrollment_one(guard: Guard, unitid: str, year: int) -> Cached:
+    """One institution's fall headcount (all students) for one year, as {unitid: value}. Uses the whole-year table when it is cached,
+    otherwise a single small request (cached for a day), so a first call does not download every institution's data."""
+    bulk = cache.read(f"urban-fall-enrollment-total-{year}.json")
+    if bulk and cache.is_fresh(bulk["meta"]):
+        return Cached({unitid: bulk["data"].get(unitid)}, bulk["meta"], False)
+
+    async def fetch():
+        params = {"unitid": unitid, "sex": 99, "race": 99, "ftpt": 99, "class_level": 99, "degree_seeking": 99}
+        data, url = await guard.get_json(f"{BASE}/fall-enrollment/{year}/99/", params)
+        mine = [r for r in data.get("results") or [] if str(r.get("unitid")) == unitid]
+        return {unitid: mine[0].get("enrollment_fall") if mine else None}, f"IPEDS fall enrollment {year}", url
+
+    return await _cached(guard, f"urban-enrollment-{unitid}-{year}.json", fetch, ttl_days=1)

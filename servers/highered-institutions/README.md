@@ -30,7 +30,9 @@ Environment: `COLLEGE_SCORECARD_API_KEY` (free, https://api.data.gov/signup; opt
 | `educationdata.urban.org` | IPEDS directory and fall enrollment (Urban Institute, ODC-By 1.0) | none |
 | `api.data.gov` | College Scorecard | free key in `X-Api-Key` header |
 
-HTTPS only; redirects only to these hosts; 30 s timeout; response size caps; 3 attempts with backoff; Urban paced at 1 request/second (its robots.txt crawl-delay). Urban is queried at most once per quarter per dataset (90-day cache); a refresh failure serves the stale copy with a warning.
+HTTPS only; redirects only to these hosts; 12 s timeout for small queries and 40 s between chunks for whole-file downloads; response size caps; 3 attempts with backoff; Urban paced at 1 request/second (its robots.txt crawl-delay). Whole-year Urban tables are queried at most once per quarter (90-day cache) and single-institution rows (finance, enrollment) at most once a day; a refresh failure serves the stale copy with a warning.
+
+First use and slow upstream: Urban's API sometimes stalls for tens of seconds. A tool call that needs several years fetches them at once and answers within 45 seconds. Years that have not arrived are returned as `source_unavailable` nulls and keep loading in the background (they are cached, so asking again shortly returns them). The first call that needs the national directory downloads it once (about 30 seconds); if that runs past 45 seconds the tool says so and the download finishes in the background.
 
 ## Data handling and terms
 - Cache: `~/.cache/highered-mcps/institutions/*.json`, with SHA-256, as-of, and retrieval time. Never inside the repo.

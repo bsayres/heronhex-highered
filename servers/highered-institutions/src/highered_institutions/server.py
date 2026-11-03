@@ -8,8 +8,8 @@ from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import Field
 
+from . import bounded, prompts
 from . import crosswalk as cw
-from . import prompts
 from .http import Guard, UpstreamError
 from .models import (
     Control,
@@ -66,7 +66,13 @@ def _stale_warning(*cs: urban.Cached) -> list[str]:
 async def _directory() -> tuple[cw.Index, urban.Cached, int]:
     """Returns (index, cache entry, latest ENROLLMENT year); directory year may be newer."""
     dyear = await urban.latest_year(guard())
-    c = await urban.directory(guard(), dyear)
+    res, errs, late = await bounded.run({"directory": (f"urban-directory-{dyear}.json", lambda: urban.directory(guard(), dyear))})
+    if late:
+        raise ToolError("The national IPEDS directory is being downloaded for the first time, which can take a minute or two. "
+                        "It keeps downloading in the background and is cached afterward, so ask again shortly.")
+    if errs:
+        raise errs["directory"]
+    c = res["directory"]
     year = await urban.latest_enrollment_year(guard(), dyear)
     key = c.meta["sha256"]
     if key not in _index_cache:
@@ -79,18 +85,32 @@ def _enr_value(v):
     return v if isinstance(v, int) and v >= 0 else None
 
 
-async def _enrollment_years(years: list[int]):
-    """year -> {unitid: headcount}; years that cannot be fetched map to None with a reason."""
+LATE = "IPEDS fall enrollment for this year was not retrieved within the time limit; it keeps loading in the background, so asking again shortly should return it."
+
+
+async def _enrollment_years(years: list[int], unitid: str | None = None):
+    """year -> {unitid: headcount}; years that cannot be fetched map to None with a reason. With `unitid`, each year is one small
+    request for that institution (fast on a first call); without it, each year is the whole-year table (peer ranking needs every
+    institution). The years are fetched at once under one deadline."""
+    if unitid is not None:
+        jobs = {y: (f"urban-enrollment-{unitid}-{y}.json", lambda y=y: urban.enrollment_one(guard(), unitid, y)) for y in years}
+    else:
+        jobs = {y: (f"urban-fall-enrollment-total-{y}.json", lambda y=y: urban.enrollment_totals(guard(), y)) for y in years}
+    results, _errs, late = await bounded.run(jobs)
     tables, metas, errors = {}, [], {}
     for y in years:
-        try:
-            c = await urban.enrollment_totals(guard(), y)
-            tables[y] = c.data
-            metas.append(c)
-        except UpstreamError:
+        if y in results:
+            tables[y] = results[y].data
+            metas.append(results[y])
+        else:
             tables[y] = None
-            errors[y] = "IPEDS fall enrollment for this year could not be retrieved."
+            errors[y] = LATE if y in late else "IPEDS fall enrollment for this year could not be retrieved."
     return tables, metas, errors
+
+
+def _late_warning(errors: dict) -> list[str]:
+    n = sum(1 for e in errors.values() if e == LATE)
+    return [f"{n} year(s) of IPEDS fall enrollment were not retrieved within the time limit and are shown as nulls; they keep loading in the background."] if n else []
 
 
 def _series(unitid: str, tables: dict, errors: dict) -> tuple[list[dict], list[dict]]:
@@ -229,14 +249,14 @@ async def get_enrollment_trend(unitid: UnitId, start_year: Year | None = None, e
     if r is None:
         raise ToolError("UNITID not found in the IPEDS directory.")
     s, e = _window(latest, start_year, end_year)
-    tables, metas, errs = await _enrollment_years(list(range(s, e + 1)))
+    tables, metas, errs = await _enrollment_years(list(range(s, e + 1)), unitid)
     rows, nulls = _series(unitid, tables, errs)
     data = {"unitid": unitid, "name": r["inst_name"], "columns": ["year", "enrollment_fall"], "rows": [[x["year"], x["enrollment_fall"]] for x in rows]}
     if not metas:
         raise UpstreamError("No enrollment data could be retrieved.")
     first = metas[0]
     srcs = [source_entry("IPEDS fall enrollment via Urban Institute (ODC-By 1.0)", first.meta["source_url"], f"IPEDS fall enrollment {s}-{e}", min(m.meta["retrieved_at"] for m in metas), sha256s=[m.meta["sha256"] for m in metas], served_stale_cache=any(m.stale for m in metas))]
-    return envelope(srcs, data, nulls, _stale_warning(*metas))
+    return envelope(srcs, data, nulls, _stale_warning(*metas) + _late_warning(errs))
 
 
 @mcp.tool(title="Compare with peer institutions", annotations={"title": "Compare with peer institutions", "readOnlyHint": True})
@@ -353,8 +373,15 @@ async def get_financial_snapshot(unitid: UnitId, years: Annotated[int, Field(ge=
     latest = await urban.latest_finance_year(guard(), dir_year)
     nulls, warnings, history, first_url = [], [], [], None
     data: dict = {"unitid": unitid, "name": r["inst_name"], "year": latest, "units": "US dollars (est_fte is a count)", "figures": None}
-    for year in range(latest, latest - years, -1):
-        row, url = await urban.finance(guard(), unitid, year)
+    span = list(range(latest, latest - years, -1))
+    got, errs, late = await bounded.run({y: (f"urban-finance-{unitid}-{y}.json", lambda y=y: urban.finance(guard(), unitid, y)) for y in span})
+    for year in span:
+        if year in late or year in errs:
+            nulls.append({"field": f"FY{year}", "kind": "source_unavailable", "reason": (
+                "The IPEDS finance request for this year did not finish within the time limit; it keeps loading in the background, so asking again shortly should return it."
+                if year in late else "The IPEDS finance request for this year failed.")})
+            continue
+        row, url = got[year]
         first_url = first_url or url
         if row is None:
             nulls.append({"field": f"FY{year}", "kind": "not_found", "reason": f"No IPEDS finance record for this UNITID in {year}. Some institutions report through a parent, or did not file."})
@@ -369,6 +396,9 @@ async def get_financial_snapshot(unitid: UnitId, years: Annotated[int, Field(ge=
         history.append([year, basis, figures["rev_total_current"], figures["exp_total_current"], figures["revenues_minus_expenses"],
                         figures["net_position_or_net_assets_end"], figures["rev_appropriations_state"], figures["rev_tuition_fees_net"],
                         figures["rev_capital_approps"], figures["est_fte"]])
+    if late or errs:
+        warnings.append(f"{len(late) + len(errs)} of {len(span)} finance year(s) are missing (see nulls); the rest are as reported. "
+                        "A year that timed out keeps loading and is cached for a day.")
     if years > 1:
         history.sort()
         data["history"] = {"columns": ["year", "basis", "total_revenues", "total_expenses", "revenues_minus_expenses", "net_position_or_net_assets_end",

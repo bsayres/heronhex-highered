@@ -21,6 +21,9 @@ ALLOWED_HOSTS = frozenset(
 MAX_REDIRECTS = 3
 MAX_ATTEMPTS = 3
 RETRY_STATUS = {429, 500, 502, 503, 504}
+# Small queries get a short timeout so a stalled request is retried quickly; whole-file downloads get a longer one (it limits the gap between chunks).
+DEFAULT_TIMEOUT = 12.0
+BULK_TIMEOUT = 40.0
 # Urban's robots.txt asks for Crawl-delay: 1.
 MIN_INTERVAL = {"educationdata.urban.org": 1.0}
 
@@ -65,7 +68,7 @@ class Guard:
             transport=transport,
             follow_redirects=False,
             verify=True,
-            timeout=httpx.Timeout(30.0),
+            timeout=httpx.Timeout(DEFAULT_TIMEOUT, connect=5.0),
             headers={"User-Agent": "highered-mcps/0.1 (+https://github.com/; read-only MCP)"},
         )
         self._allowed = allowed
@@ -91,13 +94,14 @@ class Guard:
         headers: dict | None = None,
         max_bytes: int = 5_000_000,
         attempts: int = MAX_ATTEMPTS,
+        timeout: float | None = None,
     ) -> tuple[object, str]:
         """GET and parse JSON. Returns (data, public_url). Secrets belong in `headers` only."""
         public_url = str(httpx.URL(url).copy_merge_params(params or {}))
         current = public_url
         for _hop in range(MAX_REDIRECTS + 1):
             host = check_url(current, self._allowed)
-            resp = await self._fetch(current, headers, host, max_bytes, min(attempts, MAX_ATTEMPTS))
+            resp = await self._fetch(current, headers, host, max_bytes, min(attempts, MAX_ATTEMPTS), timeout)
             if resp.is_redirect:
                 current = str(httpx.URL(current).join(resp.location))
                 continue
@@ -111,13 +115,13 @@ class Guard:
                 raise UpstreamError(f"{host} returned a non-JSON response.") from None
         raise UpstreamError("Too many redirects.")
 
-    async def _fetch(self, url, headers, host, max_bytes, attempts) -> "_Result":
+    async def _fetch(self, url, headers, host, max_bytes, attempts, timeout=None) -> "_Result":
         for attempt in range(attempts):
             if attempt:
                 await asyncio.sleep(self._backoff * 2 ** (attempt - 1))
             await self._pace(host)
             try:
-                async with self._client.stream("GET", url, headers=headers) as r:
+                async with self._client.stream("GET", url, headers=headers, **({"timeout": httpx.Timeout(timeout, connect=5.0)} if timeout else {})) as r:
                     declared = r.headers.get("content-length")
                     if declared and declared.isdigit() and int(declared) > max_bytes:
                         raise UpstreamError("Upstream response exceeds the size limit.")

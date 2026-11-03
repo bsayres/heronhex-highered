@@ -24,6 +24,7 @@ Format follows Keep a Changelog. Versions are not yet released to PyPI; every se
 - `get_title_iv_status` quotes the cohort default rate sanction rule (34 CFR 668.206(a)) in a `reference` block; `get_audit_findings` returns `auditee_ein` and `auditee_uei` and warns when the rows under one identifier belong to more than one auditee; both accreditation tools return `action_history` and records carry a `review_date_note` when a current record's review date is over five years past.
 - `search_funding_opportunities` and `search_grant_awards`: clearer filter and truncation warnings, a note on close dates years away, and HTML entities in titles decoded to plain text.
 - All five server skills, the `institution-brief` skill and the `institution_brief` prompt: shared answer rules (lead with what the figures are, label anything a tool did not return, show arithmetic, name both years when comparing sources, no lookups of named people, UEI first for audits).
+- `highered-institutions` reliability: single-institution Urban rows are cached for a day, years are fetched at once, small requests time out after 12 s and retry, a tool call answers within 45 seconds with partial results and unfinished work keeps loading in the background, and `get_enrollment_trend` asks for one institution instead of downloading every institution on a first call (cold-cache time 84 s to about 10 s).
 
 ### Fixed
 - A superseded accreditation record could be read as a loss; each record now carries its last recorded action.

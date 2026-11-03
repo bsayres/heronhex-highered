@@ -2,6 +2,7 @@
 import pytest
 from mcp.server.mcpserver.exceptions import ToolError
 
+from highered_institutions import cache
 from highered_institutions import server as s
 
 
@@ -107,6 +108,7 @@ async def test_financial_snapshot_history_shows_the_trend_and_never_nets_out_cap
     assert any("not netted out" in w for w in r["warnings"]) and not any("excluding" in k for k in r["data"]["figures"])
     assert r["as_of"] == "IPEDS finance surveys 2021-2023"
     upstream.finance["2022"].pop("999001")
+    cache.safe_path("urban-finance-999001-2022.json").unlink()  # finance rows are cached for a day; drop it to see the changed upstream
     r = await s.get_financial_snapshot("999001", years=3)
     assert [row[0] for row in r["data"]["history"]["rows"]] == [2021, 2023] and any(n["field"] == "FY2022" for n in r["nulls"])
 
