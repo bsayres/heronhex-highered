@@ -8,6 +8,7 @@ module does not query).
 import calendar
 import os
 import re
+import unicodedata
 from datetime import date, timedelta
 
 from ..http import Guard, UpstreamError
@@ -172,3 +173,36 @@ async def fetch(guard: Guard, *, ein: str | None, uei: str | None, years: int) -
             "finding_count": len(fs), "findings": fs,
         })
     return {"audits": audits, "url": url, "truncated": truncated, "dropped_bad_ids": dropped, "matched_by": key}
+
+
+REF_RE = re.compile(r"^[0-9]{4}-[0-9]{3}\Z")
+TEXT_CAP = 6000  # characters kept per narrative
+_CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+
+
+def clean_text(value) -> tuple[str | None, bool]:
+    """Plain text from an upstream narrative: control and invisible formatting characters removed, blank runs collapsed, capped.
+    Returns (text, truncated). The text is still untrusted; it is never put in markup."""
+    if not isinstance(value, str) or not value.strip():
+        return None, False
+    t = "".join(c for c in value.replace("\r\n", "\n").replace("\r", "\n") if unicodedata.category(c) != "Cf")
+    t = _CONTROL.sub("", t)
+    t = re.sub(r"[ \t]{2,}", " ", t)
+    t = re.sub(r"\n[ \t]*(?:\n[ \t]*){2,}", "\n\n", t).strip()
+    if len(t) > TEXT_CAP:
+        return t[:TEXT_CAP].rstrip() + " [cut]", True
+    return t, False
+
+
+async def narratives(guard: Guard, report_id: str, ref: str | None, limit: int) -> dict:
+    """The auditor's finding text and the auditee's planned corrective action for one report. Exact report id (and optional finding)."""
+    if not REPORT_ID_RE.match(report_id) or (ref is not None and not REF_RE.match(ref)):
+        raise UpstreamError("Invalid report id or finding reference.")
+    general, url = await _get(guard, "general", {
+        "report_id": f"eq.{report_id}", "select": "report_id,auditee_name,audit_year,fy_end_date,fac_accepted_date", "limit": "1"})
+    base = {"report_id": f"eq.{report_id}", "order": "finding_ref_number", "limit": str(limit + 1)}
+    if ref:
+        base["finding_ref_number"] = f"eq.{ref}"
+    texts, _ = await _get(guard, "findings_text", {**base, "select": "finding_ref_number,finding_text,contains_chart_or_table"})
+    plans, _ = await _get(guard, "corrective_action_plans", {**base, "select": "finding_ref_number,planned_action,contains_chart_or_table"})
+    return {"report": general[0] if general else None, "texts": texts, "plans": plans, "url": url}

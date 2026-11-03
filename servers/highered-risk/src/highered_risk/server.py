@@ -1,13 +1,24 @@
 """highered-risk MCP server (read-only): Title IV risk signals from FSA public files."""
 import logging
 import sys
-from typing import Annotated  # noqa: F401
+from typing import Annotated
 
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
+from pydantic import Field
 
 from .http import Guard, UpstreamError
-from .models import AuditYears, Ein, Opeid, Uei, envelope, now, source_entry
+from .models import (
+    AuditYears,
+    Ein,
+    FindingRef,
+    Opeid,
+    ReportId,
+    Uei,
+    envelope,
+    now,
+    source_entry,
+)
 from .sources import fac, fsa
 
 logging.basicConfig(stream=sys.stderr, level=logging.WARNING, format="%(levelname)s %(message)s")
@@ -105,8 +116,8 @@ async def get_audit_findings(ein: Ein | None = None, uei: Uei | None = None, yea
     say which opinion it refers to; the financial statement opinion is gaap_opinion.
 
     Matches are exact on the identifier; there is no name search. A public college can report an EIN shared with
-    a state or system, in which case an EIN lookup returns that parent's audit; a UEI lookup returns the college's own. Finding narratives are not returned;
-    open report_url for them. Some public institutions are audited inside a state or system-wide audit
+    a state or system, in which case an EIN lookup returns that parent's audit; a UEI lookup returns the college's own. Finding narratives are not returned here;
+    get_finding_text returns them for one report, and report_url opens the full report. Some public institutions are audited inside a state or system-wide audit
     under a different identifier, so an empty result does not mean there was no audit."""
     if (ein is None) == (uei is None):
         raise ToolError("Provide exactly one of ein or uei.")
@@ -146,6 +157,65 @@ async def get_audit_findings(ein: Ein | None = None, uei: Uei | None = None, yea
             "audits": r["audits"]}
     t = now()
     return envelope([source_entry(fac.SOURCE, r["url"], f"submissions accepted through {max((a['fac_accepted'] or '' for a in r['audits']), default='') or 'n/a'}", t)], data, nulls, warnings)
+
+
+@mcp.tool(title="Single Audit finding text", annotations={"title": "Single Audit finding text", "readOnlyHint": True})
+async def get_finding_text(report_id: ReportId, reference_number: FindingRef | None = None, limit: Annotated[int, Field(ge=1, le=10, description="Findings to return, in reference order (default 5)")] = 5) -> dict:
+    """The written narrative for findings in one Single Audit report, from the FAC findings_text table (what the auditor found: condition,
+    criteria, cause, effect, recommendation), and the auditee's planned corrective action for the same finding, from the FAC corrective_action_plans
+    table. Give the `report_id` from get_audit_findings, and optionally one `reference_number` such as 2024-003; otherwise the first `limit`
+    findings are returned.
+
+    Both texts are free text written by the auditor and the auditee. They can name staff, and this server cannot filter that. Each is
+    cut at 6,000 characters (`truncated` says so), control and invisible formatting characters are removed, and charts or tables in the
+    original are not included (`contains_chart_or_table` says so). Matches are exact on the report id; there is no search by text or name."""
+    try:
+        r = await fac.narratives(guard(), report_id, reference_number, limit)
+    except UpstreamError as e:
+        raise ToolError(f"{e} {fac.DEMO_NOTE}" if fac.using_demo_key() else str(e)) from None
+    nulls, warnings = [], [fac.DEMO_NOTE] if fac.using_demo_key() else []
+    rep = r["report"]
+    if rep is None:
+        raise ToolError("No FAC report matches this report id.")
+    by_text, by_plan = {}, {}
+    for row in r["texts"]:
+        by_text.setdefault(row.get("finding_ref_number"), row)
+    for row in r["plans"]:
+        by_plan.setdefault(row.get("finding_ref_number"), row)
+    refs = sorted({k for k in (*by_text, *by_plan) if isinstance(k, str) and fac.REF_RE.match(k)})
+    more = len(refs) > limit
+    refs = refs[:limit]
+    findings, truncated, charts = [], 0, 0
+
+    def block(row: dict | None, field: str, ref: str, label: str):
+        nonlocal truncated, charts
+        text, cut = fac.clean_text(None if row is None else row.get(field))
+        if text is None:
+            nulls.append({"field": f"{label}[{ref}]", "kind": "not_found", "reason": f"FAC has no {label.replace('_', ' ')} for finding {ref} in this report."})
+            return None
+        flag = row.get("contains_chart_or_table") == "Y"
+        truncated += cut
+        charts += flag
+        return {"text": text, "truncated": cut, "contains_chart_or_table": flag}
+
+    for ref in refs:
+        findings.append({"reference_number": ref, "finding_text": block(by_text.get(ref), "finding_text", ref, "finding_text"),
+                         "auditee_corrective_action": block(by_plan.get(ref), "planned_action", ref, "corrective_action")})
+    if not refs:
+        nulls.append({"field": "findings", "kind": "not_found", "reason": "FAC has no finding text or corrective action plan for this report" +
+                      (f" and finding {reference_number}." if reference_number else ". The report may have no findings, or older reports may not carry the text.")})
+    if more:
+        warnings.append(f"More findings have text than the {limit} returned; pass a reference_number or raise `limit` (up to 10).")
+    if truncated:
+        warnings.append(f"{truncated} text(s) were cut at {fac.TEXT_CAP} characters; the full text is in the report at report_url.")
+    if charts:
+        warnings.append(f"{charts} text(s) say the original contains a chart or table, which FAC does not return as text.")
+    if findings:
+        warnings.append("These texts are written by the auditor and the auditee and may include staff names; this server does not filter free text.")
+    data = {"report_id": report_id, "auditee_name": rep.get("auditee_name"), "audit_year": rep.get("audit_year"), "fy_end": rep.get("fy_end_date"),
+            "fac_accepted": rep.get("fac_accepted_date"), "report_url": fac.REPORT_URL.format(report_id), "returned": len(findings), "findings": findings}
+    t = now()
+    return envelope([source_entry(fac.SOURCE, r["url"], f"report accepted {rep.get('fac_accepted_date') or 'n/a'}", t)], data, nulls, warnings)
 
 
 def main() -> None:

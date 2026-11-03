@@ -5,6 +5,7 @@ Format follows Keep a Changelog. Versions are not yet released to PyPI; every se
 ## [Unreleased]
 
 ### Added
+- `get_finding_text` (risk): opt-in FAC finding narratives and the auditee's corrective action plan for one report; exact report id, capped and cleaned text, untrusted-text notice, names warning.
 - `highered-accreditation` server (DAPIP status and actions, programmatic and state-board records, `last_action` per record).
 - `search_programs` (labor-market): find a CIP code from plain words, from the cached NCES crosswalk.
 - `find_program_offerings` (labor-market): who else offers a program at a credential level, optional state, ranked by awards with ties; incomplete lists are marked and unranked.

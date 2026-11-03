@@ -8,6 +8,8 @@ Opeid = Annotated[str, Field(pattern=r"^[0-9]{8}$", description="8-digit OPEID (
 
 Ein = Annotated[str, Field(pattern=r"^[0-9]{9}$", description="9-digit EIN, digits only")]
 Uei = Annotated[str, Field(pattern=r"^[A-Z0-9]{12}$", description="12-character SAM.gov Unique Entity ID")]
+ReportId = Annotated[str, Field(pattern=r"^[0-9]{4}-[0-9]{2}-(GSAFAC|CENSUS)-[0-9]{10}$", description="FAC report id from get_audit_findings, for example 2024-06-GSAFAC-0000417646")]
+FindingRef = Annotated[str, Field(pattern=r"^[0-9]{4}-[0-9]{3}$", description="Finding reference number, for example 2024-003")]
 AuditYears = Annotated[int, Field(ge=1, le=10, description="How many of the most recent audit submissions to return (default 3)")]
 
 DISCLAIMER = (

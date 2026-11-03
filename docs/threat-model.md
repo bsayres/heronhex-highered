@@ -20,6 +20,7 @@
 ## Additions for highered-funding (Milestone 3)
 | Risk | Control |
 |---|---|
+| FAC finding narratives and corrective-action text are free text and can name staff; the structured audit tool never fetches them | `get_finding_text` is a separate opt-in tool: exact report id only (strict pattern), no name or text search, three fields requested, each text capped at 6,000 characters and stripped of control and invisible formatting characters, returned as labeled data with the untrusted-text notice, and every response warns that names may appear; tested with an injection string and control characters in the mock |
 | Upstream returns personal data we did not ask for (NSF returns PI, co-PI and program-officer names, emails, phones for every award and ignores field selection) | Fixed projection to award fields in code; person fields dropped before anything is returned; tested with person data in the mock |
 | POST-capable client widens the attack surface | POST only to `api.reporter.nih.gov` and `api.grants.gov`, checked before the request; redirects never followed on POST; bodies built from validated inputs only |
 | Upstream filter fails open (NIH returns everything for an unknown criterion) | The server never trusts a server-side filter for identity: every NIH row's own `org_ueis` is checked against the institution's UEIs; truncation and "nothing verified" are reported |
