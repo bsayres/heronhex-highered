@@ -30,6 +30,8 @@ File URLs are **discovered from the pages' own link lists, never guessed**, and 
 - Files are downloaded on demand (25 MB cap, zip-bomb check), parsed in memory with read-only parsers (`openpyxl`, `xlrd`), and cached as compact JSON under `~/.cache/highered-mcps/risk/` with the source file's SHA-256 and as-of date. HCM refreshes after 30 days, others after 90; if a refresh fails the stale copy is served with a warning.
 - Nothing downloaded is executed or extracted to disk.
 
+First use: the first call that needs a bulk file downloads it once (about 20 seconds here) and caches it. A tool call answers within 45 seconds: sections or years that have not arrived are returned as `source_unavailable` nulls and keep downloading in the background, so asking again shortly returns them. Two calls that need the same file share one download.
+
 ## Personal data
 FAC's `general` table includes contact names, emails and phone numbers for auditee and auditor staff. The server requests an explicit field list that excludes them, so they are never fetched or returned. Search is by EIN or UEI only, never by name. `get_finding_text` is the exception to what the structured tool leaves out: the narratives are free text written by the auditor and the auditee, and they can name staff. The server cannot filter names out of free text, so the tool is opt-in, takes only a report id (never a name or a text search), returns each text capped and cleaned, and says in every response that names may appear.
 

@@ -5,6 +5,7 @@ import sys
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 
+from . import bounded
 from .http import Guard, UpstreamError
 from .models import Limit, Scope, SinceYear, Unitid, envelope, source_entry
 from .sources import dapip
@@ -38,9 +39,19 @@ def guard() -> Guard:
 
 async def _load() -> dapip.Loaded:
     try:
-        return await dapip.load(guard())
+        return await _once("dapip-load", lambda: dapip.load(guard()), "The Department of Education accreditation database (DAPIP)")
     except UpstreamError as e:
         raise ToolError(str(e)) from None
+
+
+async def _once(name: str, make, what: str):
+    """One bulk download under the shared deadline: on a first call that runs long, say so and let it finish in the background."""
+    res, errs, late = await bounded.run({"x": (name, make)})
+    if late:
+        raise ToolError(f"{what} is being downloaded for the first time, which can take a minute. It keeps downloading in the background and is cached afterward, so ask again shortly.")
+    if errs:
+        raise errs["x"]
+    return res["x"]
 
 
 def _entry(c: dapip.Loaded) -> dict:

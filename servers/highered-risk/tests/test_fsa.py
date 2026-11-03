@@ -2,6 +2,7 @@ import json
 
 import httpx
 import pytest
+from mcp.server.mcpserver.exceptions import ToolError
 
 from highered_risk import cache, server
 from highered_risk.http import Guard, UpstreamError
@@ -98,8 +99,40 @@ def test_parsers_reject_garbage_and_bombs():
 
 async def test_oversized_download_rejected(upstream):
     upstream.files[HCM_PATH] = b"0" * (fsa.MAX_FILE_BYTES + 10)
-    with pytest.raises(UpstreamError, match="size limit"):
+    r = await server.get_title_iv_status("00100200")  # the oversized file is refused; the other two sections are still returned
+    n = next(x for x in r["nulls"] if x["field"] == "heightened_cash_monitoring")
+    assert n["kind"] == "source_unavailable" and "size limit" in n["reason"] and r["data"]["heightened_cash_monitoring"] is None
+    assert r["data"]["cohort_default_rates"] is not None and any("1 of the 3" in w for w in r["warnings"])
+    for k in (HCM_PATH, COMP_PATH, CDR_PATH):
+        upstream.files[k] = b"0" * (fsa.MAX_FILE_BYTES + 10)
+    cache.safe_path("fsa-cdr.json").unlink()
+    cache.safe_path("fsa-composite.json").unlink()
+    with pytest.raises(ToolError, match="None of the three"):
         await server.get_title_iv_status("00100200")
+
+
+async def test_a_file_that_is_slow_to_download_leaves_a_null_while_the_others_are_returned(upstream, monkeypatch):
+    import asyncio
+
+    from highered_risk import bounded
+
+    monkeypatch.setattr(bounded, "DEADLINE", 0.2)
+    real = fsa.composite
+
+    async def slow(g):
+        await asyncio.sleep(0.5)
+        return await real(g)
+
+    monkeypatch.setattr(fsa, "composite", slow)
+    r = await server.get_title_iv_status("09990100")
+    n = next(x for x in r["nulls"] if x["field"] == "financial_responsibility")
+    assert n["kind"] == "source_unavailable" and "time limit" in n["reason"]
+    assert r["data"]["heightened_cash_monitoring"]["listed"] is False  # the two quick files were read
+    assert [x["field"] for x in r["nulls"] if x["kind"] == "source_unavailable"] == ["financial_responsibility"]
+    await asyncio.sleep(0.6)  # it finishes in the background and is cached
+    monkeypatch.setattr(fsa, "composite", real)
+    later = await server.get_title_iv_status("09990100")
+    assert not [x for x in later["nulls"] if x["kind"] == "source_unavailable"]
 
 
 async def test_disallowed_host_and_redirects():

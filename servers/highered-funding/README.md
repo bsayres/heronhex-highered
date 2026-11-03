@@ -54,3 +54,5 @@ Award titles, program names, opportunity titles and institution names come from 
 - The Grants.gov tool searches current and forecasted opportunities only.
 
 <!-- mcp-name: io.github.bsayres/highered-funding -->
+
+First use: the first call that needs a bulk file downloads it once (about 20 seconds here) and caches it. A tool call answers within 45 seconds: sections or years that have not arrived are returned as `source_unavailable` nulls and keep downloading in the background, so asking again shortly returns them. Two calls that need the same file share one download.

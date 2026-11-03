@@ -7,6 +7,7 @@ from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import Field
 
+from . import bounded
 from .http import Guard, UpstreamError
 from .models import (
     AuditYears,
@@ -68,18 +69,35 @@ async def get_title_iv_status(opeid: Opeid) -> dict:
     OPEID, so they cover every campus sharing that prefix. Each section has its own source and as_of. `reference` quotes the
     federal default-rate sanction rule with its citation; it is the rule's text, not a finding about the institution."""
     o6 = opeid[:6]
-    h, comp, c = await fsa.hcm(guard()), await fsa.composite(guard()), await fsa.cdr(guard())
+    got, errs, late = await bounded.run({k: (f"fsa-{k}", lambda f=f: f(guard())) for k, f in (("hcm", fsa.hcm), ("composite", fsa.composite), ("cdr", fsa.cdr))})
+    if not got:
+        raise ToolError("None of the three FSA files could be loaded: " + ("; ".join(f"{k}: {errs[k]}" for k in errs) or "they are still downloading for the first time; ask again shortly."))
+    h, comp, c = got.get("hcm"), got.get("composite"), got.get("cdr")
     nulls, warnings = [], []
+    labels = {"hcm": ("heightened_cash_monitoring", "Heightened Cash Monitoring list"), "composite": ("financial_responsibility", "composite score file"),
+              "cdr": ("cohort_default_rates", "cohort default rate file")}
+    for k, (field, what) in labels.items():
+        if k not in got:
+            nulls.append({"field": field, "kind": "source_unavailable", "reason": (
+                f"The FSA {what} did not finish downloading within the time limit; it keeps downloading and is cached, so asking again shortly should return it."
+                if k in late else f"The FSA {what} could not be loaded: {errs.get(k)}")})
+    if nulls:
+        warnings.append(f"{len(nulls)} of the 3 FSA sections are missing (see nulls); the others are as published.")
 
-    hrows = [r for r in h.data["rows"] if r["opeid"] == opeid]
-    sib_h = [r for r in h.data["rows"] if r["opeid"][:6] == o6 and r["opeid"] != opeid]
-    hcm_out = {"listed": bool(hrows), "entries": hrows, "as_of": h.data["as_of"],
-               "other_campuses_same_opeid6_listed": sib_h}
-    if sib_h:
-        warnings.append("Other campuses sharing this OPEID6 are on the HCM list; check whether they belong to the same institution.")
+    if h is not None:
+        hrows = [r for r in h.data["rows"] if r["opeid"] == opeid]
+        sib_h = [r for r in h.data["rows"] if r["opeid"][:6] == o6 and r["opeid"] != opeid]
+        hcm_out = {"listed": bool(hrows), "entries": hrows, "as_of": h.data["as_of"],
+                   "other_campuses_same_opeid6_listed": sib_h}
+        if sib_h:
+            warnings.append("Other campuses sharing this OPEID6 are on the HCM list; check whether they belong to the same institution.")
+    else:
+        hcm_out = None
 
-    crow = [r for r in comp.data["rows"] if r["opeid"] == opeid]
-    if crow:
+    crow = [r for r in comp.data["rows"] if r["opeid"] == opeid] if comp is not None else []
+    if comp is None:
+        comp_out = None
+    elif crow:
         comp_out = {**crow[0], "period": comp.data["period"], "data_source_as_of": comp.data["data_source_as_of"]}
     else:
         comp_out = None
@@ -87,11 +105,13 @@ async def get_title_iv_status(opeid: Opeid) -> dict:
             f"OPEID not in the composite score file for fiscal years {comp.data['period']}. The file covers private nonprofit and proprietary "
             "institutions only (public institutions are not scored), and scores publish with a lag. A private institution can also be missing from a "
             "year's file for reasons the file does not state; do not read the absence as good or bad, and check the institution's audited financial statements.")})
-    if comp.data["period"] and "2022" in comp.data["period"]:
+    if comp is not None and comp.data["period"] and "2022" in comp.data["period"]:
         warnings.append(f"Latest published composite scores are for fiscal years {comp.data['period']}; they lag the present.")
 
-    drows = [r for r in c.data["rows"] if r["opeid6"] == o6]
-    if drows:
+    drows = [r for r in c.data["rows"] if r["opeid6"] == o6] if c is not None else []
+    if c is None:
+        cdr_out = None
+    elif drows:
         cdr_out = {"opeid6": o6, "latest_cohort_fy": c.data["latest_cohort_fy"], "rates_unit": "percent",
                    "join_level": "opeid6 (all campuses sharing this 6-digit OPEID)", "entries": drows}
     else:
@@ -100,10 +120,11 @@ async def get_title_iv_status(opeid: Opeid) -> dict:
 
     data = {"opeid": opeid, "opeid6": o6, "heightened_cash_monitoring": hcm_out,
             "financial_responsibility": comp_out, "cohort_default_rates": cdr_out, "reference": {"cohort_default_rate_sanction_rule": CDR_RULE}}
-    stale = [x for x in (h, comp, c) if x.stale]
+    stale = [x for x in (h, comp, c) if x is not None and x.stale]
     if stale:
         warnings.append("An FSA refresh failed; served a cached copy past its refresh interval.")
-    return envelope([_entry(fsa.SRC_HCM, h), _entry(fsa.SRC_COMPOSITE, comp), _entry(fsa.SRC_CDR, c)], data, nulls, warnings)
+    entries = [_entry(src, x) for src, x in ((fsa.SRC_HCM, h), (fsa.SRC_COMPOSITE, comp), (fsa.SRC_CDR, c)) if x is not None]
+    return envelope(entries, data, nulls, warnings)
 
 
 @mcp.tool(title="Single Audit findings", annotations={"title": "Single Audit findings", "readOnlyHint": True})

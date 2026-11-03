@@ -8,6 +8,7 @@ from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import Field
 
+from . import bounded
 from .http import Guard, UpstreamError
 from .models import (
     STATE_NAMES,
@@ -55,6 +56,16 @@ def _entry(label: str, c) -> dict:
     return source_entry(label, m["source_url"], m["as_of"], m["retrieved_at"], file_sha256=m.get("file_sha256"), served_stale_cache=c.stale)
 
 
+async def _once(name: str, make, what: str):
+    """One bulk download under the shared deadline: on a first call that runs long, say so and let it finish in the background."""
+    res, errs, late = await bounded.run({"x": (name, make)})
+    if late:
+        raise ToolError(f"{what} is being downloaded for the first time, which can take a minute. It keeps downloading in the background and is cached afterward, so ask again shortly.")
+    if errs:
+        raise errs["x"]
+    return res["x"]
+
+
 def _us_date(s: str | None, field: str) -> str | None:
     if s is None:
         return None
@@ -80,12 +91,14 @@ async def get_research_spend(unitid: UnitId, years: Annotated[int, Field(ge=1, l
     wanted = [y for y in range(latest - years + 1, latest + 1) if y in avail]
     cols = ["year", "form", "federal", "state_local", "business", "nonprofit", "institution", "other", "total", "imputed"]
     rows, nulls, warnings, sources, name, unmatched = [], [], [], [], None, []
+    got, errs, late = await bounded.run({y: (f"herd-{y}.json", lambda y=y: herd.year(guard(), y)) for y in wanted})
     for y in reversed(wanted):
-        try:
-            L = await herd.year(guard(), y)
-        except UpstreamError as e:
-            nulls.append({"field": f"FY{y}", "kind": "source_unavailable", "reason": str(e)})
+        if y in late or y in errs:
+            nulls.append({"field": f"FY{y}", "kind": "source_unavailable", "reason": (
+                f"The HERD file for FY{y} did not finish downloading within the time limit; it keeps downloading and is cached, so asking again shortly should return it."
+                if y in late else (str(errs[y]) if isinstance(errs[y], UpstreamError) else "The HERD file for this year could not be read."))})
             continue
+        L = got[y]
         sources.append(_entry(herd.SOURCE, L))
         rec = L.data["institutions"].get(unitid)
         if y == latest:
@@ -230,7 +243,7 @@ async def get_state_funding(state: StateCode, start_fy: Year | None = None, end_
     institution-level funding. Dollars are unadjusted; divide by an adjustment factor (HECA, COLI, EMI or CPI, returned
     per row) for real dollars, applying only one inflation adjustment."""
     try:
-        L = await sheeo.load(guard())
+        L = await _once("sheeo-load", lambda: sheeo.load(guard()), "The SHEEO state finance file")
     except UpstreamError as e:
         raise ToolError(str(e)) from None
     name = STATE_NAMES[state]
@@ -272,7 +285,7 @@ async def get_enrollment_projection(
     not an enrollment forecast for any institution. Each row says whether it is reported, estimated or projected.
     Licensed CC BY-NC-SA 4.0 (non-commercial, share-alike): cite WICHE and respect the license when reusing."""
     try:
-        L = await wiche.load(guard())
+        L = await _once("wiche-load", lambda: wiche.load(guard()), "The WICHE projections file")
     except UpstreamError as e:
         raise ToolError(str(e)) from None
     series = (((L.data.get(state) or {}).get(sector) or {}).get(race_ethnicity)) or {}
