@@ -36,3 +36,17 @@ def test_field_names_the_skills_use_exist_in_the_servers(name, server):
     skill = (ROOT / "servers" / server / "SKILL.md").read_text()
     code = "".join(f.read_text() for f in (ROOT / "servers" / server / "src").rglob("*.py"))
     assert name in skill and name in code
+
+
+@pytest.mark.parametrize("server", ["institutions", "risk", "accreditation", "funding", "labor-market"])
+def test_each_server_says_what_questions_it_covers(server):
+    """The host routes a question to a server from its instructions and tool descriptions, so each says in plain words what it covers."""
+    text = (ROOT / "servers" / f"highered-{server}" / "src" / f"highered_{server.replace('-', '_')}" / "server.py").read_text()
+    block = text[text.index("instructions=("):text.index("),\n)", text.index("instructions=("))]
+    assert "Covers:" in block and len(block) < 1400
+
+
+def test_the_wage_server_names_wages_and_the_institutions_server_names_retention():
+    root = ROOT / "servers"
+    assert "what workers in an occupation earn" in (root / "highered-labor-market/src/highered_labor_market/server.py").read_text()
+    assert "retention" in (root / "highered-institutions/src/highered_institutions/server.py").read_text().split("instructions=(")[1][:900]
