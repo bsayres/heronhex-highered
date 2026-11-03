@@ -13,7 +13,7 @@ Servers: `highered-institutions`, `highered-risk`, `highered-accreditation`, `hi
 
 1. **Pin the institution.** `resolve_institution(query)`. If more than one match, show the top matches (name, city, state, control) and ask which. Keep `unitid`, `opeid`, `ein`, `uei` and `state` from the result. If an identifier is null, that section will be null: say so.
 2. **Profile.** `get_institution_profile(unitid)`: report the fields the response gives (control, level, location and similar), and nothing beyond them.
-3. **Enrollment.** `get_enrollment_trend(unitid)`.
+3. **Enrollment and retention.** `get_enrollment_trend(unitid)` and `get_retention(unitid, years=5)` (fall-to-fall retention of first-time degree-seeking students; quote the rate with its cohort, e.g. "42 of 108", and the fall year; it is not a graduation rate).
 4. **Finance.** `get_financial_snapshot(unitid, years=2)`.
 5. **Peers.** `compare_peers(unitid, n_peers=5)`. Offer `scope="same_state"` if the national peers look unlike the user's idea of peers. `same_system` can be refused when no system is recorded: report that, do not substitute.
 6. **Federal risk.** `get_title_iv_status(opeid)` (heightened cash monitoring, financial responsibility composite score, cohort default rate) and `get_audit_findings(uei=...)` (Single Audits; pass the UEI, or the EIN only if there is no UEI, never both. A public college can report a state or system EIN shared with other agencies, so an EIN lookup may return another entity's audit; check `auditee_name`).

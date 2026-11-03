@@ -16,6 +16,7 @@ ALLOWED_HOSTS = frozenset(
     {
         "educationdata.urban.org",
         "api.data.gov",
+        "nces.ed.gov",
     }
 )
 MAX_REDIRECTS = 3
@@ -25,7 +26,7 @@ RETRY_STATUS = {429, 500, 502, 503, 504}
 DEFAULT_TIMEOUT = 12.0
 BULK_TIMEOUT = 40.0
 # Urban's robots.txt asks for Crawl-delay: 1.
-MIN_INTERVAL = {"educationdata.urban.org": 1.0}
+MIN_INTERVAL = {"educationdata.urban.org": 1.0, "nces.ed.gov": 1.0}
 
 
 class _Result:
@@ -113,6 +114,30 @@ class Guard:
                 return json.loads(resp.content), public_url
             except ValueError:
                 raise UpstreamError(f"{host} returned a non-JSON response.") from None
+        raise UpstreamError("Too many redirects.")
+
+    async def get_bytes(
+        self,
+        url: str,
+        params: dict | None = None,
+        max_bytes: int = 5_000_000,
+        attempts: int = MAX_ATTEMPTS,
+        timeout: float | None = None,
+    ) -> tuple[bytes, str]:
+        """GET raw bytes with the size cap. Returns (body, public_url)."""
+        public_url = str(httpx.URL(url).copy_merge_params(params or {}))
+        current = public_url
+        for _hop in range(MAX_REDIRECTS + 1):
+            host = check_url(current, self._allowed)
+            resp = await self._fetch(current, None, host, max_bytes, min(attempts, MAX_ATTEMPTS), timeout)
+            if resp.is_redirect:
+                current = str(httpx.URL(current).join(resp.location))
+                continue
+            if resp.status_code == 404:
+                raise NotFound("Upstream returned 404 (not found).")
+            if resp.status_code >= 400:
+                raise UpstreamError(f"{host} returned HTTP {resp.status_code}.")
+            return resp.content, public_url
         raise UpstreamError("Too many redirects.")
 
     async def _fetch(self, url, headers, host, max_bytes, attempts, timeout=None) -> "_Result":

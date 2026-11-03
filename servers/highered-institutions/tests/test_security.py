@@ -133,7 +133,7 @@ async def test_stale_cache_served_when_refresh_fails(upstream, tmp_path):
 def test_tools_are_read_only_and_descriptions_static():
     import asyncio
     tools = asyncio.run(server.mcp.list_tools())
-    assert {t.name for t in tools} == {"resolve_institution", "search_institutions", "get_institution_profile", "get_enrollment_trend", "compare_peers", "compare_institutions", "get_financial_snapshot"}
+    assert {t.name for t in tools} == {"resolve_institution", "search_institutions", "get_institution_profile", "get_enrollment_trend", "compare_peers", "compare_institutions", "get_retention", "get_financial_snapshot"}
     assert all(t.annotations and t.annotations.read_only_hint for t in tools)
 
 

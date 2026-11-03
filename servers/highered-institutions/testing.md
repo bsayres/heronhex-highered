@@ -50,3 +50,8 @@ Verified live against real upstreams:
 - Windows behavior.
 - `ueis` format with multiple values per institution (parser splits on commas, semicolons, and spaces).
 - The NCES/IPEDS fallback is **not implemented** in this milestone; the only outage protection is serving the stale cached copy with a warning.
+
+## get_retention (Milestone 4)
+- 26 fixture tests in `tests/test_retention.py`: the rate, retained count, cohort and flag as published, the revised file winning over the provisional one, newest-year discovery and caching, years before the files exist as nulls, flag A as not applicable, blanks and unknown flags as nulls with their meaning, an institution absent from the file, imputed flags warned about, very small cohorts warned about, no call to Urban (the tool still answers when Urban is down), 11 malformed inputs rejected before any request, exact archive member names (`../`, subfolders, wrong case, other years refused), zip bomb and entry-count limits, a CSV with missing columns, no rows or junk ids, oversized and non-zip downloads, a redirect or other host refused, year and cache-name bounds, the first-download deadline, and the tool's two inputs only.
+- Mutation checks (2026-11-03): removing the member-name anchor, the `_rv` preference, the uncompressed-size cap, the entry-count cap, the UNITID filter, the year bounds or the required-columns check each makes a test fail.
+- Live, empty cache (2026-11-03): Test College A five years in 7.4 s including the probes for unpublished years; later colleges 0.0 s from cache. Values match an independent read of the raw files (see docs/sources.md).

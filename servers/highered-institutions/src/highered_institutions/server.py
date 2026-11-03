@@ -2,6 +2,7 @@
 import logging
 import math
 import sys
+import time
 from typing import Annotated
 
 from mcp.server.mcpserver import MCPServer
@@ -10,7 +11,7 @@ from pydantic import Field
 
 from . import bounded, prompts
 from . import crosswalk as cw
-from .http import Guard, UpstreamError
+from .http import Guard, NotFound, UpstreamError
 from .models import (
     Control,
     Kind,
@@ -22,7 +23,7 @@ from .models import (
     now,
     source_entry,
 )
-from .sources import scorecard, urban
+from .sources import ipeds, scorecard, urban
 
 logging.basicConfig(stream=sys.stderr, level=logging.WARNING, format="%(levelname)s %(message)s")
 
@@ -267,6 +268,66 @@ async def get_enrollment_trend(unitid: UnitId, start_year: Year | None = None, e
     first = metas[0]
     srcs = [source_entry("IPEDS fall enrollment via Urban Institute (ODC-By 1.0)", first.meta["source_url"], f"IPEDS fall enrollment {s}-{e}", min(m.meta["retrieved_at"] for m in metas), sha256s=[m.meta["sha256"] for m in metas], served_stale_cache=any(m.stale for m in metas))]
     return envelope(srcs, data, nulls, _stale_warning(*metas) + _late_warning(errs))
+
+
+@mcp.tool(title="Retention rates", annotations={"title": "Retention rates", "readOnlyHint": True})
+async def get_retention(unitid: UnitId, years: Annotated[int, Field(ge=1, le=8, description="How many of the newest fall collections to return (default 5)")] = 5) -> dict:
+    """Fall-to-fall retention for first-time degree-seeking undergraduates at one institution, from IPEDS Fall Enrollment part D, read
+    straight from NCES's complete data files (no Urban API). For each fall collection: the full-time and part-time retention rate in
+    percent as IPEDS publishes it, the number retained and the adjusted prior-fall cohort it is computed on, the student-to-faculty
+    ratio, and IPEDS's flag for each value (reported, or how it was imputed or why it is missing; `flag_meanings` decodes them).
+
+    The retention rate is the share of the prior fall's cohort (minus exclusions, plus inclusions since fall 2016) that is enrolled at
+    the same institution the next fall, full- or part-time. It is not a graduation rate, and a student who transfers out counts as not
+    retained. The rate is not recomputed here. The newest collection NCES has published can lag the present by a year or more."""
+    t0 = time.monotonic()
+    res, errs, late = await bounded.run({"latest": ("ipeds-latest-ef-year", lambda: ipeds.latest_year(guard()))})
+    if late:
+        raise ToolError("The IPEDS retention files are being located for the first time; this keeps running in the background, so ask again shortly.")
+    if errs:
+        raise errs["latest"]
+    latest = res["latest"]
+    span = list(range(latest, latest - years, -1))
+    got, ferrs, flate = await bounded.run({y: (f"ipeds-ef{y}d.json", lambda y=y: ipeds.year_table(guard(), y)) for y in span},
+                                          seconds=max(1.0, bounded.DEADLINE - (time.monotonic() - t0)))
+    nulls, warnings, rows, srcs = [], [], [], []
+    for y in span:
+        if y in flate:
+            nulls.append({"field": f"FY{y}", "kind": "source_unavailable", "reason": f"The IPEDS {y} retention file did not finish downloading within the time limit; it keeps downloading and is cached, so asking again shortly should return it."})
+            continue
+        if y in ferrs:
+            gone = isinstance(ferrs[y], NotFound)
+            nulls.append({"field": f"FY{y}", "kind": "not_found" if gone else "source_unavailable",
+                          "reason": f"NCES has not published a retention file for fall {y}." if gone else f"The IPEDS {y} retention file could not be read: {ferrs[y]}"})
+            continue
+        L = got[y]
+        srcs.append(source_entry(ipeds.SOURCE + f", fall {y}", L.meta["source_url"], L.meta["as_of"], L.meta["retrieved_at"], file_sha256=L.meta.get("sha256"), served_stale_cache=L.stale))
+        r = L.data["rows"].get(unitid)
+        if r is None:
+            nulls.append({"field": f"FY{y}", "kind": "not_reported", "reason": f"This UNITID is not in the IPEDS {y} retention file (an institution with no first-time degree-seeking undergraduates, or one that did not report)."})
+            continue
+        rows.append([y, *r])
+        for label, (rate, flag) in (("full_time", (r[0], r[3])), ("part_time", (r[4], r[7]))):
+            if rate is None:
+                code = flag
+                kind = "not_applicable" if code == "A" else "not_reported"
+                what = ipeds.CODES.get(code, "no flag given" if code is None else "a flag code that is not in IPEDS's dictionary")
+                nulls.append({"field": f"{label}_retention_rate[{y}]", "kind": kind, "reason": f"IPEDS gives no {label.replace('_', '-')} retention rate for fall {y} (flag {code or 'none'}: {what})."})
+    if not srcs:
+        raise ToolError("No IPEDS retention file could be retrieved: " + "; ".join(n["reason"] for n in nulls))
+    imputed = [row[0] for row in rows for flag in (row[4], row[8], row[10]) if flag not in (None, "R")]
+    if imputed:
+        warnings.append(f"Some values for fall {', '.join(str(y) for y in sorted(set(imputed)))} are not plain reported values (imputed, generated or adjusted); see the flag columns.")
+    warnings.append("Retention is a fall-to-fall rate for first-time degree-seeking undergraduates; it is not a graduation rate and not every student, and it counts a transfer out as not retained.")
+    small = [f"fall {row[0]} {label} ({row[i]} student{'' if row[i] == 1 else 's'})" for row in rows
+             for label, i, j in (("full-time", 3, 1), ("part-time", 7, 5)) if row[j] is not None and row[i] is not None and row[i] < 30]
+    if small:
+        warnings.append("A retention rate on fewer than 30 students moves a lot from year to year; these rest on very small cohorts: " + "; ".join(small) + ".")
+    if any(g.stale for g in got.values()):
+        warnings.append("An NCES refresh failed; served a cached copy older than 90 days.")
+    data = {"unitid": unitid, "columns": ["fall_year", *ipeds.COLUMNS], "rows": rows, "flag_meanings": ipeds.CODES,
+            "definition": "Share of the prior fall's cohort (minus exclusions, plus inclusions since fall 2016) enrolled at the same institution the next fall, full- or part-time."}
+    return envelope(srcs, data, nulls, warnings)
 
 
 @mcp.tool(title="Compare with peer institutions", annotations={"title": "Compare with peer institutions", "readOnlyHint": True})

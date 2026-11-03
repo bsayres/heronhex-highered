@@ -59,3 +59,12 @@
 | Free text from agencies (justification detail, names) | Control characters removed, length capped, returned as labeled data under a notice, never in tool descriptions |
 | Absence read as proof (unmatched UNITID, a state with no board in DAPIP) | Explicit nulls with reasons; the state agencies DAPIP carries are listed in every status response |
 | robots.txt and terms could not be read for `ope.ed.gov` | Recorded in the README, testing.md and SOURCES; one download per 30 days per user, through the endpoint the site's own Download button uses; owner approved on that basis |
+
+## Additions for IPEDS retention files (Milestone 4)
+| Risk | Control |
+|---|---|
+| A new host (`nces.ed.gov`) widens what the institutions server can reach | Added to the allowlist, README and this table together; HTTPS only, redirects checked per hop against the allowlist, 1 request per second pacing; NCES's robots.txt allows `/ipeds/datacenter/data/`; tested with a redirect to another host, a different host and plain http |
+| A zip that expands enormously, holds many files, or names a file to escape the folder | Read in memory only; zip size cap 3 MB, entry cap 10, uncompressed total cap 20 MB, member cap 8 MB; only a member whose whole name matches `ef{year}d.csv` or `ef{year}d_rv.csv` for the requested year is read, so `../`, subfolders, other years and wrong case are refused; nothing is extracted to disk; each limit is mutation-tested |
+| A malformed or changed CSV layout silently yields wrong numbers | Columns are found by header name and required columns must all be present, otherwise the file is refused; rows with a UNITID that is not exactly six digits are dropped; unknown flag codes are reported as not in IPEDS's dictionary instead of being interpreted |
+| A provisional file is used instead of the revised one | The `_rv` file is preferred when both are present (tested with different values in each) |
+| Cache names built from a year | The year is an integer between 1990 and 2100 and the name pattern allows only lowercase letters, digits, dot, dash and underscore |

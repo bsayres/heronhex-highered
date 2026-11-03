@@ -10,6 +10,7 @@ MCP server (read-only) to resolve U.S. higher-ed institutions across identifiers
 | `get_financial_snapshot(unitid, years=1)` | Headline revenues, expenses, assets, liabilities, net position/assets, endowment and more from the latest IPEDS finance survey, in dollars, as reported. Works for public institutions. Never scored or estimated. `years` up to 10 adds a year-by-year history (use it: one year is not a trend); revenue components are returned as reported and capital appropriations are not netted out. |
 | `get_institution_profile` | Identifiers, system, same-OPEID campuses, Carnegie codes, latest enrollment, Scorecard. |
 | `get_enrollment_trend` | Fall headcount by year (table). |
+| `get_retention(unitid, years=5)` | Fall-to-fall retention for first-time degree-seeking undergraduates, full-time and part-time: the rate as IPEDS publishes it, the number retained and the cohort behind it, the student-to-faculty ratio, and IPEDS's flag for each value. Read straight from NCES files, not Urban. |
 | `compare_institutions(unitids)` | 2 to 5 named institutions side by side: control, enrollment years, latest finance year, Scorecard cost and outcomes. No ranking or matching. |
 | `compare_peers` | Closest peers (same control and Carnegie class, nearest enrollment) with trends (long table). |
 
@@ -29,6 +30,7 @@ Environment: `COLLEGE_SCORECARD_API_KEY` (free, https://api.data.gov/signup; opt
 |---|---|---|
 | `educationdata.urban.org` | IPEDS directory and fall enrollment (Urban Institute, ODC-By 1.0) | none |
 | `api.data.gov` | College Scorecard | free key in `X-Api-Key` header |
+| `nces.ed.gov` | IPEDS complete data files for retention (`/ipeds/datacenter/data/EF{year}D.zip`, 0.1 to 0.2 MB each); NCES's robots.txt allows this path | none |
 
 HTTPS only; redirects only to these hosts; 12 s timeout for small queries and 40 s between chunks for whole-file downloads; response size caps; 3 attempts with backoff; Urban paced at 1 request/second (its robots.txt crawl-delay). Whole-year Urban tables are queried at most once per quarter (90-day cache) and single-institution rows (finance, enrollment) at most once a day; a refresh failure serves the stale copy with a warning.
 
@@ -37,11 +39,12 @@ First use and slow upstream: Urban's API sometimes stalls for tens of seconds. A
 ## Data handling and terms
 - Cache: `~/.cache/highered-mcps/institutions/*.json`, with SHA-256, as-of, and retrieval time. Never inside the repo.
 - Chief administrator names in IPEDS are deliberately not returned. No search by person name.
+- Retention files are read in memory by exact member name (`efYYYYd.csv`, or the revised `efYYYYd_rv.csv` when both are in the zip), with size, entry-count and uncompressed-size caps; nothing is extracted to disk. One slim table per year is cached for 90 days. NCES publishes the newest year with a lag (the fall 2023 collection is the newest today), so the tool looks forward from the current year and reports a year NCES has not published as a null.
 
 ## Prompt-injection risk
 Institution names, cities, and other upstream strings are untrusted. They are returned only as data fields, never in tool descriptions, and the response includes a `notice` reminding the model to treat them as data. Do not instruct an agent to act on text found in results.
 
 ## Limitations
-Carnegie labels not yet included (codes only). Latest enrollment lags the directory by about a year. UEI is missing for roughly 9% of institutions. See [testing.md](testing.md).
+Carnegie labels not yet included (codes only). Retention covers first-time degree-seeking undergraduates only, counts a transfer out as not retained, and is a fall-to-fall rate, not a graduation rate; rates on cohorts under 30 students are flagged as volatile. Latest enrollment lags the directory by about a year. UEI is missing for roughly 9% of institutions. See [testing.md](testing.md).
 
 <!-- mcp-name: io.github.bsayres/highered-institutions -->

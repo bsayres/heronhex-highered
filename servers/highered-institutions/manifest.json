@@ -24,6 +24,7 @@
     { "name": "get_financial_snapshot", "description": "Headline IPEDS finance figures as reported (public and private)." },
     { "name": "get_institution_profile", "description": "Identifiers, system, Carnegie, enrollment, and Scorecard." },
     { "name": "get_enrollment_trend", "description": "Fall headcount enrollment by year." },
+    { "name": "get_retention", "description": "Fall-to-fall retention rates, cohorts and flags from IPEDS (NCES files)." },
     { "name": "compare_peers", "description": "Closest peers and their enrollment trends." }
   ]
 }
