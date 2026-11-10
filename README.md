@@ -50,6 +50,3 @@ See [docs/using-with-1102tools.md](docs/using-with-1102tools.md) (SAM.gov, USAsp
 
 ## License
 MIT. Data licenses differ by source; each response names its source. IPEDS via the Urban Institute is ODC-By 1.0.
-
-## Acknowledgments
-The layout of these servers was inspired by [1102tools/federal-contracting-mcps](https://github.com/1102tools/federal-contracting-mcps). No code was copied.
