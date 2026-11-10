@@ -75,7 +75,7 @@ async def test_stale_cache_served_when_refresh_fails(upstream):
     assert all(s["served_stale_cache"] for s in r["sources"]) and r["warnings"]
 
 
-@pytest.mark.parametrize("bad", ["1193000", "0999010a", "099901000", "../../etc", "", "0999010 ", "09990100; DROP", "０１１９３０００"])
+@pytest.mark.parametrize("bad", ["9990100", "0999010a", "099901000", "../../etc", "", "0999010 ", "09990100; DROP", "０１１９３０００"])
 async def test_bad_opeid_rejected_before_network(upstream, bad):
     try:
         res = await server.mcp.call_tool("get_title_iv_status", {"opeid": bad})

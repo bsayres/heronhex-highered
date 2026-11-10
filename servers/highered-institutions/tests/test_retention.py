@@ -28,7 +28,7 @@ async def rejected(args):
         return True
 
 
-async def test_Test College A_rates_cohorts_and_flags_as_published(upstream):
+async def test_college_a_rates_cohorts_and_flags_as_published(upstream):
     r = await s.get_retention("999001", years=2)
     t = table(r)
     a = t[2023]
@@ -106,7 +106,7 @@ async def test_it_does_not_touch_urban_so_it_still_answers_when_urban_is_down(up
 
 
 @pytest.mark.parametrize("args", [
-    {"unitid": "16763"}, {"unitid": "9990011"}, {"unitid": "ABCDEF"}, {"unitid": "１６７６３１"}, {"unitid": "999001 "}, {"unitid": "999001; DROP"}, {"unitid": ""},
+    {"unitid": "99900"}, {"unitid": "9990011"}, {"unitid": "ABCDEF"}, {"unitid": "９９９００１"}, {"unitid": "999001 "}, {"unitid": "999001; DROP"}, {"unitid": ""},
     {"unitid": "999001", "years": 0}, {"unitid": "999001", "years": 9}, {"unitid": "999001", "years": "5; rm"}, {"unitid": "999001", "years": -1},
 ])
 async def test_bad_inputs_are_rejected_before_any_request(upstream, args):

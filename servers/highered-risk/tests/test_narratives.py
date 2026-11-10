@@ -20,7 +20,7 @@ async def rejected(args):
 async def test_returns_the_auditor_text_and_the_auditee_plan_for_each_finding(upstream):
     r = await server.get_finding_text(RID)
     d = r["data"]
-    assert d["auditee_name"] == "Test Community College A" and d["audit_year"] == "2024" and d["report_url"].endswith(RID)
+    assert d["auditee_name"] == "TEST COMMUNITY COLLEGE A" and d["audit_year"] == "2024" and d["report_url"].endswith(RID)
     assert [f["reference_number"] for f in d["findings"]] == ["2024-003", "2024-004", "2024-005"]  # the other report's finding is not mixed in
     first = d["findings"][0]
     assert "did not complete verification" in first["finding_text"]["text"] and "second reviewer" in first["auditee_corrective_action"]["text"]

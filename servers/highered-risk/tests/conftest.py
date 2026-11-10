@@ -69,7 +69,7 @@ def zip_bomb_xlsx() -> bytes:
 
 
 FAC_KEY = "TESTFACKEY123"
-FAC = json.loads((Path(__file__).parent / "fixtures" / "fac_Test College A.json").read_text())
+FAC = json.loads((Path(__file__).parent / "fixtures" / "fac_college_a.json").read_text())
 
 
 class Upstream:

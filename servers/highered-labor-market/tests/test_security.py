@@ -95,7 +95,7 @@ async def test_onet_page_without_version_and_bad_workbooks_fail_safely(upstream)
     ("map_program_to_occupations", {"cip": "５１.３８０１"}), ("map_program_to_occupations", {"cip": "../../etc"}), ("map_program_to_occupations", {"cip": ""}),
     ("get_occupation_outlook", {"soc": "29-114"}), ("get_occupation_outlook", {"soc": "291141"}), ("get_occupation_outlook", {"soc": "29-114１"}),
     ("get_occupation_outlook", {"soc": "29-1141\n"}), ("get_occupation_skills", {"soc": "29-1141", "top": 0}), ("get_occupation_skills", {"soc": "29-1141", "top": 31}),
-    ("get_program_outcomes", {"unitid": "16763"}), ("get_program_outcomes", {"unitid": "１６７６３１"}), ("get_program_outcomes", {"unitid": "999001", "credential": 0}),
+    ("get_program_outcomes", {"unitid": "99900"}), ("get_program_outcomes", {"unitid": "９９９００１"}), ("get_program_outcomes", {"unitid": "999001", "credential": 0}),
     ("get_program_outcomes", {"unitid": "999001", "credential": 9}), ("get_program_outcomes", {"unitid": "999001", "cip4": "51.3801"}), ("get_program_outcomes", {"unitid": "999001", "limit": 101}),
     ("get_program_alignment", {"unitid": "999001", "cip4": "51.38"}), ("get_program_alignment", {"unitid": "999001", "cip4": "51.38", "credential": "associate"}),
     ("get_program_alignment", {"unitid": "999001", "cip4": "5138", "credential": 2}), ("get_program_alignment", {"unitid": "999001; DROP", "cip4": "51.38", "credential": 2}),

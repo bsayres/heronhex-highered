@@ -19,8 +19,8 @@ async def rejected(name, args) -> bool:
     ("get_enrollment_trend", {"unitid": "12ab56"}),
     ("get_enrollment_trend", {"unitid": "1234567"}),
     ("get_enrollment_trend", {"unitid": "123456; DROP"}),
-    ("get_enrollment_trend", {"unitid": "１６７６３１"}),  # full-width digits must not satisfy a digit pattern
-    ("get_financial_snapshot", {"unitid": "１６７６３１"}),
+    ("get_enrollment_trend", {"unitid": "９９９００１"}),  # full-width digits must not satisfy a digit pattern
+    ("get_financial_snapshot", {"unitid": "９９９００１"}),
     ("get_institution_profile", {"unitid": "../../etc"}),
     ("resolve_institution", {"query": "x" * 5000}),
     ("resolve_institution", {"query": "ok name", "kind": "sql"}),

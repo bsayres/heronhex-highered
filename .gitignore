@@ -9,3 +9,6 @@ __pycache__/
 dist/
 *.mcpb
 .DS_Store
+
+# Working notes that name test institutions; kept locally only
+docs/internal/

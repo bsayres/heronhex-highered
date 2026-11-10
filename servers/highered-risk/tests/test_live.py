@@ -1,4 +1,6 @@
 """Opt-in: HIGHERED_LIVE=1. Hits real FSA hosts (paced at 7 s/request for studentaid.gov)."""
+import os
+
 import pytest
 
 from highered_risk import server as s
@@ -12,14 +14,14 @@ async def test_live_fsa(tmp_path, monkeypatch):
     r = await s.get_title_iv_status("00100200")  # Alabama A&M: on the HCM list when this was written
     assert r["data"]["heightened_cash_monitoring"]["as_of"]
     assert r["data"]["cohort_default_rates"]["entries"]
-    r = await s.get_title_iv_status("09990100")  # Test College A: public, not scored
-    assert r["data"]["financial_responsibility"] is None and r["nulls"]
+    if os.environ.get("HIGHERED_LIVE_OPEID"):
+        r = await s.get_title_iv_status(os.environ["HIGHERED_LIVE_OPEID"])
+        assert "financial_responsibility" in r["data"]
 
 
 async def test_live_fac(tmp_path, monkeypatch):
-    import os
-    if not os.environ.get("FAC_API_KEY"):
-        pytest.skip("FAC_API_KEY not set")
+    if not (os.environ.get("FAC_API_KEY") and os.environ.get("HIGHERED_LIVE_UEI")):
+        pytest.skip("FAC_API_KEY and HIGHERED_LIVE_UEI not set")
     s.set_guard(None)
-    r = await s.get_audit_findings(ein="999000001", years=3)  # Test College A
+    r = await s.get_audit_findings(uei=os.environ["HIGHERED_LIVE_UEI"], years=3)
     assert r["data"]["audits"] and all(a["report_url"] for a in r["data"]["audits"])

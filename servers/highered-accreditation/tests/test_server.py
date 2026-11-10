@@ -19,7 +19,7 @@ async def rejected(name, args):
         return True
 
 
-async def test_status_for_Test College A(upstream):
+async def test_status_for_college_a(upstream):
     r = await server.get_accreditation_status("999001")
     d = r["data"]
     assert (d["dapip_id"], d["opeid"], d["name_in_dapip"]) == ("990001", "09990100", "Test Community College A")
@@ -258,7 +258,7 @@ async def test_transport_errors_do_not_leak_details():
 
 # ---- inputs ------------------------------------------------------------------------------------------
 
-@pytest.mark.parametrize("bad", ["16763", "9990011", "16763a", "１６７６３１", "999001\n", " 999001", "../../etc", "", "999001;DROP", "-16763"])
+@pytest.mark.parametrize("bad", ["99900", "9990011", "99900a", "９９９００１", "999001\n", " 999001", "../../etc", "", "999001;DROP", "-99900"])
 async def test_bad_unitid_rejected_before_network(upstream, bad):
     for name in ("get_accreditation_status", "get_accreditation_actions"):
         assert await rejected(name, {"unitid": bad})

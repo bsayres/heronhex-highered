@@ -178,7 +178,7 @@ def test_changed_columns_are_rejected():
 
 
 def test_malformed_ids_in_rows_are_skipped_not_trusted():
-    rows = [inst("12180", "999001", "Short Id"), inst("990001", "16763x ../../x 999001", "Ok", ope="09990100")]
+    rows = [inst("99000", "999001", "Short Id"), inst("990001", "99900x ../../x 999001", "Ok", ope="09990100")]
     d = dapip.parse(make_zip(inst_rows=rows, rec_rows=[], act_rows=[]))
     assert list(d["institutions"]) == ["999001"] and d["counts"]["skipped_rows"] == 1
 

@@ -100,7 +100,7 @@ async def test_enrollment_trend_on_an_empty_cache_asks_for_one_institution_not_e
     r = await s.get_enrollment_trend("999001")
     assert len(r["data"]["rows"]) == 10
     enr = [q for q in upstream.requests if "/fall-enrollment/" in q.url.path]
-    assert enr and all(q.url.params.get("unitid") == "999001" for q in enr)  # no whole-year table was downloaded
+    assert enr and all(q.url.params.get("unitid") in ("999001", urban.PROBE_UNITID) for q in enr)  # no whole-year table was downloaded
 
 
 async def test_enrollment_trend_uses_a_cached_whole_year_table_when_there_is_one(upstream):

@@ -71,8 +71,8 @@ async def test_exactly_one_identifier(upstream, args):
 
 
 @pytest.mark.parametrize("args", [
-    {"ein": "99-9000001"}, {"ein": "０４２７２６８５７"}, {"ein": "49000001"}, {"ein": "9990000010"}, {"ein": "04272685a"}, {"ein": "999000001&limit=9999"},
-    {"ein": "999000001\n"}, {"ein": "eq.1,or=(a.eq.b)"}, {"uei": "TESTCOLLEG1A"}, {"uei": "TESTCOLLEG1"}, {"uei": "TESTCOLLEG1AX"},
+    {"ein": "99-9000001"}, {"ein": "０４２７２６８５７"}, {"ein": "99900000"}, {"ein": "9990000010"}, {"ein": "04272685a"}, {"ein": "999000001&limit=9999"},
+    {"ein": "999000001\n"}, {"ein": "eq.1,or=(a.eq.b)"}, {"uei": "testcolleg1a"}, {"uei": "TESTCOLLEG1"}, {"uei": "TESTCOLLEG18X"},
     {"uei": "TESTCOLLEG1A or 1=1"}, {"ein": "x" * 5000}, {"ein": "999000001", "years": 0}, {"ein": "999000001", "years": 11},
 ])
 async def test_malformed_input_rejected_before_network(upstream, args):
@@ -199,7 +199,7 @@ async def test_warns_when_rows_under_one_identifier_belong_to_different_auditees
     upstream.fac["general"].append(other)
     r = await server.get_audit_findings(uei="TESTCOLLEG1A", years=5)
     msg = [w for w in r["warnings"] if "more than one auditee" in w]
-    assert msg and "ARROYO FLOOD CONTROL" in msg[0] and "850386538" in msg[0] and "Test Community College A" in msg[0].upper()
+    assert msg and "ARROYO FLOOD CONTROL" in msg[0] and "850386538" in msg[0] and "TEST COMMUNITY COLLEGE A" in msg[0].upper()
     assert {a["auditee_ein"] for a in r["data"]["audits"]} == {"999000001", "850386538"}  # returned, not silently dropped
 
 

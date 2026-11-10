@@ -5,6 +5,8 @@ from .. import cache
 from ..http import BULK_TIMEOUT, Guard, NotFound, UpstreamError
 
 BASE = "https://educationdata.urban.org/api/v1/college-university/ipeds"
+# Year probes ask for one large institution that reports every year, so the answer says whether a year is published.
+PROBE_UNITID = "166027"
 SOURCE = "IPEDS via Urban Institute Education Data Portal (ODC-By 1.0)"
 
 # Personal data (e.g. chief administrator name) is deliberately not kept.
@@ -55,7 +57,7 @@ async def latest_year(guard: Guard) -> int:
         this = datetime.now(UTC).year
         for year in range(this, this - 3, -1):
             try:
-                data, url = await guard.get_json(f"{BASE}/directory/{year}/", {"unitid": "999001"})
+                data, url = await guard.get_json(f"{BASE}/directory/{year}/", {"unitid": PROBE_UNITID})
             except NotFound:
                 continue
             if data.get("count"):
@@ -90,7 +92,7 @@ async def latest_enrollment_year(guard: Guard, directory_year: int) -> int:
     async def fetch():
         for year in range(directory_year, directory_year - 3, -1):
             try:
-                data, url = await guard.get_json(f"{BASE}/fall-enrollment/{year}/99/", {"unitid": "999001", "sex": 99, "race": 99, "ftpt": 99}, attempts=1)
+                data, url = await guard.get_json(f"{BASE}/fall-enrollment/{year}/99/", {"unitid": PROBE_UNITID, "sex": 99, "race": 99, "ftpt": 99}, attempts=1)
             except UpstreamError:  # Urban answers HTTP 500 (not 404) for a year not yet published
                 continue
             if data.get("count"):
@@ -113,7 +115,7 @@ async def latest_finance_year(guard: Guard, directory_year: int) -> int:
     async def fetch():
         for year in range(directory_year, directory_year - 4, -1):
             try:
-                data, url = await guard.get_json(f"{BASE}/finance/{year}/", {"unitid": "999001"}, attempts=1)
+                data, url = await guard.get_json(f"{BASE}/finance/{year}/", {"unitid": PROBE_UNITID}, attempts=1)
             except UpstreamError:
                 continue
             if data.get("count"):

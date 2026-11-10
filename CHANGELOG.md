@@ -5,6 +5,7 @@ Format follows Keep a Changelog. Versions are not yet released to PyPI; every se
 ## [Unreleased]
 
 ### Changed
+- Tests, fixtures and docs no longer name the institutions used during development: names and identifiers are neutral placeholders (`Test College A`, UNITID 999001 and so on). Live tests and fixture recording read their target from `HIGHERED_LIVE_*` variables (see `.env.example`) and skip when unset. The Urban year probes use a fixed large institution (`PROBE_UNITID`). Working notes that name test colleges moved to the gitignored `docs/internal/`.
 - PyPI distribution names are now `heronhex-institutions`, `heronhex-risk`, `heronhex-accreditation`, `heronhex-funding` and `heronhex-labor` (all unclaimed on PyPI on 2026-11-10). Command names, Python modules, folders, MCP server names and skill names are unchanged, so existing Desktop configs keep working. The registry names became `io.github.bsayres/heronhex-*`.
 
 ### Added
@@ -21,7 +22,6 @@ Format follows Keep a Changelog. Versions are not yet released to PyPI; every se
 - A `kind` on every null (suppressed, not_reported, not_applicable, not_found, not_configured, source_unavailable, not_covered) and `null_counts` on every response.
 - Tool `title` on all tools; `server.json` (MCP Registry draft, schema-validated) and `mcp-name` line in each server README.
 - `DEMO_KEY` fallback for the Scorecard and FAC calls, with a warning in every response that used it.
-- Three-college validation record (`docs/validation-2026-10-31.md`) and a 20-question leader test (`docs/question-test-2026-11-01.md`).
 
 ### Changed
 - Skill descriptions for labor-market, institutions and risk now name the plain questions they answer (wages by state or metro, retention, audit finding text), since the description is what routes a question to a skill.

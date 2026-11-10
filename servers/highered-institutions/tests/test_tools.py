@@ -116,8 +116,8 @@ async def test_financial_snapshot_history_shows_the_trend_and_never_nets_out_cap
 async def test_financial_snapshot_unknown_unitid_no_record_and_bad_years(upstream):
     with pytest.raises(ToolError):
         await s.get_financial_snapshot("999999")
-    upstream.finance["2023"].pop("166027")
-    r = await s.get_financial_snapshot("166027")
+    upstream.finance["2023"].pop("999001")
+    r = await s.get_financial_snapshot("999001")
     assert r["data"]["figures"] is None and any(n["field"] == "FY2023" for n in r["nulls"])
     for bad in (0, 11):
         with pytest.raises(Exception):  # noqa: B017

@@ -2,15 +2,13 @@
 
 Open-source (MIT) MCP servers that let higher-ed leaders, institutional researchers, and analysts ask Claude questions about U.S. institutions using **free public data**. Thin, deterministic wrappers over public sources. No hosted data and no database: bulk files are downloaded on demand into a local cache folder on your machine.
 
-Modeled on [1102tools/federal-contracting-mcps](https://github.com/1102tools/federal-contracting-mcps) (not a fork).
-
-| Server | Status | Question it answers |
+| Server (PyPI package) | Status | Question it answers |
 |---|---|---|
-| [`highered-institutions`](servers/highered-institutions) | Milestone 1 built (plus financial snapshot) | "Show the enrollment trend for [institution] and its closest peers." |
-| [`highered-risk`](servers/highered-risk) | Milestone 2 built (FSA status, audit findings) | Title IV risk signals |
-| [`highered-funding`](servers/highered-funding) | Milestone 3 built | Research spend, federal awards and opportunities, state funding, graduate projections |
-| [`highered-labor-market`](servers/highered-labor-market) | Milestones 4 and 5 built | Do programs line up with national and state labor-market demand? |
-| [`highered-accreditation`](servers/highered-accreditation) | Milestone 6 built | Is the institution, or a program such as nursing, accredited now, and what actions has an agency recorded? |
+| [`highered-institutions`](servers/highered-institutions) (`heronhex-institutions`) | Milestone 1 built (plus financial snapshot) | "Show the enrollment trend for [institution] and its closest peers." |
+| [`highered-risk`](servers/highered-risk) (`heronhex-risk`) | Milestone 2 built (FSA status, audit findings) | Title IV risk signals |
+| [`highered-funding`](servers/highered-funding) (`heronhex-funding`) | Milestone 3 built | Research spend, federal awards and opportunities, state funding, graduate projections |
+| [`highered-labor-market`](servers/highered-labor-market) (`heronhex-labor`) | Milestones 4 and 5 built | Do programs line up with national and state labor-market demand? |
+| [`highered-accreditation`](servers/highered-accreditation) (`heronhex-accreditation`) | Milestone 6 built | Is the institution, or a program such as nursing, accredited now, and what actions has an agency recorded? |
 
 ## Principles
 - Every response carries `source`, `source_url`, `as_of` (dataset period), and `retrieved_at`.
@@ -52,3 +50,6 @@ See [docs/using-with-1102tools.md](docs/using-with-1102tools.md) (SAM.gov, USAsp
 
 ## License
 MIT. Data licenses differ by source; each response names its source. IPEDS via the Urban Institute is ODC-By 1.0.
+
+## Acknowledgments
+The layout of these servers was inspired by [1102tools/federal-contracting-mcps](https://github.com/1102tools/federal-contracting-mcps). No code was copied.

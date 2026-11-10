@@ -27,7 +27,7 @@ Verified live against real upstreams:
 - Observed: `form_type` does not track sector (Penn State, a public institution, reports FASB-style `equity_end`), so the tool reports which field was populated rather than inferring sector or basis from codes.
 
 ## Found while testing
-- Full-width digits (e.g. `１６７６３１`) are rejected as UNITIDs (they used to satisfy `\d`); regression cases for `get_enrollment_trend` and `get_financial_snapshot`.
+- Full-width digits (e.g. `９９９００１`) are rejected as UNITIDs (they used to satisfy `\d`); regression cases for `get_enrollment_trend` and `get_financial_snapshot`.
 
 ## Review fixes (2026-10-31, after a test brief for Test College A)
 - `get_financial_snapshot(years=N)`: history table, revenue components and capital appropriations as reported; `revenues_minus_expenses` computed from reported totals and labeled. Live Test College A FY2019-23: +2.94M, -5.09M, -2.40M, +1.14M, +0.74M while net position fell from 67.8M to 60.3M before partly recovering. Found that Urban's revenue components reconcile to total revenue in FY2020 and FY2023 but not FY2019, FY2021 or FY2022 (in FY2022 total revenue equals operating plus nonoperating with no additions line even though capital appropriations of 4.1M were reported), so no "excluding capital" figure is computed.

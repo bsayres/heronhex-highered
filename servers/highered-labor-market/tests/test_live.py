@@ -19,10 +19,12 @@ async def test_live_all_sources(tmp_path, monkeypatch):
     assert r["data"]["outlook"]["annual_openings"] > 0 and r["data"]["outlook"]["entry_education"]
     r = await s.get_occupation_skills("29-1141", top=3)
     assert r["data"]["essential_skills"]["rows"] and "CC BY 4.0" in r["citation"]
-    r = await s.get_program_outcomes("999001", limit=5)  # Test College A
-    assert r["data"]["rows"]
-    r = await s.get_program_alignment("999001", "51.38", 2)
-    assert r["data"]["openings_summary"]["annual_openings_all_mapped"] > 0
+    if os.environ.get("HIGHERED_LIVE_UNITID"):
+        u = os.environ["HIGHERED_LIVE_UNITID"]
+        r = await s.get_program_outcomes(u, limit=5)
+        assert r["data"]["rows"]
+        r = await s.get_program_alignment(u, "51.38", 2)
+        assert r["data"]["openings_summary"]["annual_openings_all_mapped"] > 0
 
 
 async def test_live_state_projections(tmp_path, monkeypatch):
@@ -33,6 +35,6 @@ async def test_live_state_projections(tmp_path, monkeypatch):
     assert o["annual_openings"] > 0 and us["annual_openings"] > o["annual_openings"] and (o["base_year"], o["projection_year"]) == (us["base_year"], us["projection_year"])
     r = await s.get_state_occupation_outlook("MA", "31-1121")
     assert r["data"]["state_match"] in ("exact", "broad_group")
-    if os.environ.get("COLLEGE_SCORECARD_API_KEY"):
-        r = await s.get_program_alignment("999001", "51.38", 2, state="MA")
+    if os.environ.get("COLLEGE_SCORECARD_API_KEY") and os.environ.get("HIGHERED_LIVE_UNITID"):
+        r = await s.get_program_alignment(os.environ["HIGHERED_LIVE_UNITID"], "51.38", 2, state="MA")
         assert r["data"]["state_demand"]["summary"]["state_annual_openings_all_mapped"] > 0
