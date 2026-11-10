@@ -3,7 +3,7 @@
 Read-only MCP servers over free public U.S. higher-education data. Thin deterministic wrappers: no hosted data, no database, no plugin framework.
 
 ## Layout
-- `servers/<name>/`: one Python package each (`src/<pkg>/server.py`, `http.py` host guard, `cache.py`, `models.py`, `sources/`), with `tests/`, `README.md`, `SKILL.md`, `testing.md`, `manifest.json`, `server.json`.
+- `servers/<name>/`: one Python package each (`src/<pkg>/server.py`, `http.py` host guard, `cache.py`, `models.py`, `sources/`), with `tests/`, `README.md`, `SKILL.md`, `testing.md`, `server.json`.
 - `skills/institution-brief/`: the composed-brief skill and dashboard template. `docs/`: sources, threat model, validation, plans.
 
 ## Commands (per server)

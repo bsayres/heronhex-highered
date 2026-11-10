@@ -34,19 +34,22 @@
       "type": "string",
       "title": "College Scorecard API key",
       "description": "Free key from https://api.data.gov/signup. Optional; without it a shared demo key is used and is quickly rate limited.",
-      "sensitive": true
+      "sensitive": true,
+      "default": ""
     },
     "fac_api_key": {
       "type": "string",
       "title": "Federal Audit Clearinghouse API key",
       "description": "Free api.data.gov key (the same signup works). Optional; without it the shared demo key allows only about 10 requests.",
-      "sensitive": true
+      "sensitive": true,
+      "default": ""
     },
     "contact_email": {
       "type": "string",
       "title": "Contact email for BLS",
       "description": "BLS asks for a contact address with bulk file requests. Sent only to www.bls.gov, never logged. Needed for the occupation projections file.",
-      "sensitive": true
+      "sensitive": true,
+      "default": ""
     }
   }
 }

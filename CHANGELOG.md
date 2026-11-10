@@ -5,6 +5,7 @@ Format follows Keep a Changelog. The five servers are released to PyPI together 
 ## [0.1.1] - 2026-11-10
 
 ### Changed
+- The three plugin settings default to empty so servers that reference them still load where the app does not prompt (Cowork); removed the unused MCPB leftovers (`manifest.json`, `src/main.py`) from each server.
 - Plugin servers now start with `uv run --locked --no-dev --project <server folder>` against each server's committed `uv.lock`, instead of `uvx` with a PyPI version. The directory's validator treats a PyPI version alone as not pinned; a locked project shipped in the plugin is a pin it accepts. Cold start is about 3 s.
 - Release metadata only, no code change: project links (homepage, issues, privacy) on the PyPI pages, `homepage`, `documentationUrl` and `privacyPolicyUrl` in the plugin manifest, a `marketplace.json` so the plugin installs from this repository, and a short About section in the README.
 
