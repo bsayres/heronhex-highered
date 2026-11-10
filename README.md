@@ -19,6 +19,17 @@ Modeled on [1102tools/federal-contracting-mcps](https://github.com/1102tools/fed
 - Read-only. Network calls only to the hosts listed in each server's README, enforced in code.
 - Upstream free text is untrusted data. See [docs/threat-model.md](docs/threat-model.md).
 
+## Install
+**As a plugin (Claude Code and Cowork).** One install brings the five servers and the six skills (the five server skills plus `institution-brief`). The servers run on your computer; Claude.ai chat does not load local servers. Not yet published: this needs the PyPI release and a public repo first.
+```
+/plugin install heronhex-highered --marketplace <owner>/<repo>
+```
+Claude Code asks for three optional values (a College Scorecard key, a Federal Audit Clearinghouse key, a BLS contact email), stores them in your system credential store, and passes them to the servers as environment variables. Free keys: https://api.data.gov/signup.
+
+**Servers only (Claude Desktop, or any MCP client).** Use the config below. Connecting a server does not install skills; to add them in Claude Desktop, upload each `SKILL.md` folder as a zip under Settings, Capabilities, Skills. The servers' own instructions and the `institution_brief` prompt work without the skills, but the skills are what make plain questions reach the right tool.
+
+Privacy: [docs/privacy-policy.md](docs/privacy-policy.md).
+
 ## Quick start (local path)
 ```bash
 cp .env.example .env            # add your free College Scorecard key

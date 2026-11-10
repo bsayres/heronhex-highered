@@ -1,0 +1,47 @@
+{
+  "name": "heronhex-highered",
+  "displayName": "Heron & Hex Higher Ed Data",
+  "version": "0.1.0",
+  "description": "Read-only access to free public U.S. higher-education data: institution profiles, enrollment, retention and finance, Title IV risk flags, Single Audit findings, accreditation, research and state funding, and wages and program-to-job alignment. Five local servers plus skills; no data is hosted or collected.",
+  "author": {
+    "name": "Byron Sayres",
+    "email": "mcp-support@heronhex.com"
+  },
+  "repository": "https://github.com/bsayres/highered-mcps",
+  "license": "MIT",
+  "keywords": [
+    "higher-education",
+    "ipeds",
+    "title-iv",
+    "accreditation",
+    "oews",
+    "mcp"
+  ],
+  "skills": [
+    "./servers/highered-institutions",
+    "./servers/highered-risk",
+    "./servers/highered-accreditation",
+    "./servers/highered-funding",
+    "./servers/highered-labor-market"
+  ],
+  "userConfig": {
+    "scorecard_api_key": {
+      "type": "string",
+      "title": "College Scorecard API key",
+      "description": "Free key from https://api.data.gov/signup. Optional; without it a shared demo key is used and is quickly rate limited.",
+      "sensitive": true
+    },
+    "fac_api_key": {
+      "type": "string",
+      "title": "Federal Audit Clearinghouse API key",
+      "description": "Free api.data.gov key (the same signup works). Optional; without it the shared demo key allows only about 10 requests.",
+      "sensitive": true
+    },
+    "contact_email": {
+      "type": "string",
+      "title": "Contact email for BLS",
+      "description": "BLS asks for a contact address with bulk file requests. Sent only to www.bls.gov, never logged. Needed for the occupation projections file.",
+      "sensitive": true
+    }
+  }
+}

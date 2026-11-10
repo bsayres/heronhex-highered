@@ -1,0 +1,54 @@
+{
+  "mcpServers": {
+    "highered-institutions": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "highered-institutions==0.1.0",
+        "highered-institutions"
+      ],
+      "env": {
+        "COLLEGE_SCORECARD_API_KEY": "${user_config.scorecard_api_key}"
+      }
+    },
+    "highered-risk": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "highered-risk==0.1.0",
+        "highered-risk"
+      ],
+      "env": {
+        "FAC_API_KEY": "${user_config.fac_api_key}"
+      }
+    },
+    "highered-accreditation": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "highered-accreditation==0.1.0",
+        "highered-accreditation"
+      ]
+    },
+    "highered-funding": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "highered-funding==0.1.0",
+        "highered-funding"
+      ]
+    },
+    "highered-labor-market": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "highered-labor-market==0.1.0",
+        "highered-labor-market"
+      ],
+      "env": {
+        "COLLEGE_SCORECARD_API_KEY": "${user_config.scorecard_api_key}",
+        "HIGHERED_MCPS_CONTACT": "${user_config.contact_email}"
+      }
+    }
+  }
+}
