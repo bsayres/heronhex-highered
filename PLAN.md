@@ -8,7 +8,7 @@ Status: **research complete, awaiting your review. No server code written.** Evi
 highered-mcps/
   LICENSE (MIT)  README.md  CONTRIBUTING.md  SECURITY.md  .gitignore  .env.example
   docs/  sources.md  threat-model.md  using-with-1102tools.md
-  .github/  dependabot.yml  workflows/ test.yml  publish-pypi.yml  mcpb.yml  secrets-scan.yml
+  .github/  dependabot.yml  workflows/ test.yml  publish-pypi.yml  secrets-scan.yml
   servers/
     highered-institutions/
       pyproject.toml  uv.lock  README.md  testing.md  SKILL.md  manifest.json (mcpb)
