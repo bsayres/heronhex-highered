@@ -1,10 +1,13 @@
 {
   "mcpServers": {
     "highered-institutions": {
-      "command": "uvx",
+      "command": "uv",
       "args": [
-        "--from",
-        "heronhex-institutions==0.1.1",
+        "run",
+        "--locked",
+        "--no-dev",
+        "--project",
+        "${CLAUDE_PLUGIN_ROOT}/servers/highered-institutions",
         "highered-institutions"
       ],
       "env": {
@@ -12,10 +15,13 @@
       }
     },
     "highered-risk": {
-      "command": "uvx",
+      "command": "uv",
       "args": [
-        "--from",
-        "heronhex-risk==0.1.1",
+        "run",
+        "--locked",
+        "--no-dev",
+        "--project",
+        "${CLAUDE_PLUGIN_ROOT}/servers/highered-risk",
         "highered-risk"
       ],
       "env": {
@@ -23,26 +29,35 @@
       }
     },
     "highered-accreditation": {
-      "command": "uvx",
+      "command": "uv",
       "args": [
-        "--from",
-        "heronhex-accreditation==0.1.1",
+        "run",
+        "--locked",
+        "--no-dev",
+        "--project",
+        "${CLAUDE_PLUGIN_ROOT}/servers/highered-accreditation",
         "highered-accreditation"
       ]
     },
     "highered-funding": {
-      "command": "uvx",
+      "command": "uv",
       "args": [
-        "--from",
-        "heronhex-funding==0.1.1",
+        "run",
+        "--locked",
+        "--no-dev",
+        "--project",
+        "${CLAUDE_PLUGIN_ROOT}/servers/highered-funding",
         "highered-funding"
       ]
     },
     "highered-labor-market": {
-      "command": "uvx",
+      "command": "uv",
       "args": [
-        "--from",
-        "heronhex-labor==0.1.1",
+        "run",
+        "--locked",
+        "--no-dev",
+        "--project",
+        "${CLAUDE_PLUGIN_ROOT}/servers/highered-labor-market",
         "highered-labor-market"
       ],
       "env": {
