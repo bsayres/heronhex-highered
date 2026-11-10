@@ -4,7 +4,7 @@
   "title": "Higher Ed: Labor Market",
   "description": "Align college programs with labor-market demand (CIP-SOC, BLS, O*NET, Scorecard). Read-only.",
   "repository": {
-    "url": "https://github.com/bsayres/highered-mcps",
+    "url": "https://github.com/bsayres/heronhex-highered",
     "source": "github",
     "subfolder": "servers/highered-labor-market"
   },

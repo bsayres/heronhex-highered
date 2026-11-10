@@ -5,6 +5,7 @@ Format follows Keep a Changelog. Versions are not yet released to PyPI; every se
 ## [Unreleased]
 
 ### Changed
+- Repository renamed `heronhex-highered` (was `highered-mcps`) to match the plugin and packages; repository, support and citation URLs updated.
 - Removed the `mcpb` workflow: the directory no longer accepts `.mcpb` bundles, and its manifest failed validation on every release tag. `manifest.json` and `src/main.py` in each server are left in place.
 - Tests, fixtures and docs no longer name the institutions used during development: names and identifiers are neutral placeholders (`Test College A`, UNITID 999001 and so on). Live tests and fixture recording read their target from `HIGHERED_LIVE_*` variables (see `.env.example`) and skip when unset. The Urban year probes use a fixed large institution (`PROBE_UNITID`). Working notes that name test colleges moved to the gitignored `docs/internal/`.
 - PyPI distribution names are now `heronhex-institutions`, `heronhex-risk`, `heronhex-accreditation`, `heronhex-funding` and `heronhex-labor` (all unclaimed on PyPI on 2026-11-10). Command names, Python modules, folders, MCP server names and skill names are unchanged, so existing Desktop configs keep working. The registry names became `io.github.bsayres/heronhex-*`.

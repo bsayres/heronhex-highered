@@ -4,7 +4,7 @@
   "title": "Higher Ed: Institutions",
   "description": "Resolve, profile and compare U.S. colleges from IPEDS and College Scorecard. Read-only.",
   "repository": {
-    "url": "https://github.com/bsayres/highered-mcps",
+    "url": "https://github.com/bsayres/heronhex-highered",
     "source": "github",
     "subfolder": "servers/highered-institutions"
   },

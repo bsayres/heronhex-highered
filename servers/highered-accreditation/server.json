@@ -4,7 +4,7 @@
   "title": "Higher Ed: Accreditation",
   "description": "Accreditation status and actions for U.S. institutions from the Dept. of Education DAPIP. Read-only.",
   "repository": {
-    "url": "https://github.com/bsayres/highered-mcps",
+    "url": "https://github.com/bsayres/heronhex-highered",
     "source": "github",
     "subfolder": "servers/highered-accreditation"
   },

@@ -1,4 +1,4 @@
-# highered-mcps
+# heronhex-highered
 
 Open-source (MIT) MCP servers that let higher-ed leaders, institutional researchers, and analysts ask Claude questions about U.S. institutions using **free public data**. Thin, deterministic wrappers over public sources. No hosted data and no database: bulk files are downloaded on demand into a local cache folder on your machine.
 
@@ -49,7 +49,7 @@ See [docs/using-with-1102tools.md](docs/using-with-1102tools.md) (SAM.gov, USAsp
 [docs/sources.md](docs/sources.md) (what was verified, what was not) · [PLAN.md](PLAN.md) · [SECURITY.md](SECURITY.md) · [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## Support
-Questions and bug reports: [GitHub Issues](https://github.com/bsayres/highered-mcps/issues). Anything private: mcp-support@heronhex.com.
+Questions and bug reports: [GitHub Issues](https://github.com/bsayres/heronhex-highered/issues). Anything private: mcp-support@heronhex.com.
 
 ## License
 MIT. Data licenses differ by source; each response names its source. IPEDS via the Urban Institute is ODC-By 1.0.

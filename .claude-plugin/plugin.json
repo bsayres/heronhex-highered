@@ -7,7 +7,7 @@
     "name": "Byron Sayres",
     "email": "mcp-support@heronhex.com"
   },
-  "repository": "https://github.com/bsayres/highered-mcps",
+  "repository": "https://github.com/bsayres/heronhex-highered",
   "license": "MIT",
   "keywords": [
     "higher-education",
@@ -24,7 +24,7 @@
     "./servers/highered-funding",
     "./servers/highered-labor-market"
   ],
-  "supportUrl": "https://github.com/bsayres/highered-mcps/issues",
+  "supportUrl": "https://github.com/bsayres/heronhex-highered/issues",
   "icon": "./.claude-plugin/icon.png",
   "userConfig": {
     "scorecard_api_key": {

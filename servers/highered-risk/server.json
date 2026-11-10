@@ -4,7 +4,7 @@
   "title": "Higher Ed: Risk",
   "description": "Title IV risk signals (HCM, composite scores, default rates) and Single Audit findings. Read-only.",
   "repository": {
-    "url": "https://github.com/bsayres/highered-mcps",
+    "url": "https://github.com/bsayres/heronhex-highered",
     "source": "github",
     "subfolder": "servers/highered-risk"
   },

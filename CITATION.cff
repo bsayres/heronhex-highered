@@ -1,13 +1,13 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below. Data sources keep their own licenses and citation requirements; see docs/sources.md and each response's `citation` and `license` fields."
-title: "highered-mcps: read-only MCP servers for U.S. higher-education public data"
+title: "heronhex-highered: read-only MCP servers for U.S. higher-education public data"
 type: software
 authors:
   - family-names: Sayres
     given-names: Byron
     affiliation: "Heron & Hex Solutions"
 license: MIT
-repository-code: "https://github.com/bsayres/highered-mcps"
+repository-code: "https://github.com/bsayres/heronhex-highered"
 version: 0.1.0
 keywords:
   - mcp

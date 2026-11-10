@@ -22,4 +22,4 @@ The plugin can ask for a College Scorecard key, a Federal Audit Clearinghouse ke
 The tools return institution-level data. They do not search by person name. Some public sources (audit reports, accreditation records) contain organization names and, rarely, names of officials in free text; the tools return only the fields needed and flag such text as untrusted.
 
 ## Contact
-Questions and support: mcp-support@heronhex.com, or open an issue at https://github.com/bsayres/highered-mcps/issues. Vulnerability reports: see SECURITY.md.
+Questions and support: mcp-support@heronhex.com, or open an issue at https://github.com/bsayres/heronhex-highered/issues. Vulnerability reports: see SECURITY.md.

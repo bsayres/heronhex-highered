@@ -4,7 +4,7 @@
   "title": "Higher Ed: Funding",
   "description": "Research spend, NSF/NIH awards, open grants, state funding and graduate projections. Read-only.",
   "repository": {
-    "url": "https://github.com/bsayres/highered-mcps",
+    "url": "https://github.com/bsayres/heronhex-highered",
     "source": "github",
     "subfolder": "servers/highered-funding"
   },
