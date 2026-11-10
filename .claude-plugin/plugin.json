@@ -24,6 +24,7 @@
     "./servers/highered-funding",
     "./servers/highered-labor-market"
   ],
+  "supportUrl": "https://github.com/bsayres/highered-mcps/issues",
   "icon": "./.claude-plugin/icon.png",
   "userConfig": {
     "scorecard_api_key": {

@@ -9,6 +9,7 @@ description = "MCP server: institutional, programmatic and state-agency accredit
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
+authors = [{ name = "Byron Sayres (Heron & Hex Solutions)", email = "mcp-support@heronhex.com" }]
 keywords = ["mcp", "model-context-protocol", "accreditation", "dapip", "higher-education"]
 dependencies = [
     "mcp>=2.3.0,<3",

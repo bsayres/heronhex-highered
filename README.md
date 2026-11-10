@@ -48,5 +48,8 @@ See [docs/using-with-1102tools.md](docs/using-with-1102tools.md) (SAM.gov, USAsp
 ## Docs
 [docs/sources.md](docs/sources.md) (what was verified, what was not) · [PLAN.md](PLAN.md) · [SECURITY.md](SECURITY.md) · [CONTRIBUTING.md](CONTRIBUTING.md)
 
+## Support
+Questions and bug reports: [GitHub Issues](https://github.com/bsayres/highered-mcps/issues). Anything private: mcp-support@heronhex.com.
+
 ## License
 MIT. Data licenses differ by source; each response names its source. IPEDS via the Urban Institute is ODC-By 1.0.
