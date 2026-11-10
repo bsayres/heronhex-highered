@@ -28,6 +28,28 @@ Claude Code asks for three optional values (a College Scorecard key, a Federal A
 
 Privacy: [docs/privacy-policy.md](docs/privacy-policy.md).
 
+## Where it works
+The plugin runs five small programs on your own computer, so it works in **Claude Code** and **Cowork**. Claude.ai chat in a browser, and the mobile apps, cannot run local programs, so the tools do not appear there even if the plugin is listed in the directory. You need [`uv`](https://docs.astral.sh/uv/) installed, because the plugin starts each server with `uvx`.
+
+## What this runs and contacts
+**What runs.** Five read-only Python servers, each started by `uvx` from PyPI at an exact pinned version: `heronhex-institutions`, `heronhex-risk`, `heronhex-accreditation`, `heronhex-funding` and `heronhex-labor`. They have no write tools, and they do not run shell commands, evaluate code or load plugins. They write only to a local cache folder (`~/.cache/highered-mcps`, or the folder in `HIGHERED_MCPS_CACHE`). The six skills are Markdown instructions. The `institution-brief` skill also includes one HTML dashboard template, which Claude fills with data you ask for; it makes no network requests and loads no outside scripts, fonts or images.
+
+**What they contact.** Only these public sources, over HTTPS, with each server allowed to reach only its own hosts. The allowlist is enforced in code and checked on every redirect.
+
+| Server | Hosts | Used for |
+|---|---|---|
+| institutions | `educationdata.urban.org`, `nces.ed.gov`, `api.data.gov` | IPEDS directory, enrollment, finance and retention; College Scorecard |
+| risk | `studentaid.gov`, `fsapartners.ed.gov`, `api.fac.gov` | Heightened Cash Monitoring, composite scores, default rates; Single Audit findings |
+| accreditation | `ope.ed.gov` | Department of Education accreditation database (DAPIP) |
+| funding | `api.nsf.gov`, `ncses.nsf.gov`, `api.grants.gov`, `api.reporter.nih.gov`, `shef.sheeo.org`, `www.wiche.edu` | Research spending and awards, funding opportunities, state funding, enrollment projections |
+| labor-market | `www.bls.gov`, `public.projectionscentral.org`, `www.onetcenter.org`, `api.data.gov`, `nces.ed.gov` | Wages and occupation outlook, state projections, O*NET skills, Scorecard program data |
+
+**Keys and your email.** The plugin asks for three optional values and stores them in your system credential store. The College Scorecard key goes only to `api.data.gov`, and the audit key only to `api.fac.gov`, in request headers. The contact email goes only to `www.bls.gov`, as BLS asks for bulk files. None of them is logged, returned in results or written to the cache.
+
+**What we collect.** Nothing. There is no server, account or analytics operated by us. See the [privacy policy](docs/privacy-policy.md).
+
+**Untrusted text.** Names, program titles and audit narratives come from public sources and could contain text written to look like instructions. The servers return them as data and flag them as untrusted, and the skills tell Claude not to follow them. See [docs/threat-model.md](docs/threat-model.md).
+
 ## Quick start (local path)
 ```bash
 cp .env.example .env            # add your free College Scorecard key

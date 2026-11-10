@@ -9,7 +9,7 @@
     {
       "name": "heronhex-highered",
       "source": "./",
-      "description": "Read-only access to free public U.S. higher-education data: institution profiles, enrollment, retention and finance, Title IV risk flags, Single Audit findings, accreditation, research and state funding, and wages and program-to-job alignment. Five local servers plus skills; no data is hosted or collected.",
+      "description": "Read-only access to free public U.S. higher-education data: institution profiles, enrollment, retention and finance, Title IV risk flags, Single Audit findings, accreditation, research and state funding, and wages and program-to-job alignment. Five local servers plus skills; no data is hosted or collected. Runs locally in Claude Code and Cowork.",
       "category": "data",
       "tags": [
         "higher-education",
