@@ -18,9 +18,9 @@ Open-source (MIT) MCP servers that let higher-ed leaders, institutional research
 - Upstream free text is untrusted data. See [docs/threat-model.md](docs/threat-model.md).
 
 ## Install
-**As a plugin (Claude Code and Cowork).** One install brings the five servers and the six skills (the five server skills plus `institution-brief`). The servers run on your computer; Claude.ai chat does not load local servers. Not yet published: this needs the PyPI release and a public repo first.
+**As a plugin (Claude Code and Cowork).** One install brings the five servers and the six skills (the five server skills plus `institution-brief`). The servers run on your computer; Claude.ai chat does not load local servers. The five server packages are on PyPI (`heronhex-*`); the directory listing is pending.
 ```
-/plugin install heronhex-highered --marketplace <owner>/<repo>
+/plugin install heronhex-highered --marketplace bsayres/heronhex-highered
 ```
 Claude Code asks for three optional values (a College Scorecard key, a Federal Audit Clearinghouse key, a BLS contact email), stores them in your system credential store, and passes them to the servers as environment variables. Free keys: https://api.data.gov/signup.
 
@@ -47,6 +47,9 @@ See [docs/using-with-1102tools.md](docs/using-with-1102tools.md) (SAM.gov, USAsp
 
 ## Docs
 [docs/sources.md](docs/sources.md) (what was verified, what was not) · [PLAN.md](PLAN.md) · [SECURITY.md](SECURITY.md) · [CONTRIBUTING.md](CONTRIBUTING.md)
+
+## About
+Built and maintained by Heron & Hex Solutions. Free and open source (MIT). Not an Anthropic product, and provided without warranty.
 
 ## Support
 Questions and bug reports: [GitHub Issues](https://github.com/bsayres/heronhex-highered/issues). Anything private: mcp-support@heronhex.com.

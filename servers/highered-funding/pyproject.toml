@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "heronhex-funding"
-version = "0.1.0"
+version = "0.1.1"
 description = "MCP server: research spending, federal grant awards and opportunities, state higher-ed funding, and enrollment projections for U.S. institutions from free public sources (NSF HERD, NSF, NIH, Grants.gov, SHEEO, WICHE)."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -17,6 +17,12 @@ dependencies = [
     "pydantic>=2.10,<3",
     "openpyxl>=3.1.5,<4",  # SHEEO and WICHE publish .xlsx
 ]
+
+[project.urls]
+Homepage = "https://github.com/bsayres/heronhex-highered"
+Source = "https://github.com/bsayres/heronhex-highered"
+Issues = "https://github.com/bsayres/heronhex-highered/issues"
+Privacy = "https://github.com/bsayres/heronhex-highered/blob/main/docs/privacy-policy.md"
 
 [project.scripts]
 highered-funding = "highered_funding.server:main"

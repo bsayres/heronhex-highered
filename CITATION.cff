@@ -8,7 +8,7 @@ authors:
     affiliation: "Heron & Hex Solutions"
 license: MIT
 repository-code: "https://github.com/bsayres/heronhex-highered"
-version: 0.1.0
+version: 0.1.1
 keywords:
   - mcp
   - model-context-protocol

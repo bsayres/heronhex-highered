@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "heronhex-risk"
-version = "0.1.0"
+version = "0.1.1"
 description = "MCP server: Title IV risk signals for U.S. institutions (heightened cash monitoring, financial responsibility composite scores, cohort default rates) from FSA public files, and Single Audit findings from the Federal Audit Clearinghouse."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -18,6 +18,12 @@ dependencies = [
     "openpyxl>=3.1.5,<4",  # FSA publishes HCM and default-rate files as .xlsx
     "xlrd>=2.0.2,<3",      # FSA publishes composite scores only as legacy .xls
 ]
+
+[project.urls]
+Homepage = "https://github.com/bsayres/heronhex-highered"
+Source = "https://github.com/bsayres/heronhex-highered"
+Issues = "https://github.com/bsayres/heronhex-highered/issues"
+Privacy = "https://github.com/bsayres/heronhex-highered/blob/main/docs/privacy-policy.md"
 
 [project.scripts]
 highered-risk = "highered_risk.server:main"

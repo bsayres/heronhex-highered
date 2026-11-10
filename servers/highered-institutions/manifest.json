@@ -2,7 +2,7 @@
   "manifest_version": "0.4",
   "name": "highered-institutions",
   "display_name": "Higher Ed Institutions",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Resolve and compare U.S. higher-ed institutions from free public data (IPEDS, College Scorecard).",
   "author": { "name": "highered-mcps contributors" },
   "license": "MIT",

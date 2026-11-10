@@ -1,12 +1,13 @@
 {
   "name": "heronhex-highered",
   "displayName": "Heron & Hex Higher Ed Data",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Read-only access to free public U.S. higher-education data: institution profiles, enrollment, retention and finance, Title IV risk flags, Single Audit findings, accreditation, research and state funding, and wages and program-to-job alignment. Five local servers plus skills; no data is hosted or collected.",
   "author": {
     "name": "Byron Sayres",
     "email": "mcp-support@heronhex.com"
   },
+  "homepage": "https://github.com/bsayres/heronhex-highered",
   "repository": "https://github.com/bsayres/heronhex-highered",
   "license": "MIT",
   "keywords": [
@@ -24,7 +25,9 @@
     "./servers/highered-funding",
     "./servers/highered-labor-market"
   ],
+  "documentationUrl": "https://github.com/bsayres/heronhex-highered#readme",
   "supportUrl": "https://github.com/bsayres/heronhex-highered/issues",
+  "privacyPolicyUrl": "https://github.com/bsayres/heronhex-highered/blob/main/docs/privacy-policy.md",
   "icon": "./.claude-plugin/icon.png",
   "userConfig": {
     "scorecard_api_key": {

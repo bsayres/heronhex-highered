@@ -2,7 +2,7 @@
   "manifest_version": "0.4",
   "name": "highered-risk",
   "display_name": "Higher Ed Title IV Risk",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Heightened cash monitoring, composite scores, cohort default rates, and Single Audit findings from public federal files.",
   "author": { "name": "highered-mcps contributors" },
   "license": "MIT",

@@ -2,7 +2,7 @@
   "manifest_version": "0.4",
   "name": "highered-funding",
   "display_name": "Higher Ed Funding",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Research spending, federal awards and opportunities, state funding, and graduate projections from free public sources.",
   "author": { "name": "highered-mcps contributors" },
   "license": "MIT",

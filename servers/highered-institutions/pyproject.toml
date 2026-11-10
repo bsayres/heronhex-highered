@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "heronhex-institutions"
-version = "0.1.0"
+version = "0.1.1"
 description = "MCP server: resolve and compare U.S. higher-ed institutions using free public data (IPEDS via Urban Institute, College Scorecard). No hosted data."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -16,6 +16,12 @@ dependencies = [
     "httpx>=0.28,<1",
     "pydantic>=2.10,<3",
 ]
+
+[project.urls]
+Homepage = "https://github.com/bsayres/heronhex-highered"
+Source = "https://github.com/bsayres/heronhex-highered"
+Issues = "https://github.com/bsayres/heronhex-highered/issues"
+Privacy = "https://github.com/bsayres/heronhex-highered/blob/main/docs/privacy-policy.md"
 
 [project.scripts]
 highered-institutions = "highered_institutions.server:main"

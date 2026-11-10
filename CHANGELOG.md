@@ -1,8 +1,13 @@
 # Changelog
 
-Format follows Keep a Changelog. Versions are not yet released to PyPI; every server is 0.1.0 in `pyproject.toml`.
+Format follows Keep a Changelog. The five servers are released to PyPI together as `heronhex-*` packages.
 
-## [Unreleased]
+## [0.1.1] - 2026-11-10
+
+### Changed
+- Release metadata only, no code change: project links (homepage, issues, privacy) on the PyPI pages, `homepage`, `documentationUrl` and `privacyPolicyUrl` in the plugin manifest, a `marketplace.json` so the plugin installs from this repository, and a short About section in the README.
+
+## [0.1.0] - 2026-11-10 (first PyPI release)
 
 ### Changed
 - Repository renamed `heronhex-highered` (was `highered-mcps`) to match the plugin and packages; repository, support and citation URLs updated.

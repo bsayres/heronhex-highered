@@ -2,7 +2,7 @@
   "manifest_version": "0.4",
   "name": "highered-accreditation",
   "display_name": "Higher Ed Accreditation",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Institutional, programmatic and state-agency accreditation status and dated accreditation actions from the Department of Education's DAPIP.",
   "author": { "name": "highered-mcps contributors" },
   "license": "MIT",

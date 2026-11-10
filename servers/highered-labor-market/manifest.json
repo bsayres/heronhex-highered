@@ -2,7 +2,7 @@
   "manifest_version": "0.4",
   "name": "highered-labor-market",
   "display_name": "Higher Ed Labor Market",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Align programs with labor-market demand: CIP-SOC crosswalk, BLS projections, O*NET skills, Scorecard program outcomes.",
   "author": { "name": "highered-mcps contributors" },
   "license": "MIT",

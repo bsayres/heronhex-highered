@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "heronhex-accreditation"
-version = "0.1.0"
+version = "0.1.1"
 description = "MCP server: institutional, programmatic and state-agency accreditation status and dated accreditation actions for U.S. institutions, from the Department of Education's DAPIP."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -16,6 +16,12 @@ dependencies = [
     "httpx>=0.28,<1",
     "pydantic>=2.10,<3",
 ]
+
+[project.urls]
+Homepage = "https://github.com/bsayres/heronhex-highered"
+Source = "https://github.com/bsayres/heronhex-highered"
+Issues = "https://github.com/bsayres/heronhex-highered/issues"
+Privacy = "https://github.com/bsayres/heronhex-highered/blob/main/docs/privacy-policy.md"
 
 [project.scripts]
 highered-accreditation = "highered_accreditation.server:main"
