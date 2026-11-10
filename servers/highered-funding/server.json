@@ -1,6 +1,6 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.bsayres/highered-funding",
+  "name": "io.github.bsayres/heronhex-funding",
   "title": "Higher Ed: Funding",
   "description": "Research spend, NSF/NIH awards, open grants, state funding and graduate projections. Read-only.",
   "repository": {
@@ -12,7 +12,7 @@
   "packages": [
     {
       "registryType": "pypi",
-      "identifier": "highered-funding",
+      "identifier": "heronhex-funding",
       "version": "0.1.0",
       "runtimeHint": "uvx",
       "transport": {

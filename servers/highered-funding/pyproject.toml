@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "highered-funding"
+name = "heronhex-funding"
 version = "0.1.0"
 description = "MCP server: research spending, federal grant awards and opportunities, state higher-ed funding, and enrollment projections for U.S. institutions from free public sources (NSF HERD, NSF, NIH, Grants.gov, SHEEO, WICHE)."
 readme = "README.md"

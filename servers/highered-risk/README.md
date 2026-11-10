@@ -44,4 +44,4 @@ Institution names, program names, HCM "reason" text and the finding and correcti
 - HCM list is a quarterly snapshot; "Reimbursement" and "Stop Pay" lists are parsed if present (empty at the last check).
 - OPEID6-level default rates cannot distinguish campuses.
 
-<!-- mcp-name: io.github.bsayres/highered-risk -->
+<!-- mcp-name: io.github.bsayres/heronhex-risk -->

@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "highered-labor-market"
+name = "heronhex-labor"
 version = "0.1.0"
 description = "MCP server: align higher-ed programs with labor-market demand using free public data (CIP-SOC crosswalk, BLS Employment Projections, state projections from Projections Central, O*NET, College Scorecard field of study)."
 readme = "README.md"

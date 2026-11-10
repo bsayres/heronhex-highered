@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "highered-accreditation"
+name = "heronhex-accreditation"
 version = "0.1.0"
 description = "MCP server: institutional, programmatic and state-agency accreditation status and dated accreditation actions for U.S. institutions, from the Department of Education's DAPIP."
 readme = "README.md"

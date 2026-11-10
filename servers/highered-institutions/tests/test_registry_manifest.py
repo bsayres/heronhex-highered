@@ -15,7 +15,7 @@ def test_server_json_matches_the_package_and_readme():
     assert sj["name"].startswith("io.github.bsayres/") and sj["name"].endswith("/" + proj["name"])
     assert f"<!-- mcp-name: {sj['name']} -->" in (ROOT / "README.md").read_text()  # ownership check the registry reads from PyPI
     assert 0 < len(sj["description"]) <= 100
-    assert sj["repository"]["subfolder"] == "servers/" + proj["name"]
+    assert sj["repository"]["subfolder"] == "servers/" + ROOT.name
 
 
 def test_listed_environment_variables_are_only_those_the_code_reads():

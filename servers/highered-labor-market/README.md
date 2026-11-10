@@ -64,4 +64,4 @@ Program titles, occupation names, tasks and technology names come from upstream.
 - A state may report an occupation only as a broad group (the response says so, and the group is counted once in totals) or not submit it at all (a null with a reason).
 - Census PSEO earnings are not included yet.
 
-<!-- mcp-name: io.github.bsayres/highered-labor-market -->
+<!-- mcp-name: io.github.bsayres/heronhex-labor -->

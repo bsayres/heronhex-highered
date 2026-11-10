@@ -459,7 +459,7 @@ wheels = [
 ]
 
 [[package]]
-name = "highered-risk"
+name = "heronhex-risk"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

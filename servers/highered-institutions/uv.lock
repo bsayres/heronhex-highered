@@ -450,7 +450,7 @@ wheels = [
 ]
 
 [[package]]
-name = "highered-institutions"
+name = "heronhex-institutions"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

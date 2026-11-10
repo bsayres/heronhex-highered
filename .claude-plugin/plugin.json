@@ -24,6 +24,7 @@
     "./servers/highered-funding",
     "./servers/highered-labor-market"
   ],
+  "icon": "./.claude-plugin/icon.png",
   "userConfig": {
     "scorecard_api_key": {
       "type": "string",

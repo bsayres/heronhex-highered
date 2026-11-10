@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "highered-institutions"
+name = "heronhex-institutions"
 version = "0.1.0"
 description = "MCP server: resolve and compare U.S. higher-ed institutions using free public data (IPEDS via Urban Institute, College Scorecard). No hosted data."
 readme = "README.md"

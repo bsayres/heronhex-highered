@@ -1,6 +1,6 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.bsayres/highered-labor-market",
+  "name": "io.github.bsayres/heronhex-labor",
   "title": "Higher Ed: Labor Market",
   "description": "Align college programs with labor-market demand (CIP-SOC, BLS, O*NET, Scorecard). Read-only.",
   "repository": {
@@ -12,7 +12,7 @@
   "packages": [
     {
       "registryType": "pypi",
-      "identifier": "highered-labor-market",
+      "identifier": "heronhex-labor",
       "version": "0.1.0",
       "runtimeHint": "uvx",
       "transport": {

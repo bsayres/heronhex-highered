@@ -1,6 +1,6 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.bsayres/highered-institutions",
+  "name": "io.github.bsayres/heronhex-institutions",
   "title": "Higher Ed: Institutions",
   "description": "Resolve, profile and compare U.S. colleges from IPEDS and College Scorecard. Read-only.",
   "repository": {
@@ -12,7 +12,7 @@
   "packages": [
     {
       "registryType": "pypi",
-      "identifier": "highered-institutions",
+      "identifier": "heronhex-institutions",
       "version": "0.1.0",
       "runtimeHint": "uvx",
       "transport": {

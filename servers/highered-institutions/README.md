@@ -47,4 +47,4 @@ Institution names, cities, and other upstream strings are untrusted. They are re
 ## Limitations
 Carnegie labels not yet included (codes only). Retention covers first-time degree-seeking undergraduates only, counts a transfer out as not retained, and is a fall-to-fall rate, not a graduation rate; rates on cohorts under 30 students are flagged as volatile. Latest enrollment lags the directory by about a year. UEI is missing for roughly 9% of institutions. See [testing.md](testing.md).
 
-<!-- mcp-name: io.github.bsayres/highered-institutions -->
+<!-- mcp-name: io.github.bsayres/heronhex-institutions -->

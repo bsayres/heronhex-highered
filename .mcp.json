@@ -4,7 +4,7 @@
       "command": "uvx",
       "args": [
         "--from",
-        "highered-institutions==0.1.0",
+        "heronhex-institutions==0.1.0",
         "highered-institutions"
       ],
       "env": {
@@ -15,7 +15,7 @@
       "command": "uvx",
       "args": [
         "--from",
-        "highered-risk==0.1.0",
+        "heronhex-risk==0.1.0",
         "highered-risk"
       ],
       "env": {
@@ -26,7 +26,7 @@
       "command": "uvx",
       "args": [
         "--from",
-        "highered-accreditation==0.1.0",
+        "heronhex-accreditation==0.1.0",
         "highered-accreditation"
       ]
     },
@@ -34,7 +34,7 @@
       "command": "uvx",
       "args": [
         "--from",
-        "highered-funding==0.1.0",
+        "heronhex-funding==0.1.0",
         "highered-funding"
       ]
     },
@@ -42,7 +42,7 @@
       "command": "uvx",
       "args": [
         "--from",
-        "highered-labor-market==0.1.0",
+        "heronhex-labor==0.1.0",
         "highered-labor-market"
       ],
       "env": {

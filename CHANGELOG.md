@@ -4,8 +4,11 @@ Format follows Keep a Changelog. Versions are not yet released to PyPI; every se
 
 ## [Unreleased]
 
+### Changed
+- PyPI distribution names are now `heronhex-institutions`, `heronhex-risk`, `heronhex-accreditation`, `heronhex-funding` and `heronhex-labor` (all unclaimed on PyPI on 2026-11-10). Command names, Python modules, folders, MCP server names and skill names are unchanged, so existing Desktop configs keep working. The registry names became `io.github.bsayres/heronhex-*`.
+
 ### Added
-- Plugin scaffold `heronhex-highered`: `.claude-plugin/plugin.json` (name, `userConfig` for the three optional keys, marked sensitive), `.mcp.json` (five servers, `uvx` pinned to `==0.1.0` from PyPI), skills loaded from the existing `servers/*/SKILL.md` and `skills/institution-brief`, and `docs/privacy-policy.md`. Not runnable from the marketplace until the servers are on PyPI.
+- Plugin scaffold `heronhex-highered`: `.claude-plugin/plugin.json` (name, `userConfig` for the three optional keys, marked sensitive), `.mcp.json` (five servers, `uvx` pinned to `==0.1.0` from PyPI), `.claude-plugin/icon.png` (the heron and hexagon mark, 1024 px square), skills loaded from the existing `servers/*/SKILL.md` and `skills/institution-brief`, and `docs/privacy-policy.md`. Not runnable from the marketplace until the servers are on PyPI.
 - `search_occupations` (labor-market): find a SOC code from words in the occupation title (light stemming), so a question in plain words can reach `get_wages`; the `get_wages` description now names the plain questions it answers.
 - `get_retention` (institutions): fall-to-fall retention rates, cohorts, student-to-faculty ratio and IPEDS flags from NCES's complete data files (`EF{year}D.zip`), read in memory by exact member name; adds `nces.ed.gov` to the institutions allowlist. Independent of the Urban API.
 - `get_wages` and `search_metros` (labor-market): BLS OEWS wages and employment for an occupation in a state or metropolitan area (May 2025), with suppressed cells as nulls and top-coded wages flagged as floors; `cbsa` on `resolve_institution` and `get_institution_profile` so an institution joins to its metro.
