@@ -2,6 +2,7 @@
 
 License: CC BY-NC-SA 4.0. Nothing is redistributed by this project; every response carries the license and citation.
 """
+import asyncio
 import hashlib
 import re
 
@@ -70,7 +71,7 @@ async def load(guard: Guard) -> Loaded:
         page, _ = await guard.get_bytes(PAGE, max_bytes=3_000_000)
         url = pick_file(page.decode("utf-8", "replace"))
         raw, public = await guard.get_bytes(url, max_bytes=MAX_FILE_BYTES)
-        parsed = parse(raw)
+        parsed = await asyncio.to_thread(parse, raw)  # a 12 MB workbook; keep the event loop free for other calls
     except UpstreamError:
         if hit:
             return Loaded(hit["data"], hit["meta"], True)

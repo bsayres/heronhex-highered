@@ -49,6 +49,22 @@ def composite_xls() -> bytes:
     return buf.getvalue()
 
 
+def composite_xlsx() -> bytes:
+    """The same file in the .xlsx form FSA may switch to: dates are real cells, scores may be ints."""
+    from datetime import datetime
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Final"
+    ws.append(["Composite Scores For Private, Non-Profit and Proprietary Institutions with Fiscal Years Ending Between 7/1/2023 and 6/30/2024\nData Source:  eZ-Audit as of December 1, 2025"])
+    ws.append(["Item#", "OPEID", "Institution Name", "City", "State", "Zip Code", "Institution Fiscal Year End", "Institution Type", " Composite Score for Institution's  Fiscal Year Ending Between 07/01/2023 - 6/30/2024"])
+    ws.append([1, "00884300", "Alaska Bible College", "Palmer", "AK", "99645", datetime(2024, 5, 31), "Non Profit", 3])
+    ws.append([2, "00100200", "Alabama Agricultural & Mechanical University", "Normal", "AL", "35762", datetime(2024, 9, 30), "Public", "N/A"])
+    buf = io.BytesIO()
+    wb.save(buf)
+    return buf.getvalue()
+
+
 def cdr_xlsx() -> bytes:
     wb = openpyxl.Workbook()
     ws = wb.active

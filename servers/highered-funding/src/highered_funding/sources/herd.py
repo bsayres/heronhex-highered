@@ -3,13 +3,14 @@
 Only total R&D expenditures by source of funds (questionnaire 01.a-01.g) are kept. Archives are read in
 memory, only the one expected CSV member is read, and its decompressed size is capped while streaming.
 """
+import asyncio
 import csv
 import hashlib
 import io
 import re
 import zipfile
 
-from .. import cache
+from .. import bounded, cache
 from ..http import Guard, UpstreamError
 
 PAGE = "https://ncses.nsf.gov/explore-data/microdata/higher-education-research-development"
@@ -94,6 +95,11 @@ def parse_zip(data: bytes, year: int, form: str) -> dict:
 
 
 async def _index(guard: Guard) -> Loaded:
+    """The file list, fetched once even when several years are requested at the same moment (one page request, one cache write)."""
+    return await bounded.start("herd-index", lambda: _index_fetch(guard))
+
+
+async def _index_fetch(guard: Guard) -> Loaded:
     name = "herd-index.json"
     hit = cache.read(name)
     if hit and cache.is_fresh(hit["meta"], 14):
@@ -123,11 +129,11 @@ async def year(guard: Guard, y: int) -> Loaded:
         if not files or "standard" not in files:
             raise UpstreamError(f"HERD has no standard-form file listed for FY{y}.")
         raw, url = await guard.get_bytes(BASE + files["standard"], max_bytes=MAX_ZIP_BYTES)
-        parsed = parse_zip(raw, y, "standard")
+        parsed = await asyncio.to_thread(parse_zip, raw, y, "standard")  # a 50 MB CSV; keep the event loop free for other calls
         sha = {"file_sha256": hashlib.sha256(raw).hexdigest(), "file_bytes": len(raw)}
         if "short" in files:
             sraw, _ = await guard.get_bytes(BASE + files["short"], max_bytes=MAX_ZIP_BYTES)
-            sp = parse_zip(sraw, y, "short")
+            sp = await asyncio.to_thread(parse_zip, sraw, y, "short")
             for k, v in sp["institutions"].items():
                 parsed["institutions"].setdefault(k, v)
             parsed["unmatched"] += sp["unmatched"]

@@ -6,7 +6,8 @@ from pydantic import Field
 
 UnitId = Annotated[str, Field(pattern=r"^[0-9]{6}$", description="6-digit IPEDS UNITID")]
 Uei = Annotated[str, Field(pattern=r"^[A-Z0-9]{12}$", description="12-character SAM.gov Unique Entity ID")]
-QueryText = Annotated[str, Field(pattern=r"^[\w\s&'.,()\-:/]+$", min_length=2, max_length=200)]
+# Letters (ASCII and accented Latin, for names such as Méndez), ASCII digits only (never \w or \d, which admit other scripts' digits), single spaces.
+QueryText = Annotated[str, Field(pattern=r"^[A-Za-z0-9À-ɏ &'.,()\-:/]+$", min_length=2, max_length=200)]
 Year = Annotated[int, Field(ge=1972, le=2100)]
 Limit = Annotated[int, Field(ge=1, le=50, description="Maximum rows to return")]
 

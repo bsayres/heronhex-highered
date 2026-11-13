@@ -168,7 +168,7 @@ def test_read_is_bounded_even_if_declared_size_is_wrong(monkeypatch):
     with zipfile.ZipFile(io.BytesIO(make_zip())) as z:
         monkeypatch.setattr(dapip, "MAX_MEMBER_BYTES", 50)
         with pytest.raises(dapip.ParseError):
-            dapip._rows(z, "InstitutionCampus.csv")
+            list(dapip._rows(z, "InstitutionCampus.csv"))
 
 
 def test_changed_columns_are_rejected():
@@ -212,8 +212,27 @@ def test_member_reads_ask_for_a_bounded_amount():
         def open(self, name):
             return Member(b"DapipId,OpeId,IpedsUnitIds,LocationName,LocationType,UpdateDate\n")
 
-    dapip._rows(FakeZip(), "InstitutionCampus.csv")
-    assert asked == [dapip.MAX_MEMBER_BYTES + 1]
+    list(dapip._rows(FakeZip(), "InstitutionCampus.csv"))
+    # Streamed in bounded chunks: never read(-1) (unbounded) and never more than 64 KiB at a time.
+    assert asked and all(0 < n <= 1 << 16 for n in asked)
+
+
+def test_streaming_parse_never_holds_the_whole_member(monkeypatch):
+    """Peak memory while parsing stays far below the member size (the old path decoded the whole file into a StringIO)."""
+    import tracemalloc
+
+    rows = "\n".join(f"{i},0010{i:04d},99{i:04d},Campus {i},Institution,1/1/2024" for i in range(1, 40_001))
+    big = ("DapipId,OpeId,IpedsUnitIds,LocationName,LocationType,UpdateDate\n" + rows).encode()
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr("InstitutionCampus.csv", big)
+    tracemalloc.start()
+    with zipfile.ZipFile(io.BytesIO(buf.getvalue())) as z:
+        n = sum(1 for _ in dapip._rows(z, "InstitutionCampus.csv"))
+    _, peak = tracemalloc.get_traced_memory()
+    tracemalloc.stop()
+    assert n == 40_000
+    assert peak < len(big) // 4, (peak, len(big))
 
 
 def test_review_date_note_only_when_current_review_date_is_over_five_years_old_with_no_later_action():

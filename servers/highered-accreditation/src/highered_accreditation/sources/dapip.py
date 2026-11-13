@@ -5,6 +5,7 @@ its members must be exactly the three expected names, are size- and ratio-checke
 bounded read. Nothing is extracted to disk or executed. Administrator names, emails, phone numbers and
 street addresses in the institution file are dropped at parse time and never cached.
 """
+import asyncio
 import csv
 import hashlib
 import io
@@ -135,15 +136,32 @@ class _Strings:
         return i
 
 
+class _Capped(io.RawIOBase):
+    """Reads a zip member in bounded chunks and refuses to go past MAX_MEMBER_BYTES, however large the member really is.
+    Streaming (instead of reading the whole member, decoding it and copying it into a StringIO) keeps peak memory at a few MB."""
+
+    def __init__(self, member):
+        self._member, self._read = member, 0
+
+    def readable(self) -> bool:
+        return True
+
+    def readinto(self, b) -> int:
+        chunk = self._member.read(min(len(b), 1 << 16))
+        self._read += len(chunk)
+        if self._read > MAX_MEMBER_BYTES:
+            raise ParseError("A file inside the DAPIP download is unexpectedly large; refusing to parse it.")
+        b[: len(chunk)] = chunk
+        return len(chunk)
+
+
 def _rows(z: zipfile.ZipFile, name: str):
     with z.open(name) as f:
-        raw = f.read(MAX_MEMBER_BYTES + 1)
-    if len(raw) > MAX_MEMBER_BYTES:
-        raise ParseError("A file inside the DAPIP download is unexpectedly large; refusing to parse it.")
-    reader = csv.DictReader(io.StringIO(raw.decode("utf-8-sig", "replace")))
-    if not REQUIRED[name] <= set(reader.fieldnames or []):
-        raise ParseError("A DAPIP file has an unexpected layout (columns changed).")
-    return reader
+        text = io.TextIOWrapper(io.BufferedReader(_Capped(f)), encoding="utf-8-sig", errors="replace", newline="")
+        reader = csv.DictReader(text)
+        if not REQUIRED[name] <= set(reader.fieldnames or []):
+            raise ParseError("A DAPIP file has an unexpected layout (columns changed).")
+        yield from reader
 
 
 def _check_zip(z: zipfile.ZipFile, size: int) -> None:
@@ -245,7 +263,7 @@ async def load(guard: Guard) -> Loaded:
         return Loaded(hit["data"], hit["meta"], False)
     try:
         raw = await guard.post_download(max_bytes=MAX_ZIP_BYTES)
-        parsed = parse(raw)
+        parsed = await asyncio.to_thread(parse, raw)  # seconds of CSV parsing; keep the event loop free for other calls
     except UpstreamError:
         if hit:
             return Loaded(hit["data"], hit["meta"], True)

@@ -23,6 +23,8 @@ async def rejected(name, args) -> bool:
     ("get_financial_snapshot", {"unitid": "９９９００１"}),
     ("get_institution_profile", {"unitid": "../../etc"}),
     ("resolve_institution", {"query": "x" * 5000}),
+    ("resolve_institution", {"query": "Test\nCollege"}),  # no line breaks: the text pattern allows spaces, not \s
+    ("search_institutions", {"name_contains": "Col١ege"}),  # an Arabic-Indic digit must not satisfy a text pattern either (\w would admit it)
     ("resolve_institution", {"query": "ok name", "kind": "sql"}),
     ("resolve_institution", {"query": "Test College A", "state": "Massachusetts"}),
     ("search_institutions", {"limit": 100000}),
@@ -115,6 +117,36 @@ def test_cache_checksum_detects_tampering(tmp_path, monkeypatch):
     p = cache.safe_path("a.json")
     p.write_text(p.read_text().replace('"k":1', '"k":2'))
     assert cache.read("a.json") is None
+
+
+def test_cache_read_is_memoized_until_the_file_changes(tmp_path, monkeypatch):
+    monkeypatch.setenv("HIGHERED_MCPS_CACHE", str(tmp_path))
+    cache.write("m.json", {"k": 1}, "asof", "https://x")
+    first = cache.read("m.json")
+    assert cache.read("m.json") is first  # same object, no re-read or re-hash
+    cache.write("m.json", {"k": 2}, "asof", "https://x")  # our own write drops the memo
+    assert cache.read("m.json")["data"] == {"k": 2}
+    p = cache.safe_path("m.json")
+    blob = p.read_text().replace('"k":2', '"k":3')
+    import os
+    import time
+
+    p.write_text(blob)
+    os.utime(p, ns=(time.time_ns(), time.time_ns() + 1_000_000))  # another process replaced the file: new mtime, same size
+    assert cache.read("m.json") is None  # re-read, and the checksum catches the edit
+    p.unlink()
+    assert cache.read("m.json") is None
+    assert not list(tmp_path.rglob("*.tmp"))  # temp files never linger
+
+
+def test_names_with_accents_are_accepted_but_other_scripts_digits_are_not():
+    from pydantic import TypeAdapter, ValidationError
+
+    text = TypeAdapter(server.NameText)
+    assert text.validate_python("Universidad Ana G. Méndez") == "Universidad Ana G. Méndez"
+    for bad in ("Col١ege", "Test\nCollege", "Test\tCollege", "９９９００１"):
+        with pytest.raises(ValidationError):
+            text.validate_python(bad)
 
 
 async def test_stale_cache_served_when_refresh_fails(upstream, tmp_path):

@@ -4,6 +4,7 @@ File locations are discovered from the pages' published link lists (never guesse
 parsed with read-only parsers, and cached as compact JSON with the source file's SHA-256.
 Downloaded content is only ever parsed as spreadsheet data; nothing is executed or extracted to disk.
 """
+import asyncio
 import hashlib
 import io
 import re
@@ -133,45 +134,77 @@ def parse_hcm(data: bytes) -> dict:
     return {"as_of": as_of, "rows": rows}
 
 
-def parse_composite(data: bytes) -> dict:
+MAX_COMPOSITE_ROWS = 100_000  # FSA scores a few thousand institutions; a declared sheet far larger than that is not the file we expect
+
+
+def _composite_cells(data: bytes) -> list[list]:
+    """The first sheet as plain rows, from the legacy .xls (xlrd) or the .xlsx (openpyxl) form of the file. Dates become ISO strings.
+    In .xls a date is a float the parser can only recognize by column, so the fiscal-year-end column is converted after the header is found."""
+    if data[:4] == b"PK\x03\x04":
+        _check_zip(data)
+        wb = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True)
+        rows = []
+        for r in wb.worksheets[0].iter_rows(values_only=True):
+            rows.append([v.date().isoformat() if isinstance(v, datetime) else v for v in r])
+            if len(rows) > MAX_COMPOSITE_ROWS:
+                raise ParseError("Composite score file has far more rows than expected; refusing to parse it.")
+        return rows
+    if data[:4] != b"\xd0\xcf\x11\xe0":
+        raise ParseError("Composite score file is not a spreadsheet.")
     import xlrd
 
-    if data[:4] != b"\xd0\xcf\x11\xe0" and data[:4] != b"PK\x03\x04":
-        raise ParseError("Composite score file is not a spreadsheet.")
-    if data[:2] == b"PK":
-        raise ParseError("Composite score .xlsx layout not supported yet.")
     try:
         wb = xlrd.open_workbook(file_contents=data, on_demand=True)
     except (xlrd.XLRDError, ValueError):
         raise ParseError("Could not read the composite score workbook.") from None
     ws = wb.sheet_by_index(0)
-    title = str(ws.cell_value(0, 0))
-    period = re.search(r"Ending Between ([0-9/]+) and ([0-9/]+)", title)
-    src_date = re.search(r"as of ([A-Za-z]+ [0-9]{1,2}, [0-9]{4})", title)
-    header = next((i for i in range(min(10, ws.nrows)) if any(_norm(c) == "opeid" for c in ws.row_values(i))), None)
+    if ws.nrows > MAX_COMPOSITE_ROWS:
+        raise ParseError("Composite score file has far more rows than expected; refusing to parse it.")
+    rows = [ws.row_values(i) for i in range(ws.nrows)]
+    header = _composite_header(rows)
+    fye_col = next((j for j, n in enumerate(_norm(c) for c in rows[header]) if "fiscalyearend" in n), None)
+    if fye_col is not None:
+        for r in rows[header + 1:]:
+            if fye_col < len(r) and isinstance(r[fye_col], float) and r[fye_col]:
+                r[fye_col] = xlrd.xldate_as_datetime(r[fye_col], wb.datemode).date().isoformat()
+    return rows
+
+
+def _composite_header(rows: list[list]) -> int:
+    header = next((i for i in range(min(10, len(rows))) if any(_norm(c) == "opeid" for c in rows[i])), None)
     if header is None:
         raise ParseError("Composite score file has an unexpected layout.")
-    names = [_norm(c) for c in ws.row_values(header)]
+    return header
+
+
+def parse_composite(data: bytes) -> dict:
+    rows = _composite_cells(data)
+    title = str(rows[0][0]) if rows and rows[0] and rows[0][0] is not None else ""
+    period = re.search(r"Ending Between ([0-9/]+) and ([0-9/]+)", title)
+    src_date = re.search(r"as of ([A-Za-z]+ [0-9]{1,2}, [0-9]{4})", title)
+    header = _composite_header(rows)
+    names = [_norm(c) for c in rows[header]]
     col = {n: j for j, n in enumerate(names)}
     score_col = next((j for j, n in enumerate(names) if n.startswith("compositescore")), None)
     fye_col = next((j for j, n in enumerate(names) if "fiscalyearend" in n), None)
-    rows = []
-    for i in range(header + 1, ws.nrows):
-        r = ws.row_values(i)
+    out = []
+    for r in rows[header + 1:]:
+        r = list(r) + [None] * (len(names) - len(r))
         ope = _opeid8(r[col["opeid"]])
         if not ope:
             continue
         fye = r[fye_col] if fye_col is not None else None
-        fye_iso = xlrd.xldate_as_datetime(fye, wb.datemode).date().isoformat() if isinstance(fye, float) and fye else None
         score = r[score_col] if score_col is not None else None
-        rows.append({
+        numeric = isinstance(score, (int, float)) and not isinstance(score, bool)
+        out.append({
             "opeid": ope, "name": _clean_text(r[col["institutionname"]]), "state": _clean_text(r[col.get("state", 0)]),
             "institution_type": _clean_text(r[col["institutiontype"]]) if "institutiontype" in col else None,
-            "fiscal_year_end": fye_iso, "composite_score": score if isinstance(score, float) else None,
-            "composite_score_raw_text": None if isinstance(score, float) else _clean_text(score),
+            "fiscal_year_end": fye if isinstance(fye, str) and re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", fye) else None,
+            "composite_score": float(score) if numeric else None,
+            "composite_score_raw_text": None if numeric else _clean_text(score),
         })
     return {"period": f"{period.group(1)} to {period.group(2)}" if period else None,
-            "data_source_as_of": src_date.group(1) if src_date else None, "rows": rows}
+            "data_source_as_of": src_date.group(1) if src_date else None, "rows": out}
 
 
 def parse_cdr(data: bytes) -> dict:
@@ -222,7 +255,7 @@ async def _load(guard: Guard, kind: str, finder, parser) -> Loaded:
             page, _ = await guard.get_json(HCM_PAGE if kind == "hcm" else COMPOSITE_PAGE, max_bytes=2_000_000)
             file_url = finder(_flatten(page))
         raw, public = await guard.get_bytes(file_url, max_bytes=MAX_FILE_BYTES)
-        parsed = parser(raw)
+        parsed = await asyncio.to_thread(parser, raw)  # spreadsheet parsing takes seconds; keep the event loop free for other calls
     except UpstreamError:
         if hit:
             return Loaded(hit["data"], hit["meta"], True)

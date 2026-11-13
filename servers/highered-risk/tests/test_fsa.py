@@ -8,7 +8,14 @@ from highered_risk import cache, server
 from highered_risk.http import Guard, UpstreamError
 from highered_risk.sources import fsa
 
-from .conftest import CDR_PATH, COMP_PATH, HCM_PATH, composite_xls, zip_bomb_xlsx
+from .conftest import (
+    CDR_PATH,
+    COMP_PATH,
+    HCM_PATH,
+    composite_xls,
+    composite_xlsx,
+    zip_bomb_xlsx,
+)
 
 
 def test_discovery_picks_newest_and_rejects_bad_paths():
@@ -95,6 +102,21 @@ def test_parsers_reject_garbage_and_bombs():
     with pytest.raises(fsa.ParseError):
         fsa.parse_composite(b"<html>nope</html>")
     assert fsa.parse_composite(composite_xls())["rows"][0]["composite_score"] == 2.2
+
+
+def test_composite_scores_parse_from_xlsx_as_well_as_xls():
+    """FSA publishes the composite-score file as legacy .xls today; the picker accepts .xlsx too, so the parser must read it (it did not)."""
+    xls = fsa.parse_composite(composite_xls())
+    assert xls["rows"][0]["fiscal_year_end"] == "2023-05-31" and xls["period"] == "7/1/2022 to 6/30/2023"
+    x = fsa.parse_composite(composite_xlsx())
+    assert x["period"] == "7/1/2023 to 6/30/2024" and x["data_source_as_of"] == "December 1, 2025"
+    assert x["rows"][0] == {"opeid": "00884300", "name": "Alaska Bible College", "state": "AK", "institution_type": "Non Profit",
+                            "fiscal_year_end": "2024-05-31", "composite_score": 3.0, "composite_score_raw_text": None}
+    assert x["rows"][1]["composite_score"] is None and x["rows"][1]["composite_score_raw_text"] == "N/A"
+    # The newest year wins whichever form it comes in.
+    assert fsa.pick_composite("/sites/default/files/ay-22-23-composite-scores.xls /sites/default/files/ay-23-24-composite-scores.xlsx").endswith("ay-23-24-composite-scores.xlsx")
+    with pytest.raises(fsa.ParseError):
+        fsa.parse_composite(zip_bomb_xlsx())
 
 
 async def test_oversized_download_rejected(upstream):

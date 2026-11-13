@@ -1,4 +1,5 @@
 """SHEEO State Higher Education Finance (SHEF): state-level public funding of higher education."""
+import asyncio
 import hashlib
 import re
 
@@ -81,8 +82,8 @@ async def load(guard: Guard) -> Loaded:
         files = pick_files(page.decode("utf-8", "replace"))
         rraw, rurl = await guard.get_bytes(files["Report"], max_bytes=MAX_FILE_BYTES)
         sraw, _ = await guard.get_bytes(files["Sector"], max_bytes=MAX_FILE_BYTES)
-        report = parse(rraw, "Report Data", REPORT_COLS)
-        sector = parse(sraw, "Sector Data", SECTOR_COLS)
+        report = await asyncio.to_thread(parse, rraw, "Report Data", REPORT_COLS)
+        sector = await asyncio.to_thread(parse, sraw, "Sector Data", SECTOR_COLS)
     except UpstreamError:
         if hit:
             return Loaded(hit["data"], hit["meta"], True)

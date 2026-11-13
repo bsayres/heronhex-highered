@@ -1,4 +1,5 @@
 """highered-institutions MCP server (read-only). Tools return structured JSON envelopes."""
+import asyncio
 import logging
 import math
 import sys
@@ -38,10 +39,11 @@ mcp = MCPServer(
 
 _guard: Guard | None = None
 _index_cache: dict[str, cw.Index] = {}
-NameText = Annotated[str, Field(min_length=2, max_length=120, pattern=r"^[\w\s&'.,()\-]+$")]
+# Letters (ASCII and accented Latin, for names such as Méndez), ASCII digits only (never \w or \d, which admit other scripts' digits), spaces, no line breaks.
+NameText = Annotated[str, Field(min_length=2, max_length=120, pattern=r"^[A-Za-z0-9À-ɏ &'.,()\-]+$")]
 # The prompt text is interpolated into instructions, so it takes a name or id only: no newlines, quotes, colons or markup.
 PromptName = Annotated[str, Field(min_length=2, max_length=120, pattern=r"^[A-Za-z0-9 &'.,()-]+$")]
-QueryText = Annotated[str, Field(min_length=2, max_length=200, pattern=r"^[\w\s&'.,()\-:/]+$")]
+QueryText = Annotated[str, Field(min_length=2, max_length=200, pattern=r"^[A-Za-z0-9À-ɏ &'.,()\-:/]+$")]
 
 
 def set_guard(g: Guard | None) -> None:  # tests inject a mock transport
@@ -83,8 +85,9 @@ async def _directory() -> tuple[cw.Index, urban.Cached, int]:
     _dyear, c, year = res["directory"]
     key = c.meta["sha256"]
     if key not in _index_cache:
+        index = await asyncio.to_thread(cw.Index, c.data)  # indexing 6,000 institutions takes a moment; keep the event loop free
         _index_cache.clear()
-        _index_cache[key] = cw.Index(c.data)
+        _index_cache[key] = index
     return _index_cache[key], c, year
 
 

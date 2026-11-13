@@ -84,7 +84,7 @@ class Guard:
         self._backoff = backoff
         self._min_interval = MIN_INTERVAL if min_interval is None else min_interval
         self._last: dict[str, float] = {}
-        self._lock = asyncio.Lock()
+        self._locks: dict[str, asyncio.Lock] = {}  # one per host, so waiting on one host never delays another
 
     def _bls_agent(self) -> str:
         contact = self._contact if self._contact is not None else os.environ.get(CONTACT_VAR, "")
@@ -96,7 +96,7 @@ class Guard:
         gap = self._min_interval.get(host, 0.0)
         if not gap:
             return
-        async with self._lock:
+        async with self._locks.setdefault(host, asyncio.Lock()):
             wait = self._last.get(host, 0.0) + gap - time.monotonic()
             if wait > 0:
                 await asyncio.sleep(wait)

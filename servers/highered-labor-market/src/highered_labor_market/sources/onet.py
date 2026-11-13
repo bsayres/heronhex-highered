@@ -3,6 +3,7 @@
 Attribution required by the license: O*NET {version} Database by the U.S. Department of Labor, Employment and Training
 Administration (USDOL/ETA), used under the CC BY 4.0 license. This module summarizes the data (top-rated items); it does not alter values.
 """
+import asyncio
 import csv
 import io
 import re
@@ -87,7 +88,7 @@ async def get(guard: Guard) -> Loaded:
         for name in ("occupation_data", "essential_skills", "transferable_skills", "software_skills", "task_statements"):
             files[name], _ = await guard.get_bytes(f"{base}/{name}.csv", max_bytes=MAX_FILE)
             shas[name] = sha256(files[name])
-        parsed = parse(files)
+        parsed = await asyncio.to_thread(parse, files)  # about 10 MB of CSV; keep the event loop free for other calls
         parsed["version"] = f"{major}.{minor}"
         return parsed, f"O*NET {major}.{minor} database", page_url, {"file_sha256": sha256(repr(sorted(shas.items())).encode()), "files": shas}
 

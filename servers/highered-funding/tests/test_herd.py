@@ -90,6 +90,14 @@ async def test_oversized_download_rejected(upstream, monkeypatch):
         await server.get_research_spend("214777", years=1)
 
 
+async def test_a_cold_multi_year_request_fetches_the_file_list_once(upstream):
+    """Several HERD years start together; they must share one request for the NCSES page and one index write, not one each."""
+    r = await server.get_research_spend("214777", years=3)
+    assert len(r["data"]["rows"]) >= 2
+    pages = [q for q in upstream.requests if q.url.host == "ncses.nsf.gov" and q.url.path.startswith("/explore-data")]
+    assert len(pages) == 1
+
+
 @pytest.mark.parametrize("bad", ["16777", "1677311", "16773a", "../../x", "", "167731; DROP", "１６７７３１"])
 async def test_bad_unitid_rejected_before_network(upstream, bad):
     try:

@@ -4,6 +4,7 @@ Two annual zip files from www.bls.gov are read in memory (never extracted to dis
 workbook. Only the exact workbook name inside each zip is read, only detailed occupations are kept, and a slim table is cached.
 Cells BLS marks `*` (no wage estimate), `**` (no employment estimate) or `#` (at or above the top code) are kept as the marker.
 """
+import asyncio
 import io
 import re
 import zipfile
@@ -138,7 +139,8 @@ async def get(guard: Guard, kind: str) -> Loaded:
         page, _ = await guard.get_bytes(PAGE, max_bytes=3_000_000)
         yy = newest(page.decode("utf-8", "replace"), kind)
         raw, url = await guard.get_bytes(f"{BASE}oesm{yy}{kind}.zip", max_bytes=MAX_ZIP[kind])
-        parsed = merge([parse(read_member(raw, name), kind) for name in member_names(kind, yy)])
+        # Workbooks of up to 60 MB take many seconds to parse; a worker thread keeps the event loop free for other calls.
+        parsed = await asyncio.to_thread(lambda: merge([parse(read_member(raw, name), kind) for name in member_names(kind, yy)]))
         return parsed, f"{parsed['release'] or 'OEWS'} estimates (file oesm{yy}{kind})", url, {"file_sha256": sha256(raw)}
 
     return await load("oews-state.json" if kind == "st" else "oews-metro.json", 180, fetch)

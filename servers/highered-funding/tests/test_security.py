@@ -60,6 +60,18 @@ def test_cache_traversal_rejected(tmp_path, monkeypatch, bad):
         cache.safe_path(bad)
 
 
+def test_query_text_allows_accented_names_but_no_line_breaks_or_other_scripts_digits():
+    from pydantic import TypeAdapter, ValidationError
+
+    from highered_funding.models import QueryText
+
+    text = TypeAdapter(QueryText)
+    assert text.validate_python("Universidad Ana G. Méndez") == "Universidad Ana G. Méndez"
+    for bad in ("Col١ege", "community\ncollege", "a\tb", "９９９"):
+        with pytest.raises(ValidationError):
+            text.validate_python(bad)
+
+
 def test_cache_tamper_detected(tmp_path, monkeypatch):
     monkeypatch.setenv("HIGHERED_MCPS_CACHE", str(tmp_path))
     cache.write("a.json", {"k": 1}, "x", "https://x")

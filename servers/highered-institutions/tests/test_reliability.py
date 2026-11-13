@@ -1,6 +1,7 @@
 """Slow or stalled upstream requests: one deadline per tool call, work that misses it finishes in the background, small
 requests are cached for a day and carry a short timeout."""
 import asyncio
+import time
 
 import pytest
 from mcp.server.mcpserver.exceptions import ToolError
@@ -8,6 +9,17 @@ from mcp.server.mcpserver.exceptions import ToolError
 from highered_institutions import bounded, cache, http
 from highered_institutions import server as s
 from highered_institutions.sources import urban
+
+
+async def test_pacing_is_per_host_so_one_host_never_waits_for_another():
+    g = http.Guard(min_interval={"a.example": 0.4, "b.example": 0.4})
+    await g._pace("a.example")
+    t = time.monotonic()
+    await g._pace("b.example")  # a different host: no wait behind a.example's interval
+    assert time.monotonic() - t < 0.1
+    await g._pace("a.example")  # the same host does wait
+    assert time.monotonic() - t >= 0.3
+    await g.aclose()
 
 
 async def test_bounded_run_returns_what_finished_and_lets_the_rest_finish_in_the_background():
