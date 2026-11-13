@@ -13,7 +13,7 @@ Response envelope: `source`, `source_url`, `as_of`, `retrieved_at`, `sources[]` 
 
 ## Run
 ```bash
-uvx --from /path/to/highered-mcps/servers/highered-risk highered-risk
+uvx --from /path/to/heronhex-highered/servers/highered-risk highered-risk
 ```
 No API key is needed for `get_title_iv_status`. `get_audit_findings` needs `FAC_API_KEY` (free, https://api.data.gov/signup), sent in the `X-Api-Key` header only; without it the tool falls back to api.data.gov's shared `DEMO_KEY` (about 10 requests, then blocked) and every response carries a warning saying so. Regular keys allow 1,000 requests/hour; one call uses three.
 

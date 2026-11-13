@@ -15,7 +15,7 @@ Response envelope: `source`, `source_url`, `as_of`, `retrieved_at`, `sources[]`,
 
 ## Run
 ```bash
-uvx --from /path/to/highered-mcps/servers/highered-funding highered-funding
+uvx --from /path/to/heronhex-highered/servers/highered-funding highered-funding
 ```
 No API keys are needed.
 

@@ -8,7 +8,7 @@ description: Use for questions about an institution's research spending (NSF HER
 ## Workflow
 1. Resolve the institution with `resolve_institution` (highered-institutions). Use its **UNITID** for `get_research_spend` and its **UEI(s)** for `search_grant_awards`. If it has several UEIs, pass up to three.
 2. For NIH, also pass `institution_name` in NIH-style wording and a `fiscal_year`; NIH cannot be searched by UEI.
-3. State tools take a two-letter state code.
+3. The state tools, `get_state_funding` (SHEEO) and `get_enrollment_projection` (WICHE), take a two-letter state code.
 
 ## Rules for answers
 1. Say which source and level each number comes from. **State-level numbers (SHEEO, WICHE) are not institution numbers**; never present them as one.

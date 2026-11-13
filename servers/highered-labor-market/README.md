@@ -10,7 +10,7 @@ MCP server (read-only) that helps institutions look at how programs line up with
 | `get_occupation_outlook(soc)` | Employment, annual openings, wage, typical entry education 2025-35 | national | BLS Employment Projections |
 | `get_state_occupation_outlook(state, soc, horizon='long')` | A state's own projection for an occupation, beside the United States row from the same source | state (and national, same source and years) | Projections Central (State Projections Consortium) |
 | `get_occupation_skills(soc, top)` | Top skills, core tasks, in-demand technologies | national | O*NET database (CC BY 4.0) |
-| `get_wages(soc, state? \| area_code?)` | What do workers in this occupation earn in a state or metropolitan area? (employment, mean, median and 10th to 90th percentile wages) | state or metropolitan area | BLS OEWS, May 2025 |
+| `get_wages(soc, state? \| area_code?)` | What do workers in this occupation earn in a state or metropolitan area? (employment, mean, median and 10th to 90th percentile wages) | state or metropolitan area | BLS OEWS, latest May release (named in `as_of`) |
 | `search_occupations(keyword, limit?)` | Which SOC code is this occupation? (title search with light stemming, so "nursing" finds "Registered Nurses") | national reference | BLS OEWS occupation titles |
 | `search_metros(name_contains, state?)` | Which area code is this metro? (the `cbsa` in an institution's profile is the code `get_wages` takes) | metropolitan areas | BLS OEWS |
 | `get_program_outcomes(unitid, cip4?, credential?)` | An institution's programs: awards and 1-year earnings | institution | College Scorecard field of study |
@@ -23,7 +23,7 @@ Response envelope: `source`, `source_url`, `as_of`, `retrieved_at`, `sources[]`,
 
 ## Setup
 ```bash
-uvx --from /path/to/highered-mcps/servers/highered-labor-market highered-labor-market
+uvx --from /path/to/heronhex-highered/servers/highered-labor-market highered-labor-market
 ```
 | Variable | Needed for | Notes |
 |---|---|---|

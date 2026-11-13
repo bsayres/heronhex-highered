@@ -12,7 +12,7 @@ Response envelope: `source`, `source_url`, `as_of` (the latest action date in th
 
 ## Run
 ```bash
-uvx --from /path/to/highered-mcps/servers/highered-accreditation highered-accreditation
+uvx --from /path/to/heronhex-highered/servers/highered-accreditation highered-accreditation
 ```
 No API key and no contact address are needed.
 

@@ -2,6 +2,21 @@
 
 Format follows Keep a Changelog. The five servers are released to PyPI together as `heronhex-*` packages.
 
+## [Unreleased]
+
+### Added
+- `servers/highered-hosted`: one Streamable HTTP server (stateless, `/mcp`, `/healthz`) carrying every tool and the `institution_brief` prompt of the five servers unchanged, for the hosted connector. No access log and no request logging; operator keys and BLS contact required at startup; Host and Origin checks from `HIGHERED_HOSTED_ALLOWED_HOSTS`. `highered-hosted-prewarm` loads every bulk file; the Dockerfile runs it at build time so the image ships warm (all 16 loads succeed; cache 38 MB; warm calls under 0.4 s at 138 MiB). `fly.toml` for one always-on 512 MB machine. Not published to PyPI; added to the CI matrix.
+- Privacy policy and threat model sections for the hosted connector; `docs/getting-started.md`.
+
+### Changed
+- All five servers: cache reads are memoized in-process by file size and mtime, so a shared server does not re-parse and re-hash a multi-megabyte JSON file on every call; cache writes use a per-write temp name. Pacing locks are per host. Bulk parsing (DAPIP, FSA spreadsheets, HERD zips, WICHE, SHEEO, OEWS, O*NET, the institutions directory index) runs in a worker thread so one user's cold load does not stall others.
+- Accreditation: DAPIP members are streamed through a capped reader instead of read, decoded and copied whole; peak memory on a first load drops from about 380 MB to a few tens of MB.
+- Funding: concurrent HERD years share one request for the NCSES file list.
+- Institutions and funding: free-text inputs accept letters (including accented Latin), ASCII digits and spaces; line breaks and other scripts' digits are rejected (the patterns no longer use `\w` or `\s`).
+
+### Fixed
+- Risk: the composite-score file in `.xlsx` form now parses. The discovery step accepted `.xlsx` links but the parser refused every `.xlsx` file, so the first year FSA published in that form would have failed every refresh.
+
 ## [0.1.1] - 2026-11-10
 
 ### Changed
@@ -50,4 +65,4 @@ Format follows Keep a Changelog. The five servers are released to PyPI together 
 - A superseded accreditation record could be read as a loss; each record now carries its last recorded action.
 
 ### Not done
-- Clery data (decision: skipped), Financial Value Transparency (no usable public file), IPEDS direct-file backup source, accreditor-directory checks, PyPI release, directory submission.
+- Clery data (decision: skipped), Financial Value Transparency (no usable public file), IPEDS direct-file backup source, accreditor-directory checks. The PyPI release followed in 0.1.0/0.1.1; the directory refused the local-server plugin (local servers and code files are accepted only from Verified organizations), which is why the hosted connector exists.

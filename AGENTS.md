@@ -1,9 +1,10 @@
 # Working on highered-mcps
 
-Read-only MCP servers over free public U.S. higher-education data. Thin deterministic wrappers: no hosted data, no database, no plugin framework.
+Read-only MCP servers over free public U.S. higher-education data. Thin deterministic wrappers: no database, no plugin framework. The only thing we host is one process running the same five servers behind one URL, with a cache of public files.
 
 ## Layout
 - `servers/<name>/`: one Python package each (`src/<pkg>/server.py`, `http.py` host guard, `cache.py`, `models.py`, `sources/`), with `tests/`, `README.md`, `SKILL.md`, `testing.md`, `server.json`.
+- `servers/highered-hosted/`: the hosted connector (Streamable HTTP, all five servers' tools, pre-warm command, Dockerfile, fly.toml). Rules: no request logging of any kind, operator keys required, nothing user-derived written anywhere. Install with `uv sync --no-editable`.
 - `skills/institution-brief/`: the composed-brief skill and dashboard template. `docs/`: sources, threat model, validation, plans.
 
 ## Commands (per server)
@@ -12,7 +13,7 @@ cd servers/<name>
 PYTHONPATH=src .venv/bin/python -m pytest -q        # fixture tests; live tests need HIGHERED_LIVE=1
 .venv/bin/ruff check .
 ```
-Use `PYTHONPATH=src`; the editable install can be skipped by Python on macOS.
+Use `PYTHONPATH=src`: on macOS, Python skips `.pth` files that carry the hidden file flag, which uv's editable hooks sometimes do, so an editable install can silently vanish.
 
 ## Standards (every change)
 - Read-only: no write tools, shell, eval, pickle or dynamic imports; no filesystem writes outside the cache dir.
