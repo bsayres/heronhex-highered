@@ -1,0 +1,58 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "heronhex-highered-hosted"
+version = "0.1.0"
+description = "One Streamable HTTP endpoint that serves the five heronhex higher-education MCP servers, for the hosted connector. Not published to PyPI."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Byron Sayres (Heron & Hex Solutions)", email = "mcp-support@heronhex.com" }]
+dependencies = [
+    "mcp>=2.3.0,<3",
+    "uvicorn>=0.30",
+    "heronhex-institutions",
+    "heronhex-risk",
+    "heronhex-accreditation",
+    "heronhex-funding",
+    "heronhex-labor",
+]
+
+[project.urls]
+Homepage = "https://github.com/bsayres/heronhex-highered"
+Privacy = "https://github.com/bsayres/heronhex-highered/blob/main/docs/privacy-policy.md"
+
+[project.scripts]
+highered-hosted = "highered_hosted.server:main"
+highered-hosted-prewarm = "highered_hosted.prewarm:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio",
+    "pip-audit",
+    "ruff",
+]
+
+# Regular (non-editable) installs: Python on macOS sometimes skips editable .pth hooks, and the container installs the same way.
+# Each server project's uv cache-keys watch its src/, so `uv sync` here picks up their changes.
+[tool.uv.sources]
+heronhex-institutions = { path = "../highered-institutions" }
+heronhex-risk = { path = "../highered-risk" }
+heronhex-accreditation = { path = "../highered-accreditation" }
+heronhex-funding = { path = "../highered-funding" }
+heronhex-labor = { path = "../highered-labor-market" }
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/highered_hosted"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.ruff]
+line-length = 160

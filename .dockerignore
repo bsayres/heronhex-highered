@@ -1,0 +1,13 @@
+.git
+.github
+docs
+skills
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/dist
+**/.ruff_cache
+*.docx
+*.pdf
+.env
+.env.*

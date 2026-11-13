@@ -1,0 +1,37 @@
+# Fly.io app definition for the hosted connector. Deploy from the repository root so the Docker build context holds all servers:
+#   fly deploy --config servers/highered-hosted/fly.toml --dockerfile servers/highered-hosted/Dockerfile .
+# Secrets are never in this file. Set them once with:
+#   fly secrets set COLLEGE_SCORECARD_API_KEY=... FAC_API_KEY=... HIGHERED_MCPS_CONTACT=mcp-support@heronhex.com
+app = "heronhex-highered"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8080"
+  HIGHERED_MCPS_CACHE = "/app/cache"
+  HIGHERED_HOSTED_ALLOWED_HOSTS = "mcp.heronhex.com,heronhex-highered.fly.dev"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 50
+    hard_limit = 100
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "20s"
+    method = "GET"
+    path = "/healthz"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
