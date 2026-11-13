@@ -26,7 +26,7 @@ The hosted connector is the same five servers running as one process on a server
 
 **Keys.** The hosted server uses Heron & Hex Solutions' own api.data.gov keys and contact address. You do not enter any. They are sent only to `api.data.gov`, `api.fac.gov` and `www.bls.gov` as described above.
 
-**Where it runs.** On a hosting provider's server in the United States. The provider sees the network traffic to and from the server under its own policies. The connector's address, the provider and the region are listed in the repository README.
+**Where it runs.** On Fly.io, in its Ashburn, Virginia (United States) region, at `https://heronhex-highered.fly.dev/mcp` (also `https://mcp.heronhex.com/mcp`). Fly.io sees the network traffic to and from the server under its own privacy policy.
 
 **Upstream sites.** Requests to the public data sources come from our server's address, not yours, so those sites do not see you.
 

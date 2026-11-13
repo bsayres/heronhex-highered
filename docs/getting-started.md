@@ -8,7 +8,7 @@ Five small programs and six skills that let Claude look up public U.S. higher-ed
 
 ## What you need
 
-1. **Claude Code or Cowork.** The programs run on your computer, so they do not work in Claude.ai chat in a browser or in the mobile apps. For those, a hosted connector (nothing to install) is being set up; see the [README](../README.md#install) for its status.
+1. **Claude Code or Cowork.** The programs run on your computer, so they do not work in Claude.ai chat in a browser or in the mobile apps. For those, use the hosted connector instead (nothing to install): add `https://heronhex-highered.fly.dev/mcp` as a custom connector, or see the [README](../README.md#install).
 2. **`uv`**, a free tool that downloads and runs the programs. Install it once.
 
 ### Install `uv`
