@@ -1,0 +1,25 @@
+{
+  "name": "heronhex-highered-hosted",
+  "displayName": "Heron & Hex Higher Ed Data",
+  "version": "0.1.0",
+  "description": "Skills for asking Claude about U.S. colleges from free public data (IPEDS, College Scorecard, FSA, DAPIP, NSF, SHEEO, WICHE, BLS, O*NET): profiles, enrollment, finances, Title IV risk flags, audit findings, accreditation, research and state funding, wages and program-to-job alignment. Uses the Heron & Hex hosted connector; nothing to install and no sign-in.",
+  "author": {
+    "name": "Heron & Hex Solutions",
+    "email": "mcp-support@heronhex.com"
+  },
+  "homepage": "https://github.com/bsayres/heronhex-highered",
+  "repository": "https://github.com/bsayres/heronhex-highered",
+  "license": "MIT",
+  "keywords": [
+    "higher-education",
+    "ipeds",
+    "college-scorecard",
+    "title-iv",
+    "accreditation",
+    "labor-market"
+  ],
+  "documentationUrl": "https://github.com/bsayres/heronhex-highered#readme",
+  "supportUrl": "https://github.com/bsayres/heronhex-highered/issues",
+  "privacyPolicyUrl": "https://github.com/bsayres/heronhex-highered/blob/main/docs/privacy-policy.md",
+  "icon": "./.claude-plugin/icon.png"
+}

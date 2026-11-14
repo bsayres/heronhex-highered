@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "heronhex-highered": {
+      "type": "http",
+      "url": "https://mcp.heronhex.com/mcp"
+    }
+  }
+}

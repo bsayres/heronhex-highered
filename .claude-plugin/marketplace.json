@@ -18,6 +18,19 @@
         "accreditation",
         "oews"
       ]
+    },
+    {
+      "name": "heronhex-highered-hosted",
+      "source": "./plugin-hosted",
+      "description": "The same six skills, connected to the Heron & Hex hosted connector (https://mcp.heronhex.com/mcp) instead of local servers: nothing to install, no keys, no sign-in. Works in Claude Code, Cowork, Claude.ai and Claude Desktop.",
+      "category": "data",
+      "tags": [
+        "higher-education",
+        "ipeds",
+        "title-iv",
+        "accreditation",
+        "oews"
+      ]
     }
   ]
 }

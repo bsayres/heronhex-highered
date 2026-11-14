@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Institution brief</title>
+<!--
+  Self-contained, no network requests. Replace ONLY the JSON inside <script id="brief-data">.
+  All text from the data is written with textContent, never as HTML.
+-->
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1c2430;--mute:#5b6675;--line:#d9dee6;--accent:#1f5fa8;--accent2:#c9661a;--grid:#e8ecf1;--warn:#9a5b00;--warnbg:#fff4de;--ok:#1d6b43}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#12161c;--card:#1a2029;--ink:#e8edf3;--mute:#9aa6b5;--line:#2c3542;--accent:#6fb0ff;--accent2:#f0a35c;--grid:#262e3a;--warn:#f0c070;--warnbg:#3a2f18;--ok:#6fd1a0}}
+:root[data-theme=dark]{--bg:#12161c;--card:#1a2029;--ink:#e8edf3;--mute:#9aa6b5;--line:#2c3542;--accent:#6fb0ff;--accent2:#f0a35c;--grid:#262e3a;--warn:#f0c070;--warnbg:#3a2f18;--ok:#6fd1a0}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1080px;margin:0 auto;padding:20px 16px 48px}
+header h1{margin:0;font-size:26px;line-height:1.2}
+header .sub{color:var(--mute);margin-top:4px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}
+button,select,input[type=search]{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:6px;padding:6px 10px}
+button{cursor:pointer}
+button[aria-selected=true],button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin:8px 0 18px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.kpi .l{font-size:12px;color:var(--mute);text-transform:uppercase;letter-spacing:.04em}
+.kpi .v{font-size:24px;font-weight:650;margin-top:2px}
+.kpi .n{font-size:12px;color:var(--mute);margin-top:2px}
+section.panel{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px 16px;margin:12px 0}
+section.panel h2{margin:0 0 6px;font-size:18px}
+.ctrl{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:8px 0;color:var(--mute);font-size:13px}
+.ctrl label{display:flex;gap:6px;align-items:center}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--mute);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.03em}
+th.sortable{cursor:pointer}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.chart svg{width:100%;height:auto;display:block}
+.chart text{fill:var(--mute);font-size:10px}
+.chart .gridline{stroke:var(--grid)}
+.chart .axis{stroke:var(--line)}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--mute);margin-top:4px}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+.note{font-size:13px;color:var(--mute);margin:6px 0}
+.flag{background:var(--warnbg);color:var(--warn);border-radius:6px;padding:2px 8px;font-size:12px;display:inline-block}
+.okc{color:var(--ok)}
+.gap{background:var(--warnbg);border-radius:6px;padding:8px 10px;margin:6px 0;font-size:14px}
+footer{margin-top:24px;font-size:12px;color:var(--mute)}
+.hidden{display:none!important}
+.peerlist{display:flex;flex-wrap:wrap;gap:6px 14px}
+body.onepage .tabs,body.onepage .ctrl,body.onepage .noprint,body.onepage .detail,body.onepage .peerlist{display:none!important}
+body.onepage main{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+body.onepage #p-accreditation,body.onepage #p-gaps,body.onepage #p-sources{grid-column:1/-1}
+body.onepage .chart svg{max-height:190px}
+body.onepage .kpis{grid-template-columns:repeat(5,1fr);gap:6px;margin:6px 0}
+body.onepage .kpi .v{font-size:18px}
+body.onepage section.panel{display:block!important;padding:8px 10px;margin:6px 0;break-inside:avoid}
+body.onepage .wrap{max-width:900px;padding:8px}
+body.onepage header h1{font-size:22px}
+body.onepage table{font-size:12px}
+@media print{
+  @page{size:Letter;margin:.4in}
+  html{zoom:.72}
+  body{background:#fff;color:#000;font-size:11px}
+  .legend{font-size:10px;gap:2px 8px}
+  :root{--bg:#fff;--card:#fff;--ink:#000;--mute:#444;--line:#bbb;--grid:#ddd;--accent:#1f5fa8;--accent2:#b8570f}
+  .tabs,.ctrl,.noprint,.bar,.detail,.peerlist{display:none!important}
+  main{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  #p-accreditation,#p-gaps,#p-sources{grid-column:1/-1}
+  .chart svg{max-height:170px}
+  .kpis{grid-template-columns:repeat(5,1fr);gap:6px;margin:4px 0}
+  .kpi .v{font-size:16px}
+  section.panel{display:block!important;break-inside:avoid;border-color:#bbb;padding:6px 8px;margin:0}
+  .wrap{max-width:none;padding:0}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="title"></h1>
+    <div class="sub" id="subtitle"></div>
+  </header>
+  <div class="bar noprint">
+    <div class="tabs" id="tabs" role="tablist"></div>
+    <button id="btn-one" type="button">One-page view</button>
+    <button id="btn-print" type="button">Print / save PDF</button>
+    <button id="btn-theme" type="button">Light / dark</button>
+  </div>
+  <div class="kpis" id="kpis"></div>
+  <main id="panels"></main>
+  <footer id="foot"></footer>
+</div>
+
+<script id="brief-data" type="application/json">
+{
+  "institution": {"name": "Example College", "city": "Example City", "state": "XX", "control": "public", "unitid": "000000"},
+  "generated": "2026-01-01",
+  "enrollment": {"series": [{"year": 2020, "value": 1000}, {"year": 2021, "value": 950}], "peers": []},
+  "finance": [],
+  "risk": {"hcm": null, "composite": [], "cdr": [], "audits": []},
+  "accreditation": [],
+  "programs": [],
+  "gaps": [{"field": "all", "reason": "Template sample data. Replace this JSON with values returned by the tools."}],
+  "sources": []
+}
+</script>
+
+<script>
+(function(){
+"use strict";
+var D;
+try{D=JSON.parse(document.getElementById("brief-data").textContent)}catch(e){D=null}
+var NS="http://www.w3.org/2000/svg";
+function el(tag,attrs,kids){var n=document.createElement(tag);set(n,attrs);add(n,kids);return n}
+function sv(tag,attrs,kids){var n=document.createElementNS(NS,tag);set(n,attrs);add(n,kids);return n}
+function set(n,a){if(a)for(var k in a){if(k==="text")n.textContent=a[k];else if(a[k]!==null&&a[k]!==undefined)n.setAttribute(k,a[k])}}
+function add(n,kids){if(kids)(Array.isArray(kids)?kids:[kids]).forEach(function(c){if(c===null||c===undefined)return;n.appendChild(typeof c==="string"?document.createTextNode(c):c)})}
+function clear(n){while(n.firstChild)n.removeChild(n.firstChild)}
+var nf=new Intl.NumberFormat("en-US");
+function num(v){return v===null||v===undefined?"—":nf.format(v)}
+function usd(v){if(v===null||v===undefined)return"—";var a=Math.abs(v);var s=a>=1e9?(a/1e9).toFixed(2)+"B":a>=1e6?(a/1e6).toFixed(1)+"M":a>=1e3?(a/1e3).toFixed(0)+"K":String(a);return(v<0?"-":"")+"$"+s}
+function pct(v){return v===null||v===undefined?"—":(v*100).toFixed(1)+"%"}
+function arr(x){return Array.isArray(x)?x:[]}
+function gapFor(prefix){return arr(D.gaps).filter(function(g){return String(g.field||"").indexOf(prefix)===0})}
+function gapNote(prefix){var g=gapFor(prefix);return g.length?el("div",null,g.map(function(x){return el("div",{"class":"gap",text:(x.field?x.field+" ["+(x.kind||"unclassified").replace(/_/g," ")+"]: ":"")+(x.reason||"No reason given.")})})):null}
+function nodata(prefix,what){return el("div",null,[el("div",{"class":"note",text:"No "+what+" returned."}),gapNote(prefix)])}
+
+/* ---------- charts ---------- */
+function lineChart(series,opts){
+  var W=640,H=260,L=52,R=16,T=14,B=30;
+  var allx=[],ally=[];
+  series.forEach(function(s){s.points.forEach(function(p){if(p.y!==null&&p.y!==undefined){allx.push(p.x);ally.push(p.y)}})});
+  if(!allx.length)return el("div",{"class":"note",text:"No points to plot."});
+  var x0=Math.min.apply(null,allx),x1=Math.max.apply(null,allx);if(x0===x1)x1=x0+1;
+  var ymax=Math.max.apply(null,ally),ymin=Math.min(0,Math.min.apply(null,ally));if(ymax===ymin)ymax=ymin+1;
+  var sx=function(x){return L+(x-x0)/(x1-x0)*(W-L-R)},sy=function(y){return H-B-(y-ymin)/(ymax-ymin)*(H-B-T)};
+  var svg=sv("svg",{viewBox:"0 0 "+W+" "+H,role:"img","aria-label":opts.label});
+  for(var i=0;i<=4;i++){var v=ymin+(ymax-ymin)*i/4,y=sy(v);
+    svg.appendChild(sv("line",{x1:L,x2:W-R,y1:y,y2:y,"class":"gridline"}));
+    svg.appendChild(sv("text",{x:L-6,y:y+4,"text-anchor":"end",text:opts.fmt(v)}))}
+  var span=x1-x0,step=span<=12?1:Math.ceil(span/8);
+  for(var xv=x0;xv<=x1;xv+=step){svg.appendChild(sv("text",{x:sx(xv),y:H-8,"text-anchor":"middle",text:String(xv)}))}
+  series.forEach(function(s){
+    var pts=s.points.filter(function(p){return p.y!==null&&p.y!==undefined});
+    if(!pts.length)return;
+    var d=pts.map(function(p,k){return(k?"L":"M")+sx(p.x).toFixed(1)+" "+sy(p.y).toFixed(1)}).join(" ");
+    var path=sv("path",{d:d,fill:"none",stroke:s.color,"stroke-width":s.bold?3:1.5,opacity:s.bold?1:.7});
+    path.appendChild(sv("title",{text:s.name}));svg.appendChild(path);
+    pts.forEach(function(p){var c=sv("circle",{cx:sx(p.x),cy:sy(p.y),r:s.bold?3.5:2.2,fill:s.color});c.appendChild(sv("title",{text:s.name+" "+p.x+": "+opts.fmt(p.y)}));svg.appendChild(c)});
+    if(s.bold){var last=pts[pts.length-1];svg.appendChild(sv("text",{x:Math.min(sx(last.x)+6,W-4),y:Math.max(sy(last.y)-8,12),"text-anchor":"end",text:opts.fmt(last.y),style:"font-weight:600"}))}
+  });
+  return el("div",{"class":"chart"},svg);
+}
+function barChart(groups,opts){ /* groups:[{label,values:[{name,color,v}]}] horizontal bars, zero baseline */
+  var rowH=opts.rowH||26,L=opts.left||190,R=60,W=640,H=groups.length*(rowH*(groups[0]?groups[0].values.length:1)+10)+20;
+  var max=0;groups.forEach(function(g){g.values.forEach(function(b){if(b.v!==null&&b.v!==undefined&&b.v>max)max=b.v})});
+  if(!max)return el("div",{"class":"note",text:"No values to plot."});
+  var svg=sv("svg",{viewBox:"0 0 "+W+" "+H,role:"img","aria-label":opts.label});
+  var y=10;
+  groups.forEach(function(g){
+    svg.appendChild(sv("text",{x:L-8,y:y+rowH*.7,"text-anchor":"end",text:g.label.length>34?g.label.slice(0,33)+"…":g.label}));
+    g.values.forEach(function(b){
+      if(b.v===null||b.v===undefined){svg.appendChild(sv("text",{x:L,y:y+rowH*.7,text:b.name+": no data"}))}
+      else{var w=b.v/max*(W-L-R);var r=sv("rect",{x:L,y:y+3,width:Math.max(w,1),height:rowH-8,fill:b.color,rx:2});r.appendChild(sv("title",{text:g.label+" — "+b.name+": "+opts.fmt(b.v)}));svg.appendChild(r);
+        svg.appendChild(sv("text",{x:L+w+5,y:y+rowH*.7,text:opts.fmt(b.v)}))}
+      y+=rowH});
+    y+=10});
+  return el("div",{"class":"chart"},svg);
+}
+function legend(items){return el("div",{"class":"legend"},items.map(function(i){return el("span",null,[el("span",{"class":"sw",style:"background:"+i.color}),i.name])}))}
+
+/* ---------- table with sorting ---------- */
+function table(cols,rows,state){ /* cols:[{k,h,num,fmt}] */
+  var t=el("table"),thead=el("thead"),tr=el("tr");
+  cols.forEach(function(c){var th=el("th",{"class":(c.num?"num ":"")+"sortable",text:c.h,tabindex:0,role:"button"});
+    function go(){state.sort=state.sort&&state.sort.k===c.k?{k:c.k,d:-state.sort.d}:{k:c.k,d:1};state.redraw()}
+    th.addEventListener("click",go);th.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();go()}});tr.appendChild(th)});
+  thead.appendChild(tr);t.appendChild(thead);
+  var data=rows.slice();
+  if(state.sort){var k=state.sort.k,d=state.sort.d;data.sort(function(a,b){var x=a[k],y=b[k];if(x===null||x===undefined)return 1;if(y===null||y===undefined)return-1;return(x<y?-1:x>y?1:0)*d})}
+  var tb=el("tbody");data.forEach(function(r){var row=el("tr");cols.forEach(function(c){var v=r[c.k];row.appendChild(el("td",{"class":c.num?"num":"",text:c.fmt?c.fmt(v,r):(v===null||v===undefined?"—":String(v))}))});tb.appendChild(row)});
+  t.appendChild(tb);return t;
+}
+
+/* ---------- panels ---------- */
+var panels={};
+function panel(id,title,build){var s=el("section",{"class":"panel",id:"p-"+id,role:"tabpanel"});s.appendChild(el("h2",{text:title}));var body=el("div");s.appendChild(body);panels[id]={node:s,title:title,body:body,build:build};return s}
+
+function buildEnrollment(body){
+  var e=D.enrollment||{},ser=arr(e.series);
+  if(!ser.length){body.appendChild(nodata("enrollment","enrollment series"));return}
+  var years=ser.map(function(p){return p.year});
+  var state={from:Math.min.apply(null,years),to:Math.max.apply(null,years),hide:{}};
+  var ctrl=el("div",{"class":"ctrl"}),chart=el("div"),peerBox=el("div",{"class":"peerlist"});
+  var selF=el("select",{"aria-label":"From year"}),selT=el("select",{"aria-label":"To year"});
+  years.forEach(function(y){selF.appendChild(el("option",{value:y,text:y}));selT.appendChild(el("option",{value:y,text:y}))});
+  selF.value=state.from;selT.value=state.to;
+  ctrl.appendChild(el("label",null,["From",selF]));ctrl.appendChild(el("label",null,["To",selT]));
+  var peers=arr(e.peers);
+  if(peers.length){ctrl.appendChild(el("span",{text:"Peers shown:"}));
+    peers.forEach(function(p){var cb=el("input",{type:"checkbox",checked:"checked"});cb.addEventListener("change",function(){state.hide[p.unitid||p.name]=!cb.checked;draw()});peerBox.appendChild(el("label",null,[cb,p.name]))})}
+  function draw(){
+    state.from=+selF.value;state.to=+selT.value;clear(chart);
+    var inr=function(p){return p.year>=state.from&&p.year<=state.to};
+    var series=[{name:D.institution.name,color:"var(--accent)",bold:true,points:ser.filter(inr).map(function(p){return{x:p.year,y:p.value}})}];
+    var pal=["#7a869a","#b08a5b","#6b9a8a","#9a7aa8","#a8a06b","#7a9ab0"];
+    peers.forEach(function(p,i){if(state.hide[p.unitid||p.name])return;series.push({name:p.name,color:pal[i%pal.length],points:arr(p.series).filter(inr).map(function(q){return{x:q.year,y:q.value}})})});
+    chart.appendChild(lineChart(series,{label:"Fall enrollment by year",fmt:function(v){return num(Math.round(v))}}));
+    var lg=[{name:D.institution.name,color:"var(--accent)"}];peers.forEach(function(p,i){if(!state.hide[p.unitid||p.name])lg.push({name:p.name,color:pal[i%pal.length]})});
+    chart.appendChild(legend(lg))}
+  selF.addEventListener("change",draw);selT.addEventListener("change",draw);
+  body.appendChild(ctrl);if(peers.length)body.appendChild(peerBox);body.appendChild(chart);
+  body.appendChild(el("div",{"class":"note",text:"Fall headcount as reported to IPEDS. Axis starts at zero."}));
+  var g=gapNote("enrollment");if(g)body.appendChild(g);draw();
+}
+
+function buildFinance(body){
+  var f=arr(D.finance);
+  if(!f.length){body.appendChild(nodata("finance","finance rows"));return}
+  var metrics={revenue:"Total revenues",expenses:"Total expenses",state_appropriations:"State appropriations",net_tuition:"Net tuition and fees"};
+  var avail=Object.keys(metrics).filter(function(k){return f.some(function(r){return r[k]!==null&&r[k]!==undefined})});
+  var sel=el("select",{"aria-label":"Measure"});avail.forEach(function(k){sel.appendChild(el("option",{value:k,text:metrics[k]}))});
+  var both=el("input",{type:"checkbox"});var chart=el("div");
+  body.appendChild(el("div",{"class":"ctrl"},[el("label",null,["Measure",sel]),el("label",null,[both,"Show revenues and expenses together"])]));
+  function draw(){clear(chart);var k=sel.value;
+    var mk=function(key,name,color,bold){return{name:name,color:color,bold:bold,points:f.map(function(r){return{x:r.year,y:r[key]}})}};
+    var s=both.checked?[mk("revenue","Total revenues","var(--accent)",true),mk("expenses","Total expenses","var(--accent2)",true)]:[mk(k,metrics[k],"var(--accent)",true)];
+    chart.appendChild(lineChart(s,{label:"Finance by fiscal year",fmt:usd}));
+    if(both.checked)chart.appendChild(legend([{name:"Total revenues",color:"var(--accent)"},{name:"Total expenses",color:"var(--accent2)"}]))}
+  sel.addEventListener("change",draw);both.addEventListener("change",draw);body.appendChild(chart);
+  var state={sort:{k:"year",d:-1}};var holder=el("div",{"class":"detail"});
+  var cols=[{k:"year",h:"Year"},{k:"revenue",h:"Revenues",num:1,fmt:usd},{k:"expenses",h:"Expenses",num:1,fmt:usd},{k:"state_appropriations",h:"State approp.",num:1,fmt:usd},{k:"net_tuition",h:"Net tuition",num:1,fmt:usd}];
+  state.redraw=function(){clear(holder);holder.appendChild(table(cols,f,state))};state.redraw();body.appendChild(holder);
+  body.appendChild(el("div",{"class":"note",text:"Dollar values as reported; no inflation adjustment. Public and private institutions report on different accounting bases, so compare across sectors with care."}));
+  var g=gapNote("finance");if(g)body.appendChild(g);draw();
+}
+
+function buildRisk(body){
+  var r=D.risk||{};
+  var h=r.hcm;
+  body.appendChild(el("div",{"class":"note",text:h?("Heightened Cash Monitoring: "+(h.listed?"LISTED":"not listed")+" (list as of "+(h.as_of||"unknown")+")"):"Heightened Cash Monitoring: no data returned."}));
+  if(arr(r.composite).length)body.appendChild(el("div",{"class":"note",text:"Composite scores: "+r.composite.map(function(c){return c.year+": "+(c.score===null?"—":c.score)}).join("; ")}));
+  if(arr(r.cdr).length)body.appendChild(el("div",{"class":"note",text:"Cohort default rate: "+r.cdr.map(function(c){return c.year+": "+(c.rate===null?"—":pct(c.rate))}).join("; ")}));
+  var a=arr(r.audits);
+  if(!a.length){body.appendChild(nodata("risk","audit rows"));return}
+  var yrs=a.map(function(x){return x.fy_end}),sel=el("select",{"aria-label":"Audit year"});
+  sel.appendChild(el("option",{value:"",text:"All audits"}));yrs.forEach(function(y){sel.appendChild(el("option",{value:y,text:"FY ending "+y}))});
+  var mw=el("input",{type:"checkbox"}),qc=el("input",{type:"checkbox"}),holder=el("div",{"class":"detail"}),chart=el("div");
+  body.appendChild(el("div",{"class":"ctrl"},[el("label",null,["Audit",sel]),el("label",null,[mw,"Material weakness only"]),el("label",null,[qc,"Questioned costs only"])]));
+  var gb=a.map(function(x){return{label:"FY ending "+x.fy_end,values:[{name:"Findings",color:"var(--accent2)",v:x.finding_count}]}});
+  body.appendChild(el("div",{"class":"note",text:"Single Audit findings per audit (count of findings, not a measure of seriousness):"}));
+  body.appendChild(barChart(gb,{label:"Audit findings per audit",fmt:num,left:140}));
+  body.appendChild(chart);var state={sort:null};
+  var cols=[{k:"ref",h:"Ref"},{k:"requirement",h:"Requirement"},{k:"program",h:"Program"},{k:"material_weakness",h:"Material weakness",fmt:function(v){return v?"Yes":"No"}},{k:"questioned_costs",h:"Questioned costs",fmt:function(v){return v?"Yes":"No"}}];
+  function rows(){var out=[];a.forEach(function(x){if(sel.value&&x.fy_end!==sel.value)return;arr(x.findings).forEach(function(f){if(mw.checked&&!f.material_weakness)return;if(qc.checked&&!f.questioned_costs)return;out.push({ref:f.ref,requirement:f.requirement,program:f.program,material_weakness:f.material_weakness,questioned_costs:f.questioned_costs})})});return out}
+  function draw(){clear(holder);var rs=rows();holder.appendChild(el("div",{"class":"note",text:rs.length+" finding(s) shown."}));if(rs.length)holder.appendChild(table(cols,rs,state))}
+  state.redraw=draw;[sel,mw,qc].forEach(function(c){c.addEventListener("change",draw)});body.appendChild(holder);
+  var tl=a.filter(function(x){return x.months_to_submission!==null&&x.months_to_submission!==undefined});
+  if(tl.length)body.appendChild(el("div",{"class":"note",text:"Months from fiscal year end to FAC submission: "+tl.map(function(x){return x.fy_end+": "+x.months_to_submission}).join("; ")+". The federal deadline is 9 months."}));
+  var g=gapNote("risk");if(g)body.appendChild(g);draw();
+}
+
+function buildAccred(body){
+  var a=arr(D.accreditation);
+  if(!a.length){body.appendChild(nodata("accreditation","accreditation records"));return}
+  var st=el("select",{"aria-label":"Status"});[["","All records"],["current","Current only"],["ended","Ended only"]].forEach(function(o){st.appendChild(el("option",{value:o[0],text:o[1]}))});
+  var sc=el("select",{"aria-label":"Scope"});[["","All scopes"],["institutional","Institutional"],["programmatic","Programmatic"]].forEach(function(o){sc.appendChild(el("option",{value:o[0],text:o[1]}))});
+  var holder=el("div"),state={sort:null};
+  body.appendChild(el("div",{"class":"ctrl"},[el("label",null,["Status",st]),el("label",null,["Scope",sc])]));
+  var cols=[{k:"agency",h:"Agency"},{k:"scope",h:"Scope"},{k:"program",h:"Program"},{k:"current",h:"Current",fmt:function(v){return v?"Yes":"No"}},{k:"end_date",h:"Ended"},{k:"last_action",h:"Last recorded action"},{k:"last_action_date",h:"Action date"}];
+  function draw(){clear(holder);var rs=a.filter(function(r){return(!st.value||(st.value==="current")===!!r.current)&&(!sc.value||r.scope===sc.value)});holder.appendChild(el("div",{"class":"note",text:rs.length+" record(s) shown."}));if(rs.length)holder.appendChild(table(cols,rs,state))}
+  state.redraw=draw;[st,sc].forEach(function(c){c.addEventListener("change",draw)});body.appendChild(holder);
+  body.appendChild(el("div",{"class":"note",text:"Source: U.S. Department of Education DAPIP. An ended record is not necessarily a loss of accreditation; read the last recorded action. Confirm with the accreditor's own directory."}));
+  var g=gapNote("accreditation");if(g)body.appendChild(g);draw();
+}
+
+function buildPrograms(body){
+  var p=arr(D.programs);
+  if(!p.length){body.appendChild(nodata("programs","program rows"));return}
+  var cr={};p.forEach(function(r){if(r.credential)cr[r.credential]=1});
+  var sel=el("select",{"aria-label":"Credential level"});sel.appendChild(el("option",{value:"",text:"All credential levels"}));Object.keys(cr).forEach(function(k){sel.appendChild(el("option",{value:k,text:k}))});
+  var q=el("input",{type:"search",placeholder:"Search programs","aria-label":"Search programs"});
+  var sortSel=el("select",{"aria-label":"Sort"});[["earnings_institution","Earnings (institution)"],["awards","Awards"],["program","Program name"]].forEach(function(o){sortSel.appendChild(el("option",{value:o[0],text:o[1]}))});
+  var chart=el("div"),holder=el("div",{"class":"detail"}),state={sort:null};
+  body.appendChild(el("div",{"class":"ctrl"},[el("label",null,["Credential",sel]),q,el("label",null,["Sort chart by",sortSel])]));
+  body.appendChild(el("div",{"class":"note",text:"Median earnings one year after completion, by program. Blank means the Scorecard suppressed or did not report the value."}));
+  body.appendChild(chart);body.appendChild(holder);
+  var cols=[{k:"program",h:"Program"},{k:"credential",h:"Credential"},{k:"awards",h:"Awards",num:1,fmt:function(v){return num(v)}},{k:"earnings_institution",h:"Earnings (this institution)",num:1,fmt:usd},{k:"earnings_national",h:"Earnings (national)",num:1,fmt:usd}];
+  function draw(){clear(chart);clear(holder);
+    var rs=p.filter(function(r){return(!sel.value||r.credential===sel.value)&&(!q.value||String(r.program).toLowerCase().indexOf(q.value.toLowerCase())>=0)});
+    var k=sortSel.value;var top=rs.slice().sort(function(a,b){if(k==="program")return String(a.program)<String(b.program)?-1:1;var x=a[k],y=b[k];if(x===null||x===undefined)return 1;if(y===null||y===undefined)return-1;return y-x}).slice(0,8);
+    chart.appendChild(barChart(top.map(function(r){return{label:r.program,values:[{name:"This institution",color:"var(--accent)",v:r.earnings_institution},{name:"National",color:"var(--accent2)",v:r.earnings_national}]}}),{label:"Median earnings one year after completion",fmt:usd,rowH:20}));
+    chart.appendChild(legend([{name:"This institution",color:"var(--accent)"},{name:"National, same program and level",color:"var(--accent2)"}]));
+    holder.appendChild(el("div",{"class":"note",text:rs.length+" program row(s) shown; chart shows the top 8."}));if(rs.length)holder.appendChild(table(cols,rs,state))}
+  state.redraw=function(){draw()};[sel,sortSel].forEach(function(c){c.addEventListener("change",draw)});q.addEventListener("input",draw);
+  var g=gapNote("programs");if(g)body.appendChild(g);draw();
+}
+
+function buildGaps(body){
+  var g=arr(D.gaps);
+  if(!g.length){body.appendChild(el("div",{"class":"note",text:"No gaps were reported by the tools for the sections shown."}));return}
+  g.forEach(function(x){body.appendChild(el("div",{"class":"gap",text:(x.field?x.field+" ["+(x.kind||"unclassified").replace(/_/g," ")+"]: ":"")+(x.reason||"No reason given.")}))});
+  body.appendChild(el("div",{"class":"note",text:"A gap is missing data, not a good or bad result. Not covered by these tools: internal student-level data, campus safety, dual enrollment counts."}));
+}
+function buildSources(body){
+  var s=arr(D.sources);
+  if(!s.length){body.appendChild(el("div",{"class":"note",text:"No sources recorded."}));return}
+  var cols=[{k:"name",h:"Source"},{k:"as_of",h:"As of"},{k:"retrieved_at",h:"Retrieved"}];
+  if(s.some(function(x){return x.citation||x.license}))cols.push({k:"citation",h:"Citation and license",fmt:function(v,r){return[v,r.license?"License: "+r.license:null].filter(Boolean).join(" ")||"—"}});
+  body.appendChild(table(cols,s,{redraw:function(){}}));
+}
+
+/* ---------- KPIs ---------- */
+function kpis(){
+  var out=[];
+  var ser=arr((D.enrollment||{}).series).filter(function(p){return p.value!==null&&p.value!==undefined}).sort(function(a,b){return a.year-b.year});
+  if(ser.length){var l=ser[ser.length-1],f=ser[0];out.push({l:"Fall enrollment "+l.year,v:num(l.value),n:ser.length>1?("From "+num(f.value)+" in "+f.year+" ("+(l.value-f.value>=0?"+":"")+num(l.value-f.value)+")"):""})}
+  var fin=arr(D.finance).filter(function(r){return r.revenue!==null&&r.revenue!==undefined}).sort(function(a,b){return a.year-b.year});
+  if(fin.length){var z=fin[fin.length-1];out.push({l:"Revenues "+z.year,v:usd(z.revenue),n:z.expenses!==null&&z.expenses!==undefined?("Expenses "+usd(z.expenses)):""})}
+  var h=(D.risk||{}).hcm;out.push({l:"Heightened Cash Monitoring",v:h?(h.listed?"Listed":"Not listed"):"No data",n:h&&h.as_of?"List as of "+h.as_of:""});
+  var au=arr((D.risk||{}).audits).slice().sort(function(a,b){return a.fy_end<b.fy_end?-1:1});
+  if(au.length){var la=au[au.length-1];out.push({l:"Latest audit findings",v:num(la.finding_count),n:"FY ending "+la.fy_end})}
+  var ac=arr(D.accreditation);if(ac.length)out.push({l:"Accreditation records",v:num(ac.filter(function(r){return r.current}).length)+" current",n:num(ac.filter(function(r){return!r.current}).length)+" ended"});
+  return out;
+}
+
+/* ---------- boot ---------- */
+function boot(){
+  if(!D||!D.institution){document.body.appendChild(el("p",{text:"The brief data could not be read."}));return}
+  var i=D.institution;
+  document.title=i.name+" — institution brief";
+  document.getElementById("title").textContent=i.name;
+  document.getElementById("subtitle").textContent=[i.city&&i.state?i.city+", "+i.state:i.state,i.control,i.unitid?"UNITID "+i.unitid:null,D.generated?"Prepared "+D.generated:null].filter(Boolean).join(" · ");
+  var kp=document.getElementById("kpis");kpis().forEach(function(k){kp.appendChild(el("div",{"class":"kpi"},[el("div",{"class":"l",text:k.l}),el("div",{"class":"v",text:k.v}),el("div",{"class":"n",text:k.n||""})]))});
+  var host=document.getElementById("panels");
+  [panel("enrollment","Enrollment and peers",buildEnrollment),panel("finance","Finance",buildFinance),panel("risk","Federal risk and audits",buildRisk),panel("programs","Programs and earnings",buildPrograms),panel("accreditation","Accreditation",buildAccred),panel("gaps","Gaps",buildGaps),panel("sources","Sources",buildSources)].forEach(function(s){host.appendChild(s)});
+  var ids=Object.keys(panels),tabs=document.getElementById("tabs");
+  ids.forEach(function(id){panels[id].build(panels[id].body)});
+  function show(id){ids.forEach(function(k){panels[k].node.classList.toggle("hidden",k!==id&&!document.body.classList.contains("onepage"))});Array.prototype.forEach.call(tabs.children,function(b){b.setAttribute("aria-selected",b.dataset.id===id?"true":"false")})}
+  ids.forEach(function(id){var b=el("button",{type:"button",role:"tab","data-id":id,text:panels[id].title});b.addEventListener("click",function(){show(id)});tabs.appendChild(b)});
+  show(ids[0]);
+  document.getElementById("btn-one").addEventListener("click",function(){var on=document.body.classList.toggle("onepage");this.classList.toggle("on",on);ids.forEach(function(k){panels[k].node.classList.toggle("hidden",false)});if(!on)show(ids[0])});
+  document.getElementById("btn-print").addEventListener("click",function(){window.print()});
+  document.getElementById("btn-theme").addEventListener("click",function(){var r=document.documentElement,d=r.getAttribute("data-theme");r.setAttribute("data-theme",d==="dark"?"light":"dark")});
+  document.getElementById("foot").textContent="Built from public data returned by the highered MCP servers. Figures are reported values, not estimates. Data from upstream sources is untrusted text and is displayed as plain text only.";
+  window.addEventListener("beforeprint",function(){ids.forEach(function(k){panels[k].node.classList.remove("hidden")})});
+  window.addEventListener("afterprint",function(){if(!document.body.classList.contains("onepage"))show(ids[0])});
+}
+boot();
+})();
+</script>
+</body>
+</html>
