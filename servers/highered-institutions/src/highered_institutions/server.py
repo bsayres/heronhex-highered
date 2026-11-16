@@ -17,6 +17,7 @@ from .models import (
     Control,
     Kind,
     PeerScope,
+    SizeMeasure,
     State,
     UnitId,
     Year,
@@ -97,8 +98,25 @@ async def _directory() -> tuple[cw.Index, urban.Cached, int]:
     return _index_cache[key], c, year
 
 
-def _enr_value(v):
+def _count(v):
     return v if isinstance(v, int) and v >= 0 else None
+
+
+def _enr(entry) -> tuple[int | None, int | None, int | None]:
+    """(total, full_time, part_time) fall headcount as reported; a negative missing-data code is None. Urban leaves out a full-time
+    or part-time row when that count is zero, so a missing one is 0 only when the other count equals the reported total."""
+    if not isinstance(entry, list) or len(entry) != 3:
+        return None, None, None
+    total, ft, pt = (_count(v) for v in entry)
+    if total is not None:
+        if entry[1] is None and pt == total:
+            ft = 0
+        if entry[2] is None and ft == total:
+            pt = 0
+    return total, ft, pt
+
+
+MEASURE = {"headcount": (0, "enrollment_fall"), "full_time": (1, "full_time")}
 
 
 LATE = "IPEDS fall enrollment for this year was not retrieved within the time limit; it keeps loading in the background, so asking again shortly should return it."
@@ -109,9 +127,9 @@ async def _enrollment_years(years: list[int], unitid: str | None = None):
     request for that institution (fast on a first call); without it, each year is the whole-year table (peer ranking needs every
     institution). The years are fetched at once under one deadline."""
     if unitid is not None:
-        jobs = {y: (f"urban-enrollment-{unitid}-{y}.json", lambda y=y: urban.enrollment_one(guard(), unitid, y)) for y in years}
+        jobs = {y: (f"urban-enrollment-ftpt-{unitid}-{y}.json", lambda y=y: urban.enrollment_one(guard(), unitid, y)) for y in years}
     else:
-        jobs = {y: (f"urban-fall-enrollment-total-{y}.json", lambda y=y: urban.enrollment_totals(guard(), y)) for y in years}
+        jobs = {y: (f"urban-fall-enrollment-ftpt-{y}.json", lambda y=y: urban.enrollment_totals(guard(), y)) for y in years}
     results, failed, late = await bounded.run(jobs)
     tables, metas, errors = {}, [], {}
     for y in years:
@@ -134,12 +152,25 @@ def _series(unitid: str, tables: dict, errors: dict) -> tuple[list[dict], list[d
     rows, nulls = [], []
     for y in sorted(tables):
         t = tables[y]
-        v = _enr_value(t.get(unitid)) if t is not None else None
-        rows.append({"unitid": unitid, "year": y, "enrollment_fall": v})
-        if v is None:
+        total, ft, pt = _enr(t.get(unitid)) if t is not None else (None, None, None)
+        rows.append({"unitid": unitid, "year": y, "enrollment_fall": total, "full_time": ft, "part_time": pt})
+        if total is None:
             reason = errors.get(y) or "Institution not reported in this year's IPEDS fall enrollment (or reported a missing-data code)."
-            nulls.append({"field": f"enrollment_fall[{unitid},{y}]", "kind": "source_unavailable" if errors.get(y) else "not_reported", "reason": reason})
+            nulls.append({"field": f"enrollment_fall[{unitid},{y}]", "kind": "source_unavailable" if errors.get(y) else "not_reported",
+                          "reason": reason + " Its full-time and part-time counts are null for the same reason."})
+            continue
+        for label, v in (("full_time", ft), ("part_time", pt)):
+            if v is None:
+                nulls.append({"field": f"{label}[{unitid},{y}]", "kind": "not_reported",
+                              "reason": f"IPEDS fall enrollment gives a total but no {label.replace('_', '-')} count for this institution and year (or a missing-data code)."})
     return rows, nulls
+
+
+def _split_warning(rows: list[dict]) -> list[str]:
+    off = [f"{r['unitid']} fall {r['year']}" for r in rows if None not in (r["enrollment_fall"], r["full_time"], r["part_time"])
+           and r["full_time"] + r["part_time"] != r["enrollment_fall"]]
+    more = " and others" if len(off) > 5 else ""
+    return [f"Full-time and part-time counts do not add up to the reported total for {', '.join(off[:5])}{more}; all three are as reported."] if off else []
 
 
 def _window(end: int, start: int | None, end_year: int | None) -> tuple[int, int]:
@@ -202,7 +233,7 @@ async def search_institutions(
 @mcp.tool(title="Institution profile", annotations={"title": "Institution profile", "readOnlyHint": True})
 async def get_institution_profile(unitid: UnitId) -> dict:
     """Profile of one institution: identifiers (UNITID, OPEID, EIN, UEI, domain), system and
-    same-OPEID campuses, Carnegie codes, latest fall enrollment, College Scorecard outcomes.
+    same-OPEID campuses, Carnegie codes, latest fall enrollment (total, full-time, part-time), College Scorecard outcomes.
     Missing data is null with a reason. `identifiers.cbsa` is the 5-digit metropolitan area code that highered-labor-market get_wages takes."""
     index, c, year = await _directory()
     r = index.by_unitid.get(unitid)
@@ -242,6 +273,7 @@ async def get_institution_profile(unitid: UnitId) -> dict:
     rows, n = _series(unitid, tables, errs)
     data["latest_fall_enrollment"] = rows[0]
     nulls += n
+    warnings += _split_warning(rows)
     sources += [_entry("IPEDS fall enrollment via Urban Institute", m) for m in metas]
 
     # Scorecard (exact join on UNITID)
@@ -264,8 +296,8 @@ async def get_institution_profile(unitid: UnitId) -> dict:
 
 @mcp.tool(title="Enrollment trend", annotations={"title": "Enrollment trend", "readOnlyHint": True})
 async def get_enrollment_trend(unitid: UnitId, start_year: Year | None = None, end_year: Year | None = None) -> dict:
-    """Fall headcount enrollment (all students) by year for one institution, as a table.
-    Default window is the latest 10 years. Years with no data are null with a reason."""
+    """Fall headcount enrollment (all students) by year for one institution, as a table, with the full-time and part-time
+    headcounts as IPEDS reports them. Default window is the latest 10 years. Years with no data are null with a reason."""
     index, _c, latest = await _directory()
     r = index.by_unitid.get(unitid)
     if r is None:
@@ -273,12 +305,13 @@ async def get_enrollment_trend(unitid: UnitId, start_year: Year | None = None, e
     s, e = _window(latest, start_year, end_year)
     tables, metas, errs = await _enrollment_years(list(range(s, e + 1)), unitid)
     rows, nulls = _series(unitid, tables, errs)
-    data = {"unitid": unitid, "name": r["inst_name"], "columns": ["year", "enrollment_fall"], "rows": [[x["year"], x["enrollment_fall"]] for x in rows]}
+    data = {"unitid": unitid, "name": r["inst_name"], "columns": ["year", "enrollment_fall", "full_time", "part_time"],
+            "rows": [[x["year"], x["enrollment_fall"], x["full_time"], x["part_time"]] for x in rows]}
     if not metas:
         raise ToolError("No IPEDS fall enrollment could be retrieved from the Urban Institute API for these years: " + "; ".join(sorted(set(errs.values()))))
     first = metas[0]
     srcs = [source_entry("IPEDS fall enrollment via Urban Institute (ODC-By 1.0)", first.meta["source_url"], f"IPEDS fall enrollment {s}-{e}", min(m.meta["retrieved_at"] for m in metas), sha256s=[m.meta["sha256"] for m in metas], served_stale_cache=any(m.stale for m in metas))]
-    return envelope(srcs, data, nulls, _stale_warning(*metas) + _late_warning(errs))
+    return envelope(srcs, data, nulls, _stale_warning(*metas) + _late_warning(errs) + _split_warning(rows))
 
 
 @mcp.tool(title="Retention rates", annotations={"title": "Retention rates", "readOnlyHint": True})
@@ -343,12 +376,15 @@ async def get_retention(unitid: UnitId, years: Annotated[int, Field(ge=1, le=8, 
 
 @mcp.tool(title="Compare with peer institutions", annotations={"title": "Compare with peer institutions", "readOnlyHint": True})
 async def compare_peers(unitid: UnitId, n_peers: Annotated[int, Field(ge=1, le=10)] = 5, start_year: Year | None = None, end_year: Year | None = None,
-                        scope: PeerScope = "national") -> dict:
-    """Closest peers and their enrollment trends in one long table.
+                        scope: PeerScope = "national", size_measure: SizeMeasure = "headcount") -> dict:
+    """Closest peers and their enrollment trends (total, full-time and part-time fall headcount) in one long table.
 
     Peer rule (deterministic, returned in the response): active institutions with the same control
     and 2025 Carnegie basic class (2021 class if 2025 is missing), ranked by closeness of latest
     fall enrollment (absolute log ratio). The target's own system is not excluded.
+
+    `size_measure` is the enrollment figure ranked on: 'headcount' (all students, the default) or 'full_time' (full-time
+    students only), which keeps a mostly part-time institution from matching a mostly full-time one of the same headcount.
 
     `scope` narrows the pool: 'same_state' or 'same_system' (the target's system name in the IPEDS directory, for example a state
     community college system). Within a narrowed scope the Carnegie class is not required (the pool is already small), so peers
@@ -362,10 +398,14 @@ async def compare_peers(unitid: UnitId, n_peers: Annotated[int, Field(ge=1, le=1
     tables, metas, errs = await _enrollment_years(list(range(s, e + 1)))
     if not metas:
         raise ToolError("No IPEDS fall enrollment could be retrieved from the Urban Institute API for these years: " + "; ".join(sorted(set(errs.values()))))
-    ref_year = max(y for y in tables if tables[y] and _enr_value(tables[y].get(unitid)) is not None) if any(tables[y] and _enr_value(tables[y].get(unitid)) is not None for y in tables) else None
-    if ref_year is None:
-        raise ToolError("Target has no enrollment in the requested window, so peers cannot be ranked.")
-    base = _enr_value(tables[ref_year][unitid])
+    pos, measure = MEASURE[size_measure]
+    have = [y for y in tables if tables[y] and _enr(tables[y].get(unitid))[pos] is not None]
+    if not have:
+        raise ToolError(f"Target has no {measure} figure in the requested window, so peers cannot be ranked.")
+    ref_year = max(have)
+    base = _enr(tables[ref_year][unitid])[pos]
+    if not base:
+        raise ToolError(f"Target reports no full-time students in fall {ref_year}, so peers cannot be ranked by full-time headcount; use size_measure='headcount'.")
     cls_field = "cc_basic_2025" if cw.clean(t.get("cc_basic_2025")) is not None else "cc_basic_2021"
     cls = cw.clean(t.get(cls_field))
     warnings = _stale_warning(c, *metas)
@@ -389,33 +429,37 @@ async def compare_peers(unitid: UnitId, n_peers: Annotated[int, Field(ge=1, le=1
                 continue
         elif r.get(cls_field) != cls:
             continue
-        v = _enr_value(tables[ref_year].get(uid))
+        counts = _enr(tables[ref_year].get(uid))
+        v = counts[pos]
         if v:
-            pool.append((abs(math.log(v / base)) if base else 1e9, uid, r, v))
+            pool.append((abs(math.log(v / base)), uid, r, counts))
     pool.sort(key=lambda x: (x[0], x[1]))
     peers = pool[:n_peers]
     ids = [unitid] + [p[1] for p in peers]
     names = {unitid: t["inst_name"], **{p[1]: p[2]["inst_name"] for p in peers}}
-    long_rows, nulls = [], []
+    long_rows, nulls, flat = [], [], []
     for uid in ids:
         rows, n = _series(uid, tables, errs)
         nulls += n
-        long_rows += [[uid, names[uid], x["year"], x["enrollment_fall"], uid == unitid] for x in rows]
+        flat += rows
+        long_rows += [[uid, names[uid], x["year"], x["enrollment_fall"], x["full_time"], x["part_time"], uid == unitid] for x in rows]
     data = {
         "target_unitid": unitid,
         "peer_rule": {"match": ({"control": cw.CONTROL.get(t.get("inst_control")), "institution_level": t.get("institution_level")} if narrowed or cls is None
                                 else {"control": cw.CONTROL.get(t.get("inst_control")), cls_field: cls}),
                       "scope": {"scope": scope, "state": t.get("state_abbr") if scope == "same_state" else None, "system": system if scope == "same_system" else None},
                       "carnegie_class_required": not (narrowed or cls is None),
-                      "ranked_by": f"abs(ln(enrollment/target)) in fall {ref_year}", "candidates_considered": len(pool)},
-        "peers": [{"unitid": p[1], "name": p[2]["inst_name"], "state": p[2]["state_abbr"], f"enrollment_fall_{ref_year}": p[3]} for p in peers],
-        "columns": ["unitid", "name", "year", "enrollment_fall", "is_target"],
+                      "size_measure": size_measure, "ranked_by": f"abs(ln({measure}/target {measure})) in fall {ref_year}", "candidates_considered": len(pool)},
+        "peers": [{"unitid": p[1], "name": p[2]["inst_name"], "state": p[2]["state_abbr"], f"enrollment_fall_{ref_year}": p[3][0],
+                   f"full_time_{ref_year}": p[3][1], f"part_time_{ref_year}": p[3][2]} for p in peers],
+        "columns": ["unitid", "name", "year", "enrollment_fall", "full_time", "part_time", "is_target"],
         "rows": long_rows,
     }
     if len(peers) < n_peers:
         warnings.append(f"Only {len(peers)} peers met the rule.")
     if scope == "national":
         warnings.append("Peers are size-matched across the country, not a market or system benchmark. Use scope='same_state' or 'same_system' for a local comparison.")
+    warnings += _split_warning(flat)
     srcs = [_entry(urban.SOURCE, c), source_entry("IPEDS fall enrollment via Urban Institute (ODC-By 1.0)", metas[0].meta["source_url"], f"IPEDS fall enrollment {s}-{e}", min(m.meta["retrieved_at"] for m in metas), served_stale_cache=any(m.stale for m in metas))]
     return envelope(srcs, data, nulls, warnings)
 

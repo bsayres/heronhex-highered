@@ -89,7 +89,15 @@ class Upstream:
                 table = self.enrollment.get(year)
                 if table is None:
                     return httpx.Response(404)
-                rows = [{"unitid": int(u), "enrollment_fall": v} for u, v in table.items()]
+                # one row per ftpt code (99 all, 1 full-time, 2 part-time); like Urban, a zero or missing split has no row
+                rows = []
+                for u, v in table.items():
+                    if v is None:
+                        rows.append({"unitid": int(u), "ftpt": 99, "enrollment_fall": None})
+                        continue
+                    rows += [{"unitid": int(u), "ftpt": code, "enrollment_fall": n} for code, n in zip((99, 1, 2), v, strict=True) if n is not None]
+                if "ftpt" in q:
+                    rows = [r for r in rows if str(r["ftpt"]) == q["ftpt"]]
             if "unitid" in q:
                 rows = [r for r in rows if str(r["unitid"]) == q["unitid"]]
             return httpx.Response(200, json={"count": len(rows), "next": None, "results": rows})

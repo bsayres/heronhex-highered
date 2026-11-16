@@ -76,15 +76,32 @@ async def directory(guard: Guard, year: int) -> Cached:
     return await _cached(guard, f"urban-directory-{year}.json", fetch, valid=lambda rows: bool(rows) and "cbsa" in rows[0])
 
 
-async def enrollment_totals(guard: Guard, year: int) -> Cached:
-    """Fall headcount, all students (every disaggregator = 99), keyed by unitid."""
-    async def fetch():
-        params = {"sex": 99, "race": 99, "ftpt": 99, "class_level": 99, "degree_seeking": 99}
-        rows, url = await _paged(guard, f"{BASE}/fall-enrollment/{year}/99/", params, 10_000_000)
-        slim = {str(r["unitid"]): r.get("enrollment_fall") for r in rows}
-        return slim, f"IPEDS fall enrollment {year}", url
+FTPT = {99: 0, 1: 1, 2: 2}  # Urban's ftpt code -> position in [total, full_time, part_time]
 
-    return await _cached(guard, f"urban-fall-enrollment-total-{year}.json", fetch)
+
+def _split(rows: list) -> dict:
+    """{unitid: [total, full_time, part_time]} from Urban fall-enrollment rows, as reported. Urban leaves out a full-time or
+    part-time row when the count is zero; that is kept as None here and read in the server, which checks it against the total."""
+    out: dict = {}
+    for r in rows:
+        i = FTPT.get(r.get("ftpt"))
+        if i is not None:
+            out.setdefault(str(r["unitid"]), [None, None, None])[i] = r.get("enrollment_fall")
+    return out
+
+
+def _enrollment_params(**extra) -> dict:
+    """All students for every disaggregator except full-/part-time, which comes back as three rows (99 = all, 1 = full, 2 = part)."""
+    return {**extra, "sex": 99, "race": 99, "class_level": 99, "degree_seeking": 99, "fields": "unitid,ftpt,enrollment_fall"}
+
+
+async def enrollment_totals(guard: Guard, year: int) -> Cached:
+    """Fall headcount for every institution, all students, with the full-time and part-time counts: {unitid: [total, ft, pt]}."""
+    async def fetch():
+        rows, url = await _paged(guard, f"{BASE}/fall-enrollment/{year}/99/", _enrollment_params(), 10_000_000)
+        return _split(rows), f"IPEDS fall enrollment {year}", url
+
+    return await _cached(guard, f"urban-fall-enrollment-ftpt-{year}.json", fetch)  # new name: the older total-only files are not read
 
 
 async def latest_enrollment_year(guard: Guard, directory_year: int) -> int:
@@ -137,16 +154,15 @@ async def finance(guard: Guard, unitid: str, year: int) -> tuple[dict | None, st
 
 
 async def enrollment_one(guard: Guard, unitid: str, year: int) -> Cached:
-    """One institution's fall headcount (all students) for one year, as {unitid: value}. Uses the whole-year table when it is cached,
-    otherwise a single small request (cached for a day), so a first call does not download every institution's data."""
-    bulk = cache.read(f"urban-fall-enrollment-total-{year}.json")
+    """One institution's fall headcount for one year, as {unitid: [total, ft, pt]} (None when not reported). Uses the whole-year table
+    when it is cached, otherwise a single small request (cached for a day), so a first call does not download every institution's data."""
+    bulk = cache.read(f"urban-fall-enrollment-ftpt-{year}.json")
     if bulk and cache.is_fresh(bulk["meta"]):
         return Cached({unitid: bulk["data"].get(unitid)}, bulk["meta"], False)
 
     async def fetch():
-        params = {"unitid": unitid, "sex": 99, "race": 99, "ftpt": 99, "class_level": 99, "degree_seeking": 99}
-        data, url = await guard.get_json(f"{BASE}/fall-enrollment/{year}/99/", params)
-        mine = [r for r in data.get("results") or [] if str(r.get("unitid")) == unitid]
-        return {unitid: mine[0].get("enrollment_fall") if mine else None}, f"IPEDS fall enrollment {year}", url
+        data, url = await guard.get_json(f"{BASE}/fall-enrollment/{year}/99/", _enrollment_params(unitid=unitid))
+        mine = _split([r for r in data.get("results") or [] if str(r.get("unitid")) == unitid])
+        return {unitid: mine.get(unitid)}, f"IPEDS fall enrollment {year}", url
 
-    return await _cached(guard, f"urban-enrollment-{unitid}-{year}.json", fetch, ttl_days=1)
+    return await _cached(guard, f"urban-enrollment-ftpt-{unitid}-{year}.json", fetch, ttl_days=1)

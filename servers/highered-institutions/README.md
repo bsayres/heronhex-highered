@@ -9,10 +9,10 @@ MCP server (read-only) to resolve U.S. higher-ed institutions across identifiers
 | `search_institutions` | Filter by state, control, Carnegie 2025 basic code, name text. |
 | `get_financial_snapshot(unitid, years=1)` | Headline revenues, expenses, assets, liabilities, net position/assets, endowment and more from the latest IPEDS finance survey, in dollars, as reported. Works for public institutions. Never scored or estimated. `years` up to 10 adds a year-by-year history (use it: one year is not a trend); revenue components are returned as reported and capital appropriations are not netted out. |
 | `get_institution_profile` | Identifiers, system, same-OPEID campuses, Carnegie codes, latest enrollment, Scorecard. |
-| `get_enrollment_trend` | Fall headcount by year (table). |
+| `get_enrollment_trend` | Fall headcount by year, total, full-time and part-time (table). |
 | `get_retention(unitid, years=5)` | Fall-to-fall retention for first-time degree-seeking undergraduates, full-time and part-time: the rate as IPEDS publishes it, the number retained and the cohort behind it, the student-to-faculty ratio, and IPEDS's flag for each value. Read straight from NCES files, not Urban. |
 | `compare_institutions(unitids)` | 2 to 5 named institutions side by side: control, enrollment years, latest finance year, Scorecard cost and outcomes. No ranking or matching. |
-| `compare_peers` | Closest peers (same control and Carnegie class, nearest enrollment) with trends (long table). |
+| `compare_peers` | Closest peers (same control and Carnegie class, nearest total or full-time enrollment) with total, full-time and part-time trends (long table). |
 
 Every response: `source`, `source_url`, `as_of`, `retrieved_at`, `sources[]`, `data`, `nulls[]` (field + reason), `warnings[]`.
 

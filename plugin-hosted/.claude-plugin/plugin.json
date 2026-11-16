@@ -1,7 +1,7 @@
 {
   "name": "heronhex-highered-hosted",
   "displayName": "Heron & Hex Higher Ed Data",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Skills for asking Claude about U.S. colleges from free public data (IPEDS, College Scorecard, FSA, DAPIP, NSF, SHEEO, WICHE, BLS, O*NET): profiles, enrollment, finances, Title IV risk flags, audit findings, accreditation, research and state funding, wages and program-to-job alignment. Uses the Heron & Hex hosted connector; nothing to install and no sign-in.",
   "author": {
     "name": "Heron & Hex Solutions",

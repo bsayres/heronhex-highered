@@ -34,8 +34,8 @@ Replace only the JSON inside `<script id="brief-data" type="application/json">`.
 | Key | Tool and field |
 |---|---|
 | `institution.*` | `get_institution_profile`: `name`, `city`, `state`, `control`, `identifiers.unitid` |
-| `enrollment.series` | `get_enrollment_trend`: `rows` of `[year, enrollment_fall]` |
-| `enrollment.peers[*].series` | `compare_peers`: `rows` of `[unitid, name, year, enrollment_fall, is_target]`; group the rows where `is_target` is false by `unitid` |
+| `enrollment.series` | `get_enrollment_trend`: `rows` of `[year, enrollment_fall, full_time, part_time]`; `value` is `enrollment_fall` |
+| `enrollment.peers[*].series` | `compare_peers`: `rows` of `[unitid, name, year, enrollment_fall, full_time, part_time, is_target]`; group the rows where `is_target` is false by `unitid`; `value` is `enrollment_fall` |
 | `finance` | `get_financial_snapshot(years>=2)`: `history.rows` with columns `year`, `total_revenues`→`revenue`, `total_expenses`→`expenses`, `state_appropriations`, `net_tuition_and_fees`→`net_tuition` |
 | `risk.hcm` | `get_title_iv_status`: `heightened_cash_monitoring.listed`, `.as_of` |
 | `risk.composite`, `risk.cdr` | `get_title_iv_status`: `financial_responsibility`, `cohort_default_rates`; if null, leave the arrays empty and add a `gaps` entry with the tool's reason |

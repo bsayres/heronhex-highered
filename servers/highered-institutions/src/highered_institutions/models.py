@@ -9,6 +9,7 @@ State = Annotated[str, Field(pattern=r"^[A-Za-z]{2}$", description="2-letter sta
 Year = Annotated[int, Field(ge=1980, le=2100)]
 Control = Literal["public", "private_nonprofit", "private_for_profit"]
 PeerScope = Literal["national", "same_state", "same_system"]
+SizeMeasure = Literal["headcount", "full_time"]
 Kind = Literal["auto", "name", "unitid", "opeid", "ein", "uei", "domain"]
 
 DISCLAIMER = (

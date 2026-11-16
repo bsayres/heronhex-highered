@@ -58,8 +58,8 @@ async def test_profile_with_key_sends_header_not_url(upstream, monkeypatch):
 
 async def test_enrollment_trend_has_explicit_nulls(upstream):
     r = await s.get_enrollment_trend("999001")
-    assert r["data"]["columns"] == ["year", "enrollment_fall"]
-    assert r["data"]["rows"][-1] == [2024, 2044] and r["data"]["rows"][0][0] == 2015
+    assert r["data"]["columns"] == ["year", "enrollment_fall", "full_time", "part_time"]
+    assert r["data"]["rows"][-1] == [2024, 2044, 961, 1083] and r["data"]["rows"][0][0] == 2015
     r = await s.get_enrollment_trend("999001", start_year=2024, end_year=2026)
     assert any(row[1] is None for row in r["data"]["rows"]) and r["nulls"]
 
@@ -72,7 +72,8 @@ async def test_compare_peers_is_deterministic_and_documented(upstream):
     assert any("not a market or system benchmark" in w for w in a["warnings"])
     ids = [p["unitid"] for p in a["data"]["peers"]]
     assert "999001" not in ids and len(ids) == 3
-    assert sum(1 for row in a["data"]["rows"] if row[4]) == 10  # target rows, one per year
+    assert a["data"]["columns"][-1] == "is_target" and sum(1 for row in a["data"]["rows"] if row[-1]) == 10  # target rows, one per year
+    assert a["data"]["peer_rule"]["size_measure"] == "headcount" and a["data"]["peers"][0]["full_time_2024"] is not None
 
 
 async def test_search_filters(upstream):
@@ -202,3 +203,72 @@ async def test_a_directory_cache_from_an_older_version_without_cbsa_is_fetched_a
     before = len(upstream.requests)
     r = await s.resolve_institution("Test Community College A")
     assert r["data"]["candidates"][0]["cbsa"] == "14460" and len(upstream.requests) > before and path.exists()
+
+
+# Full-time and part-time fall headcount. Fixture, fall 2024: 999001 has 2,044 students, 961 full-time; its public Carnegie-12
+# peers 206446, 187666, 233903 and 172307 have nearly the same headcount but 539, 888, 677 and 981 full-time students.
+async def test_peers_ranked_by_full_time_differ_from_peers_ranked_by_headcount(upstream):
+    head = await s.compare_peers("999001", n_peers=4)
+    full = await s.compare_peers("999001", n_peers=4, size_measure="full_time")
+    assert head["data"]["peers"][0]["unitid"] == "206446"
+    assert [p["unitid"] for p in full["data"]["peers"]] == ["172307", "187666", "233903", "206446"]
+    rule = full["data"]["peer_rule"]
+    assert rule["size_measure"] == "full_time" and rule["ranked_by"] == "abs(ln(full_time/target full_time)) in fall 2024"
+    assert full["data"]["peers"][0] == {"unitid": "172307", "name": full["data"]["peers"][0]["name"], "state": "MI",
+                                        "enrollment_fall_2024": 2000, "full_time_2024": 981, "part_time_2024": 1019}
+
+
+async def test_a_missing_part_time_row_is_zero_only_when_full_time_equals_the_total(upstream):
+    r = await s.get_enrollment_trend("455983", start_year=2024, end_year=2024)  # Urban has no part-time row: all 151 are full-time
+    assert r["data"]["rows"] == [[2024, 151, 151, 0]] and not r["nulls"]
+    upstream.enrollment["2024"]["999001"] = [2044, 961, None]  # no part-time row, but full-time is not the total
+    r = await s.get_enrollment_trend("999001", start_year=2024, end_year=2024)
+    assert r["data"]["rows"] == [[2024, 2044, 961, None]]
+    assert r["nulls"] == [{"field": "part_time[999001,2024]", "kind": "not_reported", "reason": r["nulls"][0]["reason"]}] and "part-time" in r["nulls"][0]["reason"]
+
+
+async def test_a_missing_data_code_is_a_null_and_a_split_that_does_not_add_up_is_flagged_not_fixed(upstream):
+    upstream.enrollment["2024"]["999001"] = [2044, -1, 1083]
+    upstream.enrollment["2023"]["999001"] = [2033, 900, 1000]
+    r = await s.get_enrollment_trend("999001", start_year=2023, end_year=2024)
+    assert r["data"]["rows"] == [[2023, 2033, 900, 1000], [2024, 2044, None, 1083]]
+    assert [n["field"] for n in r["nulls"]] == ["full_time[999001,2024]"]
+    assert any("do not add up" in w and "999001 fall 2023" in w for w in r["warnings"])
+    p = await s.get_institution_profile("999001")
+    assert p["data"]["latest_fall_enrollment"]["full_time"] is None and any(n["field"] == "full_time[999001,2024]" for n in p["nulls"])
+
+
+async def test_a_year_with_no_total_explains_the_split_once(upstream):
+    upstream.enrollment["2024"]["999001"] = None
+    r = await s.get_enrollment_trend("999001", start_year=2024, end_year=2024)
+    assert r["data"]["rows"] == [[2024, None, None, None]]
+    assert len(r["nulls"]) == 1 and "full-time and part-time counts are null for the same reason" in r["nulls"][0]["reason"]
+
+
+async def test_a_target_with_no_full_time_students_cannot_be_ranked_by_full_time(upstream):
+    upstream.enrollment["2024"]["999001"] = [2044, None, 2044]
+    with pytest.raises(ToolError, match="no full-time students"):
+        await s.compare_peers("999001", size_measure="full_time")
+    assert (await s.compare_peers("999001"))["data"]["peers"]  # headcount still works
+
+
+async def test_size_measure_rejects_anything_else(upstream):
+    for bad in ("fte", "part_time", "", "HEADCOUNT"):
+        with pytest.raises(Exception):  # noqa: B017
+            await s.mcp.call_tool("compare_peers", {"unitid": "999001", "size_measure": bad})
+
+
+async def test_an_older_total_only_cache_file_is_never_read(upstream):
+    for y in range(2015, 2025):  # what the previous version cached: {unitid: total}
+        cache.write(f"urban-fall-enrollment-total-{y}.json", {"999001": 1, "206446": 1}, f"IPEDS fall enrollment {y}", "https://educationdata.urban.org/x")
+    r = await s.get_enrollment_trend("999001", start_year=2024, end_year=2024)
+    assert r["data"]["rows"] == [[2024, 2044, 961, 1083]]
+    r = await s.compare_peers("999001", n_peers=1)
+    assert r["data"]["peers"][0]["enrollment_fall_2024"] == 2025
+
+
+async def test_the_enrollment_requests_ask_for_the_split_and_only_three_fields(upstream):
+    await s.get_enrollment_trend("999001", start_year=2024, end_year=2024)
+    await s.compare_peers("999001")
+    reqs = [q for q in upstream.requests if "/fall-enrollment/" in q.url.path and q.url.params.get("unitid") != s.urban.PROBE_UNITID]
+    assert reqs and all("ftpt" not in q.url.params and q.url.params["fields"] == "unitid,ftpt,enrollment_fall" for q in reqs)

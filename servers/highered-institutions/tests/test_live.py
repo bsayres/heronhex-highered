@@ -20,5 +20,6 @@ async def test_live_resolve_trend_peers(tmp_path, monkeypatch):
     assert d["resolved"] and d["candidates"][0]["unitid"] == UNITID
     t = await s.get_enrollment_trend(UNITID)
     assert any(r[1] for r in t["data"]["rows"])
+    assert all(r[2] + r[3] == r[1] for r in t["data"]["rows"] if None not in r[1:4])  # full-time plus part-time is the reported total
     c = await s.compare_peers(UNITID)
     assert len(c["data"]["peers"]) == 5
