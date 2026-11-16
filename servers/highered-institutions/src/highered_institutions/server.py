@@ -59,6 +59,12 @@ def guard() -> Guard:
     return _guard
 
 
+def _fail(e: BaseException) -> BaseException:
+    """An upstream failure becomes a ToolError so its reason reaches the client; the SDK replaces any other exception's text
+    with a generic 'Error executing tool'."""
+    return ToolError(str(e)) if isinstance(e, UpstreamError) else e
+
+
 def _entry(source: str, c: urban.Cached) -> dict:
     return source_entry(source, c.meta["source_url"], c.meta["as_of"], c.meta["retrieved_at"], sha256=c.meta["sha256"], served_stale_cache=c.stale)
 
@@ -81,7 +87,7 @@ async def _directory() -> tuple[cw.Index, urban.Cached, int]:
         raise ToolError("The national IPEDS directory is being downloaded for the first time, which can take a minute or two. "
                         "It keeps downloading in the background and is cached afterward, so ask again shortly.")
     if errs:
-        raise errs["directory"]
+        raise _fail(errs["directory"])
     _dyear, c, year = res["directory"]
     key = c.meta["sha256"]
     if key not in _index_cache:
@@ -106,7 +112,7 @@ async def _enrollment_years(years: list[int], unitid: str | None = None):
         jobs = {y: (f"urban-enrollment-{unitid}-{y}.json", lambda y=y: urban.enrollment_one(guard(), unitid, y)) for y in years}
     else:
         jobs = {y: (f"urban-fall-enrollment-total-{y}.json", lambda y=y: urban.enrollment_totals(guard(), y)) for y in years}
-    results, _errs, late = await bounded.run(jobs)
+    results, failed, late = await bounded.run(jobs)
     tables, metas, errors = {}, [], {}
     for y in years:
         if y in results:
@@ -114,7 +120,8 @@ async def _enrollment_years(years: list[int], unitid: str | None = None):
             metas.append(results[y])
         else:
             tables[y] = None
-            errors[y] = LATE if y in late else "IPEDS fall enrollment for this year could not be retrieved."
+            why = f": {failed[y]}" if isinstance(failed.get(y), UpstreamError) else "."
+            errors[y] = LATE if y in late else f"IPEDS fall enrollment for this year could not be retrieved{why}"
     return tables, metas, errors
 
 
@@ -268,7 +275,7 @@ async def get_enrollment_trend(unitid: UnitId, start_year: Year | None = None, e
     rows, nulls = _series(unitid, tables, errs)
     data = {"unitid": unitid, "name": r["inst_name"], "columns": ["year", "enrollment_fall"], "rows": [[x["year"], x["enrollment_fall"]] for x in rows]}
     if not metas:
-        raise UpstreamError("No enrollment data could be retrieved.")
+        raise ToolError("No IPEDS fall enrollment could be retrieved from the Urban Institute API for these years: " + "; ".join(sorted(set(errs.values()))))
     first = metas[0]
     srcs = [source_entry("IPEDS fall enrollment via Urban Institute (ODC-By 1.0)", first.meta["source_url"], f"IPEDS fall enrollment {s}-{e}", min(m.meta["retrieved_at"] for m in metas), sha256s=[m.meta["sha256"] for m in metas], served_stale_cache=any(m.stale for m in metas))]
     return envelope(srcs, data, nulls, _stale_warning(*metas) + _late_warning(errs))
@@ -289,7 +296,7 @@ async def get_retention(unitid: UnitId, years: Annotated[int, Field(ge=1, le=8, 
     if late:
         raise ToolError("The IPEDS retention files are being located for the first time; this keeps running in the background, so ask again shortly.")
     if errs:
-        raise errs["latest"]
+        raise _fail(errs["latest"])
     latest = res["latest"]
     span = list(range(latest, latest - years, -1))
     got, ferrs, flate = await bounded.run({y: (f"ipeds-ef{y}d.json", lambda y=y: ipeds.year_table(guard(), y)) for y in span},
@@ -354,7 +361,7 @@ async def compare_peers(unitid: UnitId, n_peers: Annotated[int, Field(ge=1, le=1
     s, e = _window(latest, start_year, end_year)
     tables, metas, errs = await _enrollment_years(list(range(s, e + 1)))
     if not metas:
-        raise UpstreamError("No enrollment data could be retrieved.")
+        raise ToolError("No IPEDS fall enrollment could be retrieved from the Urban Institute API for these years: " + "; ".join(sorted(set(errs.values()))))
     ref_year = max(y for y in tables if tables[y] and _enr_value(tables[y].get(unitid)) is not None) if any(tables[y] and _enr_value(tables[y].get(unitid)) is not None for y in tables) else None
     if ref_year is None:
         raise ToolError("Target has no enrollment in the requested window, so peers cannot be ranked.")
@@ -445,7 +452,10 @@ async def get_financial_snapshot(unitid: UnitId, years: Annotated[int, Field(ge=
     r = index.by_unitid.get(unitid)
     if r is None:
         raise ToolError("UNITID not found in the IPEDS directory.")
-    latest = await urban.latest_finance_year(guard(), dir_year)
+    try:
+        latest = await urban.latest_finance_year(guard(), dir_year)
+    except UpstreamError as e:
+        raise _fail(e) from None
     nulls, warnings, history, first_url = [], [], [], None
     data: dict = {"unitid": unitid, "name": r["inst_name"], "year": latest, "units": "US dollars (est_fte is a count)", "figures": None}
     span = list(range(latest, latest - years, -1))
@@ -518,8 +528,11 @@ async def compare_institutions(unitids: Annotated[list[UnitId], Field(min_length
     for uid in unitids:
         try:
             prof = await get_institution_profile(uid)
-        except ToolError:
-            nulls.append({"field": uid, "kind": "not_found", "reason": "UNITID not found in the IPEDS directory; left out of the comparison."})
+        except ToolError as e:
+            if str(e).startswith("UNITID not found"):
+                nulls.append({"field": uid, "kind": "not_found", "reason": "UNITID not found in the IPEDS directory; left out of the comparison."})
+            else:
+                nulls.append({"field": uid, "kind": "source_unavailable", "reason": f"{e} Left out of the comparison."})
             continue
         except UpstreamError as e:
             nulls.append({"field": uid, "kind": "source_unavailable", "reason": f"{e} Left out of the comparison."})

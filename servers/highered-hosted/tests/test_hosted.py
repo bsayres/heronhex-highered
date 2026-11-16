@@ -87,3 +87,31 @@ async def test_http_endpoint(monkeypatch, tmp_path):
 
         r = await c.post(hosted.MCP_PATH, content=b"x" * 10, headers={**headers, "content-type": "text/plain"})
         assert r.status_code == 400
+
+
+class _Flaky:
+    """A stand-in server part whose one tool fails `fails` times, then answers."""
+
+    def __init__(self, fails: int, message: str):
+        self.calls, self.fails, self.message = 0, fails, message
+        self.mcp = self
+
+    async def call_tool(self, name, args):
+        self.calls += 1
+        if self.calls <= self.fails:
+            raise prewarm.ToolError(self.message)
+        return {}
+
+
+async def test_prewarm_retries_an_upstream_failure_after_a_pause(monkeypatch):
+    monkeypatch.setattr(prewarm, "PAUSE", 0.01)
+    part = _Flaky(2, "educationdata.urban.org returned a non-JSON response.")
+    ok, _secs, _note = await prewarm.warm(part, "resolve_institution", {})
+    assert ok and part.calls == 3
+
+
+async def test_prewarm_gives_up_after_the_last_attempt_and_reports_the_reason(monkeypatch):
+    monkeypatch.setattr(prewarm, "PAUSE", 0.01)
+    part = _Flaky(99, "Could not reach educationdata.urban.org.")
+    ok, _secs, note = await prewarm.warm(part, "resolve_institution", {})
+    assert not ok and part.calls == prewarm.ATTEMPTS and note == "Could not reach educationdata.urban.org."

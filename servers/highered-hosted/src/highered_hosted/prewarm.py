@@ -40,6 +40,7 @@ PLAN = [
     (labor_market, "get_state_occupation_outlook", {"state": STATE, "soc": SOC}),
 ]
 ATTEMPTS = 4
+PAUSE = 20.0  # seconds before a retry after an upstream failure, growing with each attempt; upstream APIs are sometimes briefly slow
 
 
 async def _settle(part) -> None:
@@ -51,10 +52,11 @@ async def _settle(part) -> None:
 
 
 async def warm(part, name: str, args: dict) -> tuple[bool, float, str]:
-    """Call one tool until it answers without a 'still downloading' error. Returns (ok, seconds, note)."""
+    """Call one tool until it answers without an error, up to ATTEMPTS times. A 'still downloading' answer is retried at once (the
+    download has finished by then); any other failure is retried after a growing pause. Returns (ok, seconds, last error)."""
     t0 = time.monotonic()
     note = ""
-    for _ in range(ATTEMPTS):
+    for attempt in range(1, ATTEMPTS + 1):
         try:
             result = await part.mcp.call_tool(name, args)
             is_error = bool(getattr(result, "isError", False))
@@ -65,9 +67,10 @@ async def warm(part, name: str, args: dict) -> tuple[bool, float, str]:
         await _settle(part)
         if not is_error:
             return True, time.monotonic() - t0, ""
-        note = text[:160].replace("\n", " ")
-        if "background" not in text and "shortly" not in text:
-            break
+        note = text[:500].replace("\n", " ")
+        print(f"     {name} attempt {attempt}/{ATTEMPTS} failed: {note}", file=sys.stderr, flush=True)
+        if attempt < ATTEMPTS and "background" not in text and "shortly" not in text:
+            await asyncio.sleep(PAUSE * attempt)
     return False, time.monotonic() - t0, note
 
 

@@ -161,3 +161,63 @@ async def test_the_directory_request_asks_only_for_the_fields_it_keeps(upstream)
     await s.resolve_institution("Test Community College A")
     q = next(r for r in upstream.requests if "/directory/" in r.url.path and "fields" in r.url.params)
     assert set(q.url.params["fields"].split(",")) == set(urban.DIRECTORY_FIELDS) and "cbsa" in q.url.params["fields"]
+
+
+# An upstream failure must reach the client as a ToolError with its reason: the SDK replaces the text of any other exception
+# with a bare "Error executing tool <name>".
+def _broken(*_a, **_k):
+    raise http.UpstreamError("educationdata.urban.org returned a non-JSON response.")
+
+
+async def _abroken(*a, **k):
+    _broken()
+
+
+async def test_a_failed_directory_download_says_why(upstream, monkeypatch):
+    monkeypatch.setattr(urban, "directory", _abroken)
+    for call in (s.resolve_institution("999001"), s.get_institution_profile("999001"), s.compare_peers("999001")):
+        with pytest.raises(ToolError, match="non-JSON response"):
+            await call
+
+
+async def test_enrollment_that_cannot_be_fetched_for_any_year_says_why(upstream, monkeypatch):
+    await s.resolve_institution("999001")  # directory cached
+    monkeypatch.setattr(urban, "enrollment_one", _abroken)
+    monkeypatch.setattr(urban, "enrollment_totals", _abroken)
+    with pytest.raises(ToolError, match="non-JSON response"):
+        await s.get_enrollment_trend("999001")
+    with pytest.raises(ToolError, match="non-JSON response"):
+        await s.compare_peers("999001")
+
+
+async def test_a_failed_finance_year_probe_and_retention_probe_say_why(upstream, monkeypatch):
+    await s.resolve_institution("999001")
+    monkeypatch.setattr(urban, "latest_finance_year", _abroken)
+    with pytest.raises(ToolError, match="non-JSON response"):
+        await s.get_financial_snapshot("999001")
+    monkeypatch.setattr(s.ipeds, "latest_year", _abroken)
+    with pytest.raises(ToolError, match="non-JSON response"):
+        await s.get_retention("999001")
+
+
+async def test_through_the_protocol_the_reason_is_shown_not_a_generic_error(upstream, monkeypatch):
+    monkeypatch.setattr(urban, "directory", _abroken)
+    with pytest.raises(ToolError, match="non-JSON response"):
+        await s.mcp.call_tool("resolve_institution", {"query": "999001"})
+
+
+async def test_compare_institutions_labels_an_unavailable_source_as_unavailable_not_as_not_found(upstream, monkeypatch):
+    await s.resolve_institution("999001")
+    real = s._directory
+    calls = []
+
+    async def flaky():
+        calls.append(1)
+        if len(calls) > 1:  # the first call (compare_institutions' own) succeeds, the per-institution ones fail
+            raise ToolError("educationdata.urban.org returned a non-JSON response.")
+        return await real()
+
+    monkeypatch.setattr(s, "_directory", flaky)
+    with pytest.raises(ToolError) as e:
+        await s.compare_institutions(["999001", "999002"])
+    assert "non-JSON response" in str(e.value) and "not found" not in str(e.value)

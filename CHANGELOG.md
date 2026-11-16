@@ -15,6 +15,8 @@ Format follows Keep a Changelog. The five servers are released to PyPI together 
 - Institutions and funding: free-text inputs accept letters (including accented Latin), ASCII digits and spaces; line breaks and other scripts' digits are rejected (the patterns no longer use `\w` or `\s`).
 
 ### Fixed
+- Institutions: when the Urban Institute API or NCES fails (an error status, a non-JSON body, no connection), the six tools that depend on the directory, enrollment, finance-year or retention-year lookups now return the reason as a tool error. They used to raise the raw exception, which the MCP SDK replaces with a bare "Error executing tool …". `compare_institutions` now labels such a failure as unavailable rather than not found.
+- Hosted pre-warm: a failed load is retried up to four times with a growing pause (20, 40, 60 s) instead of only after a "still downloading" answer, and each failed attempt prints its reason. The 2026-11-16 weekly rebuild failed on one slow Urban response without a retry.
 - Risk: the composite-score file in `.xlsx` form now parses. The discovery step accepted `.xlsx` links but the parser refused every `.xlsx` file, so the first year FSA published in that form would have failed every refresh.
 
 ## [0.1.1] - 2026-11-10
